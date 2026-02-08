@@ -1,21 +1,39 @@
-# ai-educate (MVP scaffold)
+# ai-educate (enterprise scaffold)
 
-本项目为“多模态AI互动式教学智能体”的可运行脚手架，包含：
-- 多轮对话澄清（规则化占位）
-- 参考资料上传（仅保存，解析待接入）
-- 课件初稿预览（PPT 结构 + 教案草稿 + 互动创意占位）
+“多模态AI互动式教学智能体”的企业级脚手架：
+- Vue 3 + Vite 前端（多轮对话 / 上传 / 预览）
+- Node/Express API 服务
+- 规则占位的对话与课件草稿生成（便于后续接入 LLM/RAG）
 
-## 启动
+## 目录结构
+
+```
+ai-educate/
+  server/        # API 服务
+  web/           # Vue 前端
+  data/uploads/  # 上传文件
+  docs/
+```
+
+## 启动方式
 
 ```bash
 npm install
 npm run dev
 ```
 
-浏览器打开：`http://localhost:5173`
+- 前端：http://localhost:5173
+- 后端：http://localhost:5174
+
+## 生产构建
+
+```bash
+npm run build
+npm run start
+```
 
 ## 下一步
-- 接入真实大模型（替换 `server/agent.js` 的规则逻辑）
-- 接入本地知识库与检索（RAG 模块）
+- 接入 Codex/LLM（替换 `server/agent.js` 规则逻辑）
+- 接入本地知识库与检索（RAG）
 - 接入多模态解析（PDF/视频等）
-- 生成 `.pptx` / `.docx` 的导出
+- 生成 `.pptx` / `.docx` 导出

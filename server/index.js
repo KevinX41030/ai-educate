@@ -6,8 +6,9 @@ const { nanoid } = require('nanoid');
 const { createInitialState, handleMessage } = require('./agent');
 
 const app = express();
-const PORT = process.env.PORT || 5173;
+const PORT = process.env.PORT || 5174;
 const UPLOAD_DIR = path.join(__dirname, '..', 'data', 'uploads');
+const WEB_DIST = path.join(__dirname, '..', 'web', 'dist');
 
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -26,7 +27,6 @@ const upload = multer({ storage });
 app.use(express.json({ limit: '4mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(UPLOAD_DIR));
-app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const sessions = new Map();
 
@@ -100,6 +100,13 @@ app.get('/api/session/:id', (req, res) => {
     messages: session.messages
   });
 });
+
+if (fs.existsSync(WEB_DIST)) {
+  app.use(express.static(WEB_DIST));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(WEB_DIST, 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`AI-educate server running on http://localhost:${PORT}`);
