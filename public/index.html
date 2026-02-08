@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>多模态AI互动式教学智能体 - MVP</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">多模态AI互动式教学智能体 · MVP</p>
+        <h1>从教学意图到课件初稿，只需要一次对话。</h1>
+        <p class="subtitle">当前版本为脚手架：完成对话澄清、需求总结与课件初稿预览。</p>
+      </div>
+      <div class="hero-card">
+        <div>
+          <p class="label">系统状态</p>
+          <p id="status" class="status">准备就绪</p>
+        </div>
+        <div>
+          <p class="label">建议输入格式</p>
+          <p class="mono">主题: 光合作用\n年级: 初二\n时长: 45分钟\n目标: 理解原理</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="panel chat">
+        <div class="panel-title">
+          <h2>教学意图对话</h2>
+          <div class="tools">
+            <button id="voiceBtn" class="ghost">语音输入</button>
+            <button id="clearBtn" class="ghost">清空对话</button>
+          </div>
+        </div>
+
+        <div id="chatList" class="chat-list"></div>
+
+        <div class="input-row">
+          <textarea id="chatInput" rows="3" placeholder="描述你的教学需求，或按建议格式填写..."></textarea>
+          <button id="sendBtn" class="primary">发送</button>
+        </div>
+
+        <div class="upload-block">
+          <div>
+            <h3>参考资料上传</h3>
+            <p>支持 PDF / Word / PPT / 图片 / 视频（暂仅保存，解析后续接入）。</p>
+          </div>
+          <div class="upload-row">
+            <input id="fileInput" type="file" multiple />
+            <button id="uploadBtn" class="secondary">上传</button>
+          </div>
+          <ul id="fileList" class="file-list"></ul>
+        </div>
+      </section>
+
+      <section class="panel preview">
+        <div class="panel-title">
+          <h2>课件预览</h2>
+          <button id="exportBtn" class="secondary">导出占位</button>
+        </div>
+
+        <div class="preview-block">
+          <h3>需求摘要</h3>
+          <pre id="summary" class="summary">暂无</pre>
+        </div>
+
+        <div class="preview-block">
+          <h3>PPT 结构草稿</h3>
+          <div id="pptPreview" class="cards"></div>
+        </div>
+
+        <div class="preview-block">
+          <h3>教案草稿</h3>
+          <div id="planPreview" class="plan"></div>
+        </div>
+
+        <div class="preview-block">
+          <h3>互动设计</h3>
+          <div id="interactionPreview" class="interaction"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
