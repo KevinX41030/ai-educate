@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const multer = require('multer');
 const { nanoid } = require('nanoid');
