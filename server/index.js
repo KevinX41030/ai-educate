@@ -1,9 +1,11 @@
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const { nanoid } = require('nanoid');
 const { createInitialState, handleMessage } = require('./agent');
+const { isLLMConfigured } = require('./llm');
 
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -46,11 +48,12 @@ app.get('/api/status', (_, res) => {
   res.json({
     ok: true,
     serverTime: new Date().toISOString(),
-    sessions: sessions.size
+    sessions: sessions.size,
+    llmConfigured: isLLMConfigured()
   });
 });
 
-app.post('/api/chat', (req, res) => {
+app.post('/api/chat', async (req, res) => {
   const { sessionId, text } = req.body || {};
   const session = getSession(sessionId);
 
@@ -61,7 +64,13 @@ app.post('/api/chat', (req, res) => {
 
   session.messages.push({ role: 'user', text: trimmed, ts: Date.now() });
 
-  const result = handleMessage(session.state, trimmed);
+  let result;
+  try {
+    result = await handleMessage(session.state, trimmed, session.messages);
+  } catch (error) {
+    result = { reply: '模型服务暂不可用，请稍后重试。', state: session.state };
+  }
+
   session.messages.push({ role: 'assistant', text: result.reply, ts: Date.now() });
 
   res.json({

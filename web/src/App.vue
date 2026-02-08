@@ -91,7 +91,11 @@ onMounted(async () => {
   appendMessage('assistant', '你好！请描述你的教学目标和需求，我会逐步澄清并生成课件初稿。');
   try {
     const data = await getStatus();
-    status.value = data.ok ? '运行中' : '不可用';
+    if (data.ok) {
+      status.value = data.llmConfigured ? '运行中 · 模型已连接' : '运行中 · 未配置模型';
+    } else {
+      status.value = '不可用';
+    }
   } catch (error) {
     status.value = '离线';
   }

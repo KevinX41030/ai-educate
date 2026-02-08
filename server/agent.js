@@ -1,4 +1,5 @@
 const { nanoid } = require('nanoid');
+const { extractIntentWithLLM, generateDraftWithLLM } = require('./llm');
 
 const REQUIRED_FIELDS = ["subject", "grade", "duration", "goals", "keyPoints"];
 
@@ -134,6 +135,22 @@ function extractFieldsFromText(text, state) {
   }
 }
 
+function mergeFields(state, fields) {
+  if (!fields) return;
+  const entries = Object.entries(fields);
+  for (const [key, value] of entries) {
+    if (value === null || value === undefined) continue;
+    if (key === "keyPoints") {
+      const normalized = normalizeKeyPoints(value);
+      if (normalized.length) state.fields.keyPoints = normalized;
+      continue;
+    }
+    if (typeof value === "string" && value.trim()) {
+      state.fields[key] = value.trim();
+    }
+  }
+}
+
 function buildSummary(state) {
   const { fields } = state;
   return [
@@ -220,6 +237,35 @@ function generateDraft(state) {
   };
 }
 
+function normalizeDraft(raw) {
+  if (!raw || !Array.isArray(raw.ppt) || raw.ppt.length === 0) return null;
+  const ppt = raw.ppt.map((slide) => ({
+    id: nanoid(),
+    title: slide.title || "未命名",
+    type: slide.type || "content",
+    bullets: Array.isArray(slide.bullets) ? slide.bullets : []
+  }));
+
+  const lessonPlan = raw.lessonPlan || {};
+  const interactionIdea = raw.interactionIdea || {};
+
+  return {
+    ppt,
+    lessonPlan: {
+      goals: lessonPlan.goals || "",
+      process: Array.isArray(lessonPlan.process) ? lessonPlan.process : [],
+      methods: lessonPlan.methods || "",
+      activities: lessonPlan.activities || "",
+      homework: lessonPlan.homework || ""
+    },
+    interactionIdea: {
+      title: interactionIdea.title || "",
+      description: interactionIdea.description || ""
+    },
+    updatedAt: new Date().toISOString()
+  };
+}
+
 function applyEdit(draft, text) {
   if (!draft) return draft;
   const updated = { ...draft, ppt: [...draft.ppt] };
@@ -269,12 +315,24 @@ function getNextQuestion(state) {
   return "需求已齐全，可以开始生成初稿。确认后我将生成课件初稿。";
 }
 
-function handleMessage(state, text) {
+async function handleMessage(state, text, messages = []) {
   extractFieldsFromText(text, state);
+  let llmResult = null;
+  try {
+    const contextMessages = messages.length ? messages.slice(0, -1) : messages;
+    llmResult = await extractIntentWithLLM({ state, messages: contextMessages, text });
+  } catch (error) {
+    llmResult = null;
+  }
 
-  if (state.draft && isEdit(text)) {
-    state.draft = applyEdit(state.draft, text);
-    state.lastEdit = text;
+  if (llmResult?.fields) {
+    mergeFields(state, llmResult.fields);
+  }
+
+  const editInstruction = llmResult?.edit || text;
+  if (state.draft && (llmResult?.intent === "edit" || isEdit(text))) {
+    state.draft = applyEdit(state.draft, editInstruction);
+    state.lastEdit = editInstruction;
     return {
       reply: "已根据你的修改建议更新课件草稿。还需要调整哪些部分？",
       state,
@@ -303,9 +361,11 @@ function handleMessage(state, text) {
     };
   }
 
-  if (isConfirm(text)) {
+  if (llmResult?.intent === "confirm" || isConfirm(text)) {
     if (!state.draft) {
-      state.draft = generateDraft(state);
+      const llmDraft = await generateDraftWithLLM({ state });
+      const normalized = normalizeDraft(llmDraft);
+      state.draft = normalized || generateDraft(state);
     }
     state.confirmed = true;
     return {

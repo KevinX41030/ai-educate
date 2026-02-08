@@ -1,0 +1,166 @@
+const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
+const DEFAULT_MODEL = 'gpt-4o-mini';
+
+function isLLMConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY);
+}
+
+function normalizeBaseUrl(url) {
+  if (!url) return DEFAULT_BASE_URL;
+  return url.replace(/\/+$/, '');
+}
+
+function buildHeaders() {
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+  };
+  if (process.env.OPENAI_ORG_ID) {
+    headers['OpenAI-Organization'] = process.env.OPENAI_ORG_ID;
+  }
+  if (process.env.OPENAI_PROJECT_ID) {
+    headers['OpenAI-Project'] = process.env.OPENAI_PROJECT_ID;
+  }
+  return headers;
+}
+
+function extractOutputText(response) {
+  if (!response || !Array.isArray(response.output)) return '';
+  for (const item of response.output) {
+    if (item.type !== 'message') continue;
+    const content = item.content || [];
+    for (const part of content) {
+      if (part.type === 'output_text') {
+        return part.text || '';
+      }
+    }
+  }
+  return '';
+}
+
+async function callResponsesApi(payload) {
+  if (!isLLMConfigured()) return null;
+
+  const baseUrl = normalizeBaseUrl(process.env.OPENAI_BASE_URL);
+  const response = await fetch(`${baseUrl}/responses`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`openai_error_${response.status}: ${errorText}`);
+  }
+
+  return response.json();
+}
+
+function safeJsonParse(text) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return null;
+  }
+}
+
+function buildContext(state, messages, text) {
+  const history = (messages || [])
+    .slice(-6)
+    .map((item) => `${item.role === 'assistant' ? '助手' : '用户'}：${item.text}`)
+    .join('\n');
+
+  const fields = state?.fields || {};
+  const keyPoints = Array.isArray(fields.keyPoints) ? fields.keyPoints.join('、') : '';
+
+  return [
+    `当前已知信息：`,
+    `主题/章节：${fields.subject || '未填写'}`,
+    `年级/学段：${fields.grade || '未填写'}`,
+    `课堂时长：${fields.duration || '未填写'}`,
+    `教学目标：${fields.goals || '未填写'}`,
+    `核心知识点：${keyPoints || '未填写'}`,
+    `教学风格：${fields.style || '未填写'}`,
+    `互动设计：${fields.interactions || '未填写'}`,
+    history ? `\n对话历史：\n${history}` : '',
+    `\n用户最新输入：${text}`
+  ].filter(Boolean).join('\n');
+}
+
+async function extractIntentWithLLM({ state, messages, text }) {
+  if (!isLLMConfigured()) return null;
+
+  const payload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    input: [
+      {
+        role: 'system',
+        content:
+          '你是教学智能体的需求分析助手。请根据用户输入更新教学意图字段，并判断用户意图。' +
+          '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
+          '"fields": {"subject": string|null, "grade": string|null, "duration": string|null, "goals": string|null, "keyPoints": string[]|null, "style": string|null, "interactions": string|null},' +
+          '"intent": "provide_info"|"confirm"|"edit"|"other",' +
+          '"edit": string|null' +
+          '}。' +
+          '如果字段未提及则返回 null，不要编造。'
+      },
+      {
+        role: 'user',
+        content: buildContext(state, messages, text)
+      }
+    ],
+    text: { format: { type: 'json_object' } },
+    max_output_tokens: 800
+  };
+
+  const response = await callResponsesApi(payload);
+  const outputText = extractOutputText(response);
+  return safeJsonParse(outputText);
+}
+
+async function generateDraftWithLLM({ state }) {
+  if (!isLLMConfigured()) return null;
+
+  const fields = state.fields || {};
+  const payload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    input: [
+      {
+        role: 'system',
+        content:
+          '你是教学课件生成助手。请根据给定教学意图生成课件草稿。' +
+          '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
+          '"ppt": [{"title": string, "type": "cover"|"toc"|"content"|"summary", "bullets": string[]}],' +
+          '"lessonPlan": {"goals": string, "process": string[], "methods": string, "activities": string, "homework": string},' +
+          '"interactionIdea": {"title": string, "description": string}' +
+          '}。' +
+          'PPT 至少包含封面、目录、内容页（每个知识点一页）、总结页。'
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          subject: fields.subject,
+          grade: fields.grade,
+          duration: fields.duration,
+          goals: fields.goals,
+          keyPoints: fields.keyPoints,
+          style: fields.style,
+          interactions: fields.interactions
+        })
+      }
+    ],
+    text: { format: { type: 'json_object' } },
+    max_output_tokens: 1200
+  };
+
+  const response = await callResponsesApi(payload);
+  const outputText = extractOutputText(response);
+  return safeJsonParse(outputText);
+}
+
+module.exports = {
+  extractIntentWithLLM,
+  generateDraftWithLLM,
+  isLLMConfigured
+};

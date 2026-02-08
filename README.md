@@ -25,6 +25,18 @@ npm run dev
 - 前端：http://localhost:5173
 - 后端：http://localhost:5174
 
+## 模型配置（Codex/LLM）
+
+复制 `.env.example` 为 `.env`，填写 API Key 与 Base URL：
+
+```bash
+OPENAI_API_KEY=你的key
+OPENAI_BASE_URL=https://api.iksvip.cc/v1
+OPENAI_MODEL=gpt-4o-mini
+```
+
+如需使用 Codex 模型，将 `OPENAI_MODEL` 替换为你的模型 ID 即可。
+
 ## 生产构建
 
 ```bash
