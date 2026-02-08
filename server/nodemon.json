@@ -1,0 +1,6 @@
+{
+  "watch": ["index.js", "agent.js", "llm.js"],
+  "ext": "js,json",
+  "ignore": ["../data/uploads/*"],
+  "delay": "200"
+}

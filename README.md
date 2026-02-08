@@ -25,6 +25,16 @@ npm run dev
 - 前端：http://localhost:5173
 - 后端：http://localhost:5174
 
+## 开发时查看日志与热更新
+
+如果想分别查看日志、并启用后端热更新，建议分开启动：\n
+```bash
+npm run dev:server\nnpm run dev:web
+```
+
+- 前端（Vite）自带热更新\n
+- 后端使用 nodemon 热更新（配置见 `server/nodemon.json`）
+
 ## 模型配置（Codex/LLM）
 
 复制 `.env.example` 为 `.env`，填写 API Key 与 Base URL：
