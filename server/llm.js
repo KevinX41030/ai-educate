@@ -25,16 +25,22 @@ function buildHeaders() {
 }
 
 function extractOutputText(response) {
-  if (!response || !Array.isArray(response.output)) return '';
-  for (const item of response.output) {
-    if (item.type !== 'message') continue;
-    const content = item.content || [];
-    for (const part of content) {
-      if (part.type === 'output_text') {
-        return part.text || '';
+  if (!response) return '';
+  if (typeof response.output_text === 'string') return response.output_text;
+  if (Array.isArray(response.output)) {
+    for (const item of response.output) {
+      if (item.type !== 'message') continue;
+      const content = item.content || [];
+      if (typeof content === 'string') return content;
+      for (const part of content) {
+        if (!part) continue;
+        if (part.type === 'output_text' || part.type === 'text') {
+          return part.text || '';
+        }
       }
     }
   }
+  if (typeof response.text === 'string') return response.text;
   return '';
 }
 
@@ -61,8 +67,40 @@ function safeJsonParse(text) {
   try {
     return JSON.parse(text);
   } catch (error) {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch (innerError) {
+        return null;
+      }
+    }
     return null;
   }
+}
+
+async function callChatCompletionsApi(payload) {
+  if (!isLLMConfigured()) return null;
+  const baseUrl = normalizeBaseUrl(process.env.OPENAI_BASE_URL);
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`openai_chat_error_${response.status}: ${errorText}`);
+  }
+
+  return response.json();
+}
+
+function extractChatText(response) {
+  const message = response?.choices?.[0]?.message;
+  if (!message) return '';
+  if (typeof message.content === 'string') return message.content;
+  return '';
 }
 
 function buildContext(state, messages, text) {
@@ -114,9 +152,29 @@ async function extractIntentWithLLM({ state, messages, text }) {
     max_output_tokens: 800
   };
 
-  const response = await callResponsesApi(payload);
-  const outputText = extractOutputText(response);
-  return safeJsonParse(outputText);
+  let response;
+  try {
+    response = await callResponsesApi(payload);
+    const outputText = extractOutputText(response);
+    const parsed = safeJsonParse(outputText);
+    if (parsed) return parsed;
+  } catch (error) {
+    response = null;
+  }
+
+  const chatPayload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    messages: [
+      payload.input[0],
+      payload.input[1]
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.2
+  };
+
+  const chatResponse = await callChatCompletionsApi(chatPayload);
+  const chatText = extractChatText(chatResponse);
+  return safeJsonParse(chatText);
 }
 
 async function generateDraftWithLLM({ state }) {
@@ -154,9 +212,27 @@ async function generateDraftWithLLM({ state }) {
     max_output_tokens: 1200
   };
 
-  const response = await callResponsesApi(payload);
-  const outputText = extractOutputText(response);
-  return safeJsonParse(outputText);
+  try {
+    const response = await callResponsesApi(payload);
+    const outputText = extractOutputText(response);
+    const parsed = safeJsonParse(outputText);
+    if (parsed) return parsed;
+  } catch (error) {
+    // fallback to chat below
+  }
+
+  const chatPayload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    messages: [
+      payload.input[0],
+      payload.input[1]
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.3
+  };
+  const chatResponse = await callChatCompletionsApi(chatPayload);
+  const chatText = extractChatText(chatResponse);
+  return safeJsonParse(chatText);
 }
 
 module.exports = {
