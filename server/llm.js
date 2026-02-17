@@ -5,6 +5,18 @@ function isLLMConfigured() {
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
+function shouldDebug() {
+  return process.env.LLM_DEBUG === '1';
+}
+
+function debugLog(label, payload) {
+  if (!shouldDebug()) return;
+  const preview = typeof payload === 'string'
+    ? payload.slice(0, 800)
+    : JSON.stringify(payload).slice(0, 800);
+  console.log(`[LLM_DEBUG] ${label}: ${preview}`);
+}
+
 function normalizeBaseUrl(url) {
   if (!url) return DEFAULT_BASE_URL;
   return url.replace(/\/+$/, '');
@@ -155,10 +167,13 @@ async function extractIntentWithLLM({ state, messages, text }) {
   let response;
   try {
     response = await callResponsesApi(payload);
+    debugLog('responses_raw', response);
     const outputText = extractOutputText(response);
+    debugLog('responses_text', outputText);
     const parsed = safeJsonParse(outputText);
     if (parsed) return parsed;
   } catch (error) {
+    debugLog('responses_error', String(error));
     response = null;
   }
 
@@ -173,7 +188,9 @@ async function extractIntentWithLLM({ state, messages, text }) {
   };
 
   const chatResponse = await callChatCompletionsApi(chatPayload);
+  debugLog('chat_raw', chatResponse);
   const chatText = extractChatText(chatResponse);
+  debugLog('chat_text', chatText);
   return safeJsonParse(chatText);
 }
 
@@ -214,10 +231,13 @@ async function generateDraftWithLLM({ state }) {
 
   try {
     const response = await callResponsesApi(payload);
+    debugLog('responses_draft_raw', response);
     const outputText = extractOutputText(response);
+    debugLog('responses_draft_text', outputText);
     const parsed = safeJsonParse(outputText);
     if (parsed) return parsed;
   } catch (error) {
+    debugLog('responses_draft_error', String(error));
     // fallback to chat below
   }
 
@@ -231,7 +251,9 @@ async function generateDraftWithLLM({ state }) {
     temperature: 0.3
   };
   const chatResponse = await callChatCompletionsApi(chatPayload);
+  debugLog('chat_draft_raw', chatResponse);
   const chatText = extractChatText(chatResponse);
+  debugLog('chat_draft_text', chatText);
   return safeJsonParse(chatText);
 }
 
