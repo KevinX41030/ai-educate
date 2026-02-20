@@ -1,5 +1,6 @@
 const { nanoid } = require('nanoid');
 const { extractIntentWithLLM, generateDraftWithLLM } = require('./llm');
+const { searchKnowledge } = require('./rag');
 
 const REQUIRED_FIELDS = ["subject", "grade", "duration", "goals", "keyPoints"];
 
@@ -47,7 +48,8 @@ function createInitialState() {
     ready: false,
     confirmed: false,
     draft: null,
-    lastEdit: ""
+    lastEdit: "",
+    rag: []
   };
 }
 
@@ -250,6 +252,16 @@ function buildSummary(state) {
     `教学风格：${fields.style || "未填写"}`,
     `互动设计：${fields.interactions || "未填写"}`
   ].join("\n");
+}
+
+function buildRagQuery(state) {
+  const { fields } = state;
+  const parts = [
+    fields.subject,
+    fields.goals,
+    Array.isArray(fields.keyPoints) ? fields.keyPoints.join(' ') : ''
+  ];
+  return parts.filter(Boolean).join(' ');
 }
 
 function getMissingFields(state) {
@@ -493,7 +505,9 @@ async function handleMessage(state, text, messages = []) {
 
   if (llmResult?.intent === "confirm" || isConfirm(text)) {
     if (!state.draft) {
-      const llmDraft = await generateDraftWithLLM({ state });
+      const ragQuery = buildRagQuery(state);
+      state.rag = searchKnowledge(ragQuery, 4);
+      const llmDraft = await generateDraftWithLLM({ state, ragContext: state.rag });
       const normalized = normalizeDraft(llmDraft);
       state.draft = normalized || generateDraft(state);
     }

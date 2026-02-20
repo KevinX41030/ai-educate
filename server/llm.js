@@ -197,10 +197,13 @@ async function extractIntentWithLLM({ state, messages, text }) {
   return safeJsonParse(chatText);
 }
 
-async function generateDraftWithLLM({ state }) {
+async function generateDraftWithLLM({ state, ragContext = [] }) {
   if (!isLLMConfigured()) return null;
 
   const fields = state.fields || {};
+  const knowledge = Array.isArray(ragContext) && ragContext.length
+    ? ragContext.map((item, idx) => `(${idx + 1}) [${item.source}] ${item.content}`).join('\n')
+    : '';
   const payload = {
     model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
     input: [
@@ -226,6 +229,10 @@ async function generateDraftWithLLM({ state }) {
           style: fields.style,
           interactions: fields.interactions
         })
+      },
+      {
+        role: 'user',
+        content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
       }
     ],
     text: { format: { type: 'json_object' } },
@@ -248,7 +255,8 @@ async function generateDraftWithLLM({ state }) {
     model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
     messages: [
       payload.input[0],
-      payload.input[1]
+      payload.input[1],
+      payload.input[2]
     ],
     response_format: { type: 'json_object' },
     temperature: 0.3

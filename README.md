@@ -3,7 +3,7 @@
 “多模态AI互动式教学智能体”的企业级脚手架：
 - Vue 3 + Vite 前端（多轮对话 / 上传 / 预览）
 - Node/Express API 服务
-- 规则占位的对话与课件草稿生成（便于后续接入 LLM/RAG）
+- 规则占位 + LLM 生成 + 基线 RAG（关键词检索）
 
 ## 目录结构
 
@@ -59,8 +59,9 @@ npm run start
 - API 约定：`docs/api.md`
 - 教学意图 Schema：`docs/schema/intent.schema.json`
 - 课件草稿 Schema：`docs/schema/lesson.schema.json`
+ - 本地知识库：`data/knowledge_base/`
+ - 功能验证指引：`docs/verification.md`
 
 ## 下一步
-- 接入本地知识库与检索（RAG）
 - 接入多模态解析（PDF/视频等）
 - 生成 `.pptx` / `.docx` 导出

@@ -13,6 +13,7 @@
         :summary="summary"
         :draft="draft"
         :intent="intent"
+        :rag="rag"
         :on-confirm="handleConfirm"
       />
     </main>
@@ -33,6 +34,7 @@ const files = ref([]);
 const summary = ref('暂无');
 const draft = ref(null);
 const intent = ref(null);
+const rag = ref([]);
 
 const buildSummary = (state) => {
   if (!state) return '暂无';
@@ -68,6 +70,7 @@ const handleSend = async (text) => {
     if (data.state) summary.value = buildSummary(data.state);
     if (data.intent) intent.value = data.intent;
     if (data.draft) draft.value = data.draft;
+    if (data.rag) rag.value = data.rag;
   } catch (error) {
     appendMessage('assistant', '请求失败，请检查服务是否运行。');
   }
@@ -90,6 +93,7 @@ const handleClear = () => {
   draft.value = null;
   files.value = [];
   intent.value = null;
+  rag.value = [];
   sessionId.value = '';
   localStorage.removeItem('sessionId');
   appendMessage('assistant', '对话已清空，可以重新描述需求。');

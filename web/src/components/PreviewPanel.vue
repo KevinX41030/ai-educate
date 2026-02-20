@@ -62,6 +62,17 @@
         </template>
       </div>
     </div>
+
+    <div class="preview-block">
+      <h3>知识库引用</h3>
+      <div class="rag-box">
+        <p v-if="!rag.length" class="muted">暂无知识库引用。</p>
+        <div v-for="item in rag" :key="item.id" class="rag-item">
+          <div class="rag-meta">{{ item.source }} · score {{ item.score }}</div>
+          <p>{{ item.content }}</p>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -80,6 +91,10 @@ const props = defineProps({
   intent: {
     type: Object,
     default: null
+  },
+  rag: {
+    type: Array,
+    default: () => []
   },
   onConfirm: {
     type: Function,

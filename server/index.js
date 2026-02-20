@@ -5,6 +5,7 @@ const express = require('express');
 const multer = require('multer');
 const { nanoid } = require('nanoid');
 const { createInitialState, handleMessage, buildIntentPayload } = require('./agent');
+const { getStats, searchKnowledge, reloadKnowledgeBase } = require('./rag');
 const { isLLMConfigured } = require('./llm');
 
 const app = express();
@@ -49,8 +50,24 @@ app.get('/api/status', (_, res) => {
     ok: true,
     serverTime: new Date().toISOString(),
     sessions: sessions.size,
-    llmConfigured: isLLMConfigured()
+    llmConfigured: isLLMConfigured(),
+    rag: getStats()
   });
+});
+
+app.get('/api/rag/status', (_, res) => {
+  res.json(getStats());
+});
+
+app.post('/api/rag/query', (req, res) => {
+  const { query, topK } = req.body || {};
+  const results = searchKnowledge(String(query || ''), Number(topK || 4));
+  res.json({ query, results });
+});
+
+app.post('/api/rag/reload', (_, res) => {
+  const stats = reloadKnowledgeBase();
+  res.json({ ok: true, ...stats });
 });
 
 app.post('/api/chat', async (req, res) => {
@@ -78,7 +95,8 @@ app.post('/api/chat', async (req, res) => {
     reply: result.reply,
     state: result.state,
     intent: buildIntentPayload(result.state),
-    draft: result.draft || null
+    draft: result.draft || null,
+    rag: result.state?.rag || []
   });
 });
 
@@ -108,7 +126,8 @@ app.get('/api/session/:id', (req, res) => {
     sessionId: session.id,
     state: session.state,
     intent: buildIntentPayload(session.state),
-    messages: session.messages
+    messages: session.messages,
+    rag: session.state?.rag || []
   });
 });
 
