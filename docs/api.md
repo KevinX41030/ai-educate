@@ -49,3 +49,20 @@ FormData:
 
 ## GET /api/session/:id
 Fetch full session state.
+
+## GET /api/rag/status
+Returns knowledge base index statistics.
+
+## POST /api/rag/query
+Query the local knowledge base (baseline keyword retrieval).
+
+Request example:
+```json
+{
+  "query": "photosynthesis light reaction",
+  "topK": 3
+}
+```
+
+## POST /api/rag/reload
+Reload the local knowledge base index.

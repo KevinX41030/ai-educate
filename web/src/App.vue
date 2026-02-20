@@ -1,21 +1,33 @@
 <template>
   <div class="app">
     <HeroHeader :status="status" />
-    <main class="grid">
-      <ChatPanel
-        :messages="messages"
-        :files="files"
-        :on-send="handleSend"
-        :on-clear="handleClear"
-        :on-upload="handleUpload"
-      />
-      <PreviewPanel
-        :summary="summary"
-        :draft="draft"
-        :intent="intent"
-        :rag="rag"
-        :on-confirm="handleConfirm"
-      />
+    <main class="layout">
+      <div class="sidebar">
+        <IntentPanel
+          :fields="fields"
+          :intent="intent"
+          :on-submit="handleFormSubmit"
+          :on-reset="handleClear"
+        />
+      </div>
+      <div class="workspace">
+        <div class="workspace-grid">
+          <ChatPanel
+            :messages="messages"
+            :files="files"
+            :on-send="handleSend"
+            :on-clear="handleClear"
+            :on-upload="handleUpload"
+          />
+          <PreviewPanel
+            :summary="summary"
+            :draft="draft"
+            :intent="intent"
+            :rag="rag"
+            :on-confirm="handleConfirm"
+          />
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -23,6 +35,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import HeroHeader from './components/HeroHeader.vue';
+import IntentPanel from './components/IntentPanel.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import PreviewPanel from './components/PreviewPanel.vue';
 import { getStatus, sendMessage, uploadFiles } from './services/api';
@@ -35,6 +48,15 @@ const summary = ref('暂无');
 const draft = ref(null);
 const intent = ref(null);
 const rag = ref([]);
+const fields = ref({
+  subject: '',
+  grade: '',
+  duration: '',
+  goals: '',
+  keyPoints: [],
+  style: '',
+  interactions: ''
+});
 
 const buildSummary = (state) => {
   if (!state) return '暂无';
@@ -71,6 +93,7 @@ const handleSend = async (text) => {
     if (data.intent) intent.value = data.intent;
     if (data.draft) draft.value = data.draft;
     if (data.rag) rag.value = data.rag;
+    if (data.state?.fields) fields.value = data.state.fields;
   } catch (error) {
     appendMessage('assistant', '请求失败，请检查服务是否运行。');
   }
@@ -94,9 +117,22 @@ const handleClear = () => {
   files.value = [];
   intent.value = null;
   rag.value = [];
+  fields.value = {
+    subject: '',
+    grade: '',
+    duration: '',
+    goals: '',
+    keyPoints: [],
+    style: '',
+    interactions: ''
+  };
   sessionId.value = '';
   localStorage.removeItem('sessionId');
   appendMessage('assistant', '对话已清空，可以重新描述需求。');
+};
+
+const handleFormSubmit = async (text) => {
+  await handleSend(text);
 };
 
 const handleConfirm = async () => {
