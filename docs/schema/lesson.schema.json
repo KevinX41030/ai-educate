@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-educate.local/schema/lesson.schema.json",
+  "title": "LessonDraft",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "ppt": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["cover", "toc", "content", "summary"]
+          },
+          "bullets": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["id", "title", "type", "bullets"]
+      },
+      "minItems": 1
+    },
+    "lessonPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "goals": { "type": "string" },
+        "process": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "methods": { "type": "string" },
+        "activities": { "type": "string" },
+        "homework": { "type": "string" }
+      },
+      "required": ["goals", "process", "methods", "activities", "homework"]
+    },
+    "interactionIdea": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["title", "description"]
+    },
+    "updatedAt": { "type": "string" }
+  },
+  "required": ["ppt", "lessonPlan", "interactionIdea", "updatedAt"]
+}

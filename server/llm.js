@@ -153,7 +153,10 @@ async function extractIntentWithLLM({ state, messages, text }) {
           '"intent": "provide_info"|"confirm"|"edit"|"other",' +
           '"edit": string|null' +
           '}。' +
-          '如果字段未提及则返回 null，不要编造。'
+          '允许合理归纳与推断（例如“给初二讲光合作用”→ subject=光合作用, grade=初二）。' +
+          '如果无法判断则返回 null，不要编造。' +
+          '当用户只是问候/闲聊且没有课程信息时，intent=other。' +
+          '只要出现有效字段，intent=provide_info。'
       },
       {
         role: 'user',

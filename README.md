@@ -27,12 +27,13 @@ npm run dev
 
 ## 开发时查看日志与热更新
 
-如果想分别查看日志、并启用后端热更新，建议分开启动：\n
+如果想分别查看日志、并启用后端热更新，建议分开启动：
 ```bash
-npm run dev:server\nnpm run dev:web
+npm run dev:server
+npm run dev:web
 ```
 
-- 前端（Vite）自带热更新\n
+- 前端（Vite）自带热更新
 - 后端使用 nodemon 热更新（配置见 `server/nodemon.json`）
 
 ## 模型配置（Codex/LLM）
@@ -42,7 +43,7 @@ npm run dev:server\nnpm run dev:web
 ```bash
 OPENAI_API_KEY=你的key
 OPENAI_BASE_URL=https://api.iksvip.cc/v1
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.2-codex
 ```
 
 如需使用 Codex 模型，将 `OPENAI_MODEL` 替换为你的模型 ID 即可。
@@ -54,8 +55,12 @@ npm run build
 npm run start
 ```
 
+## 规范文档
+- API 约定：`docs/api.md`
+- 教学意图 Schema：`docs/schema/intent.schema.json`
+- 课件草稿 Schema：`docs/schema/lesson.schema.json`
+
 ## 下一步
-- 接入 Codex/LLM（替换 `server/agent.js` 规则逻辑）
 - 接入本地知识库与检索（RAG）
 - 接入多模态解析（PDF/视频等）
 - 生成 `.pptx` / `.docx` 导出

@@ -9,7 +9,12 @@
         :on-clear="handleClear"
         :on-upload="handleUpload"
       />
-      <PreviewPanel :summary="summary" :draft="draft" />
+      <PreviewPanel
+        :summary="summary"
+        :draft="draft"
+        :intent="intent"
+        :on-confirm="handleConfirm"
+      />
     </main>
   </div>
 </template>
@@ -27,6 +32,7 @@ const messages = ref([]);
 const files = ref([]);
 const summary = ref('暂无');
 const draft = ref(null);
+const intent = ref(null);
 
 const buildSummary = (state) => {
   if (!state) return '暂无';
@@ -60,6 +66,7 @@ const handleSend = async (text) => {
     syncSession(data.sessionId);
     if (data.reply) appendMessage('assistant', data.reply);
     if (data.state) summary.value = buildSummary(data.state);
+    if (data.intent) intent.value = data.intent;
     if (data.draft) draft.value = data.draft;
   } catch (error) {
     appendMessage('assistant', '请求失败，请检查服务是否运行。');
@@ -82,9 +89,14 @@ const handleClear = () => {
   summary.value = '暂无';
   draft.value = null;
   files.value = [];
+  intent.value = null;
   sessionId.value = '';
   localStorage.removeItem('sessionId');
   appendMessage('assistant', '对话已清空，可以重新描述需求。');
+};
+
+const handleConfirm = async () => {
+  await handleSend('确认');
 };
 
 onMounted(async () => {

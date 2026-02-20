@@ -11,6 +11,20 @@
     </div>
 
     <div class="preview-block">
+      <h3>需求确认</h3>
+      <div class="confirm-box">
+        <p v-if="intent && intent.confirmed" class="confirm-status success">已确认，可生成课件。</p>
+        <template v-else>
+          <p v-if="missingFields.length" class="confirm-status warn">
+            待补充：{{ missingFields.join('、') }}
+          </p>
+          <p v-else class="confirm-status">信息已齐全，请确认生成初稿。</p>
+          <button class="primary" :disabled="!canConfirm" @click="handleConfirm">确认生成</button>
+        </template>
+      </div>
+    </div>
+
+    <div class="preview-block">
       <h3>PPT 结构草稿</h3>
       <div class="cards">
         <p v-if="!slides.length" class="muted">等待生成课件初稿。</p>
@@ -62,6 +76,14 @@ const props = defineProps({
   draft: {
     type: Object,
     default: null
+  },
+  intent: {
+    type: Object,
+    default: null
+  },
+  onConfirm: {
+    type: Function,
+    default: null
   }
 });
 
@@ -69,6 +91,20 @@ const slides = computed(() => props.draft?.ppt ?? []);
 const lessonPlan = computed(() => props.draft?.lessonPlan || null);
 const interactionIdea = computed(() => props.draft?.interactionIdea || null);
 const updatedAt = computed(() => props.draft?.updatedAt || null);
+const FIELD_LABELS = {
+  subject: '主题/章节',
+  grade: '年级/学段',
+  duration: '课堂时长',
+  goals: '教学目标',
+  keyPoints: '核心知识点',
+  style: '教学风格',
+  interactions: '互动设计'
+};
+
+const missingFields = computed(() =>
+  (props.intent?.missingFields || []).map((field) => FIELD_LABELS[field] || field)
+);
+const canConfirm = computed(() => props.intent && props.intent.ready && !props.intent.confirmed);
 
 const formatTime = (value) => {
   if (!value) return '';
@@ -81,5 +117,10 @@ const handleExport = () => {
     return;
   }
   window.alert('导出功能为占位，后续将生成 .pptx/.docx 文件。');
+};
+
+const handleConfirm = () => {
+  if (!props.onConfirm) return;
+  props.onConfirm();
 };
 </script>

@@ -291,6 +291,28 @@ textarea {
   border: 1px solid #d2e6e2;
 }
 
+.confirm-box {
+  padding: 12px;
+  border-radius: 14px;
+  background: #f7f4ef;
+  border: 1px solid #eadfce;
+  display: grid;
+  gap: 10px;
+}
+
+.confirm-status {
+  margin: 0;
+  font-size: 14px;
+}
+
+.confirm-status.warn {
+  color: #9d5c0d;
+}
+
+.confirm-status.success {
+  color: #2a9d8f;
+}
+
 .muted {
   color: var(--muted);
   margin: 0;

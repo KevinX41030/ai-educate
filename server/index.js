@@ -4,7 +4,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const multer = require('multer');
 const { nanoid } = require('nanoid');
-const { createInitialState, handleMessage } = require('./agent');
+const { createInitialState, handleMessage, buildIntentPayload } = require('./agent');
 const { isLLMConfigured } = require('./llm');
 
 const app = express();
@@ -77,6 +77,7 @@ app.post('/api/chat', async (req, res) => {
     sessionId: session.id,
     reply: result.reply,
     state: result.state,
+    intent: buildIntentPayload(result.state),
     draft: result.draft || null
   });
 });
@@ -106,6 +107,7 @@ app.get('/api/session/:id', (req, res) => {
   res.json({
     sessionId: session.id,
     state: session.state,
+    intent: buildIntentPayload(session.state),
     messages: session.messages
   });
 });

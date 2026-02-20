@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-educate.local/schema/intent.schema.json",
+  "title": "TeachingIntent",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "subject": { "type": "string", "minLength": 1, "description": "Lesson subject or chapter" },
+    "grade": { "type": "string", "minLength": 1, "description": "Target grade or level" },
+    "duration": { "type": "string", "minLength": 1, "description": "Lesson duration" },
+    "goals": { "type": "string", "minLength": 1, "description": "Teaching goals" },
+    "keyPoints": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "Key knowledge points"
+    },
+    "style": { "type": "string", "description": "Teaching style" },
+    "interactions": { "type": "string", "description": "Interaction design" }
+  },
+  "required": ["subject", "grade", "duration", "goals", "keyPoints"]
+}

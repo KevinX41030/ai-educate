@@ -23,6 +23,14 @@ const FIELD_QUESTIONS = {
   interactions: "是否需要互动设计/小游戏？（可选）"
 };
 
+const SMALL_TALK_RESPONSES = {
+  greeting: "你好！我是教学智能体，可以帮你快速生成课件初稿。",
+  presence: "我在的，随时可以开始。",
+  identity: "我是多模态教学智能体，负责理解教学需求并生成课件草稿。",
+  thanks: "不客气！需要我继续帮你完善课程吗？",
+  bye: "好的，随时需要我再找我。"
+};
+
 function createInitialState() {
   return {
     id: nanoid(),
@@ -65,12 +73,18 @@ function parseKeyValuePairs(text) {
 function mapKeyToField(key) {
   const mapping = {
     "主题": "subject",
+    "课程主题": "subject",
+    "课程内容": "subject",
     "课程": "subject",
     "课题": "subject",
     "章节": "subject",
+    "单元": "subject",
+    "课文": "subject",
     "科目": "subject",
+    "授课对象": "grade",
     "年级": "grade",
     "学段": "grade",
+    "对象": "grade",
     "时长": "duration",
     "课时": "duration",
     "目标": "goals",
@@ -80,11 +94,85 @@ function mapKeyToField(key) {
     "重点": "keyPoints",
     "难点": "keyPoints",
     "风格": "style",
+    "形式": "style",
     "呈现": "style",
     "互动": "interactions",
+    "活动设计": "interactions",
     "活动": "interactions"
   };
   return mapping[key] || "";
+}
+
+function detectGrade(text) {
+  const gradePatterns = [
+    /(小学|初中|高中|大学|研究生|本科|硕士|博士)/,
+    /(初一|初二|初三|高一|高二|高三)/,
+    /([一二三四五六七八九]年级)/,
+    /(K\d{1,2})/i
+  ];
+  for (const pattern of gradePatterns) {
+    const match = text.match(pattern);
+    if (match) return match[0];
+  }
+  return "";
+}
+
+function detectDuration(text) {
+  const minMatch = text.match(/(\d{1,3})\s*(分钟|min)/);
+  if (minMatch) return `${minMatch[1]}分钟`;
+  const hourMatch = text.match(/(\d{1,2}(?:\.\d)?)\s*(小时|h)/i);
+  if (hourMatch) {
+    const hours = Number(hourMatch[1]);
+    if (!Number.isNaN(hours)) {
+      const minutes = Math.round(hours * 60);
+      return `${minutes}分钟`;
+    }
+  }
+  return "";
+}
+
+function detectSubject(text) {
+  const patterns = [
+    /(主题|课程|课题|章节|单元|课文)\s*(是|为|：|:)?\s*([^。\n;；]+)/,
+    /(关于|讲|讲授|讲解|教授)\s*([^。\n;；，,]{2,30})/,
+    /一节\s*([^。\n;；，,]{2,30})\s*课/
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const candidate = (match[3] || match[2] || match[1] || "").trim();
+      if (!candidate) continue;
+      if (/(分钟|年级|小学|初中|高中|大学)/.test(candidate)) continue;
+      return candidate;
+    }
+  }
+  return "";
+}
+
+function detectGoals(text) {
+  const goalMatch = text.match(/(教学目标|目标|目的|希望学生|要求学生|学习目标)\s*(是|为|：|:)?\s*([^。\n;；]+)/);
+  if (goalMatch) return goalMatch[3].trim();
+  return "";
+}
+
+function detectKeyPoints(text) {
+  const kpMatch = text.match(/(知识点|要点|重点|难点|包含|包括|涉及|内容包括)\s*(是|为|：|:)?\s*([^。\n;；]+)/);
+  if (kpMatch) return normalizeKeyPoints(kpMatch[3]);
+  return [];
+}
+
+function detectStyle(text) {
+  const styleMatch = text.match(/(教学风格|风格|呈现|形式|语气|课堂形式)\s*(是|为|：|:)?\s*([^。\n;；]+)/);
+  if (styleMatch) return styleMatch[3].trim();
+  return "";
+}
+
+function detectInteractions(text) {
+  const interactionMatch = text.match(/(互动|活动|小游戏|讨论|实验|小组)\s*(是|为|：|:)?\s*([^。\n;；]+)?/);
+  if (interactionMatch) {
+    return interactionMatch[3] ? interactionMatch[3].trim() : interactionMatch[1];
+  }
+  return "";
 }
 
 function extractFieldsFromText(text, state) {
@@ -100,38 +188,38 @@ function extractFieldsFromText(text, state) {
   }
 
   if (!state.fields.duration) {
-    const durationMatch = text.match(/(\d{1,3})\s*(分钟|min)/);
-    if (durationMatch) {
-      state.fields.duration = `${durationMatch[1]}分钟`;
-    }
+    const duration = detectDuration(text);
+    if (duration) state.fields.duration = duration;
   }
 
   if (!state.fields.subject) {
-    const subjectMatch = text.match(/(主题|课程|课题|章节)\s*是\s*([^。\n]+)/);
-    if (subjectMatch) {
-      state.fields.subject = subjectMatch[2].trim();
-    }
+    const subject = detectSubject(text);
+    if (subject) state.fields.subject = subject;
   }
 
   if (!state.fields.grade) {
-    const gradeMatch = text.match(/(\S+)(年级|高一|高二|高三|初一|初二|初三|小学|中学|高中)/);
-    if (gradeMatch) {
-      state.fields.grade = gradeMatch[0];
-    }
+    const grade = detectGrade(text);
+    if (grade) state.fields.grade = grade;
   }
 
   if (!state.fields.goals) {
-    const goalMatch = text.match(/目标\s*是\s*([^。\n]+)/);
-    if (goalMatch) {
-      state.fields.goals = goalMatch[1].trim();
-    }
+    const goals = detectGoals(text);
+    if (goals) state.fields.goals = goals;
   }
 
   if (state.fields.keyPoints.length === 0) {
-    const kpMatch = text.match(/(知识点|要点)\s*[:：=]?\s*([^。\n]+)/);
-    if (kpMatch) {
-      state.fields.keyPoints = normalizeKeyPoints(kpMatch[2]);
-    }
+    const keyPoints = detectKeyPoints(text);
+    if (keyPoints.length) state.fields.keyPoints = keyPoints;
+  }
+
+  if (!state.fields.style) {
+    const style = detectStyle(text);
+    if (style) state.fields.style = style;
+  }
+
+  if (!state.fields.interactions) {
+    const interactions = detectInteractions(text);
+    if (interactions) state.fields.interactions = interactions;
   }
 }
 
@@ -164,12 +252,47 @@ function buildSummary(state) {
   ].join("\n");
 }
 
+function getMissingFields(state) {
+  return REQUIRED_FIELDS.filter((field) => {
+    if (field === "keyPoints") return state.fields.keyPoints.length === 0;
+    return !state.fields[field];
+  });
+}
+
+function buildIntentPayload(state) {
+  return {
+    fields: state.fields,
+    missingFields: getMissingFields(state),
+    ready: state.ready,
+    confirmed: state.confirmed
+  };
+}
+
 function isConfirm(text) {
   return /(确认|可以|开始|生成|好的|没问题)/.test(text) && !/不(确认|需要|生成)/.test(text);
 }
 
 function isEdit(text) {
   return /(调整|修改|简化|增加|删除|替换)/.test(text);
+}
+
+function getSmallTalkIntent(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (/^(你好|您好|嗨|哈喽|hello|hi|hey)(呀|啊|~|！|!|。)?$/i.test(trimmed)) return "greeting";
+  if (/^(在吗|在不在|有人吗|在线吗)$/i.test(trimmed)) return "presence";
+  if (/^(你是谁|你是誰|你叫什么|介绍一下)$/i.test(trimmed)) return "identity";
+  if (/^(谢谢|感谢|多谢|谢了|谢谢你)(！|!|。)?$/i.test(trimmed)) return "thanks";
+  if (/^(再见|拜拜|bye|goodbye)(！|!|。)?$/i.test(trimmed)) return "bye";
+  return null;
+}
+
+function buildSmallTalkReply(intent, state, missingField) {
+  const base = SMALL_TALK_RESPONSES[intent] || "我在的，可以继续说明你的需求。";
+  if (missingField && intent !== "thanks" && intent !== "bye") {
+    return `${base}\n\n${getNextQuestion(state)}`;
+  }
+  return base;
 }
 
 function generateDraft(state) {
@@ -340,10 +463,17 @@ async function handleMessage(state, text, messages = []) {
     };
   }
 
-  const missingField = REQUIRED_FIELDS.find((field) => {
-    if (field === "keyPoints") return state.fields.keyPoints.length === 0;
-    return !state.fields[field];
-  });
+  const missingFields = getMissingFields(state);
+  const missingField = missingFields[0];
+
+  const smallTalkIntent = getSmallTalkIntent(text);
+  if (smallTalkIntent) {
+    return {
+      reply: buildSmallTalkReply(smallTalkIntent, state, missingField),
+      state,
+      draft: state.draft || null
+    };
+  }
 
   if (missingField) {
     state.ready = false;
@@ -384,5 +514,7 @@ async function handleMessage(state, text, messages = []) {
 module.exports = {
   createInitialState,
   handleMessage,
-  buildSummary
+  buildSummary,
+  buildIntentPayload,
+  getMissingFields
 };
