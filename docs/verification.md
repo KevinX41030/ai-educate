@@ -70,3 +70,9 @@ curl -s http://localhost:5174/api/rag/query \
 
 - 无回复：检查是否打开 `http://localhost:5173`，并确认 Network 中有 `/api/chat` 请求。
 - 一直追问：输入中缺少必要字段或模型未解析，尝试用结构化句子输入。
+
+## 8. PPTX 导出
+
+1) 生成课件初稿后点击“导出”按钮  
+2) 浏览器下载 `lesson-*.pptx` 文件  
+3) 打开文件确认包含封面/目录/内容/总结页

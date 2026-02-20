@@ -25,6 +25,7 @@
             :intent="intent"
             :rag="rag"
             :on-confirm="handleConfirm"
+            :on-export="handleExport"
           />
         </div>
       </div>
@@ -38,7 +39,7 @@ import HeroHeader from './components/HeroHeader.vue';
 import IntentPanel from './components/IntentPanel.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import PreviewPanel from './components/PreviewPanel.vue';
-import { getStatus, sendMessage, uploadFiles } from './services/api';
+import { getStatus, sendMessage, uploadFiles, exportPptx } from './services/api';
 
 const status = ref('准备就绪');
 const sessionId = ref(localStorage.getItem('sessionId') || '');
@@ -137,6 +138,31 @@ const handleFormSubmit = async (text) => {
 
 const handleConfirm = async () => {
   await handleSend('确认');
+};
+
+const handleExport = async () => {
+  if (!draft.value) {
+    appendMessage('assistant', '请先生成课件初稿，再导出。');
+    return;
+  }
+  try {
+    const response = await exportPptx({ sessionId: sessionId.value, draft: draft.value });
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+    const fileName = match ? match[1] : `lesson-${Date.now()}.pptx`;
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    appendMessage('assistant', 'PPTX 已生成并下载。');
+  } catch (error) {
+    appendMessage('assistant', '导出失败，请稍后重试。');
+  }
 };
 
 onMounted(async () => {

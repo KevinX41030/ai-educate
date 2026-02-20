@@ -66,3 +66,14 @@ Request example:
 
 ## POST /api/rag/reload
 Reload the local knowledge base index.
+
+## POST /api/export/pptx
+Export the latest PPTX based on the session draft.
+
+Request example:
+```json
+{
+  "sessionId": "optional",
+  "draft": { "ppt": [] }
+}
+```

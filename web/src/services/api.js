@@ -28,3 +28,13 @@ export async function uploadFiles({ sessionId, files }) {
   if (!response.ok) throw new Error('upload_failed');
   return response.json();
 }
+
+export async function exportPptx({ sessionId, draft }) {
+  const response = await fetch('/api/export/pptx', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, draft })
+  });
+  if (!response.ok) throw new Error('export_failed');
+  return response;
+}

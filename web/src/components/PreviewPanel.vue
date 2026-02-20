@@ -99,6 +99,10 @@ const props = defineProps({
   onConfirm: {
     type: Function,
     default: null
+  },
+  onExport: {
+    type: Function,
+    default: null
   }
 });
 
@@ -127,6 +131,10 @@ const formatTime = (value) => {
 };
 
 const handleExport = () => {
+  if (props.onExport) {
+    props.onExport();
+    return;
+  }
   if (!props.draft) {
     window.alert('请先生成课件初稿，再导出。');
     return;

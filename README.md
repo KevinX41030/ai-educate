@@ -64,4 +64,4 @@ npm run start
 
 ## 下一步
 - 接入多模态解析（PDF/视频等）
-- 生成 `.pptx` / `.docx` 导出
+- 完善 `.pptx` / `.docx` 导出（当前已支持基础 PPTX）

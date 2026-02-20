@@ -7,6 +7,7 @@ const { nanoid } = require('nanoid');
 const { createInitialState, handleMessage, buildIntentPayload } = require('./agent');
 const { getStats, searchKnowledge, reloadKnowledgeBase } = require('./rag');
 const { isLLMConfigured } = require('./llm');
+const { exportPptx } = require('./export/pptx');
 
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -68,6 +69,25 @@ app.post('/api/rag/query', (req, res) => {
 app.post('/api/rag/reload', (_, res) => {
   const stats = reloadKnowledgeBase();
   res.json({ ok: true, ...stats });
+});
+
+app.post('/api/export/pptx', async (req, res) => {
+  const { sessionId, draft } = req.body || {};
+  let exportDraft = draft;
+  if (!exportDraft && sessionId && sessions.has(sessionId)) {
+    exportDraft = sessions.get(sessionId).state.draft;
+  }
+  if (!exportDraft) {
+    return res.status(400).json({ error: 'draft_required' });
+  }
+
+  try {
+    const result = await exportPptx(exportDraft, 'lesson');
+    if (!result) return res.status(400).json({ error: 'invalid_draft' });
+    return res.download(result.filePath, result.fileName);
+  } catch (error) {
+    return res.status(500).json({ error: 'export_failed', message: String(error) });
+  }
 });
 
 app.post('/api/chat', async (req, res) => {
