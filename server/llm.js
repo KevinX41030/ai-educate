@@ -214,9 +214,13 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
           '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
           '"ppt": [{"title": string, "type": "cover"|"toc"|"content"|"summary", "bullets": string[]}],' +
           '"lessonPlan": {"goals": string, "process": string[], "methods": string, "activities": string, "homework": string},' +
-          '"interactionIdea": {"title": string, "description": string}' +
+          '"interactionIdea": {"title": string, "description": string},' +
+          '"theme": {"primary": string, "accent": string, "background": string, "text": string, "font": string},' +
+          '"layoutHints": string[]' +
           '}。' +
-          'PPT 至少包含封面、目录、内容页（每个知识点一页）、总结页。'
+          'PPT 至少包含封面、目录、内容页（每个知识点一页）、总结页。' +
+          '请提供现代企业蓝风格的 theme，例如 primary=#1F3B73, accent=#4C8BF5。' +
+          'layoutHints 可包含 cover_right_panel、content_two_column、summary_cards。'
       },
       {
         role: 'user',

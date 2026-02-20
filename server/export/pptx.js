@@ -3,7 +3,14 @@ const fs = require('fs');
 const PptxGenJS = require('pptxgenjs');
 
 const EXPORT_DIR = path.join(__dirname, '..', '..', 'data', 'exports');
-const FONT = 'Microsoft YaHei';
+const DEFAULT_THEME = {
+  primary: '1F3B73',
+  accent: '4C8BF5',
+  background: 'F8FAFC',
+  text: '0F172A',
+  muted: '475569',
+  font: 'Microsoft YaHei'
+};
 
 function ensureExportDir() {
   if (!fs.existsSync(EXPORT_DIR)) {
@@ -11,41 +18,93 @@ function ensureExportDir() {
   }
 }
 
-function addTitle(slide, title) {
+function normalizeColor(color, fallback) {
+  if (!color) return fallback;
+  return String(color).replace('#', '').toUpperCase();
+}
+
+function getTheme(draft) {
+  const raw = draft.theme || {};
+  return {
+    primary: normalizeColor(raw.primary, DEFAULT_THEME.primary),
+    accent: normalizeColor(raw.accent, DEFAULT_THEME.accent),
+    background: normalizeColor(raw.background, DEFAULT_THEME.background),
+    text: normalizeColor(raw.text, DEFAULT_THEME.text),
+    muted: normalizeColor(raw.muted, DEFAULT_THEME.muted),
+    font: raw.font || DEFAULT_THEME.font
+  };
+}
+
+function addBackground(slide, theme) {
+  slide.background = { color: theme.background };
+}
+
+function addTopBar(slide, theme) {
+  slide.addShape(PptxGenJS.ShapeType.rect, {
+    x: 0,
+    y: 0,
+    w: 13.33,
+    h: 0.2,
+    fill: { color: theme.primary },
+    line: { color: theme.primary }
+  });
+}
+
+function addFooter(slide, theme, index, total) {
+  slide.addShape(PptxGenJS.ShapeType.line, {
+    x: 0.6,
+    y: 7.1,
+    w: 12.2,
+    h: 0,
+    line: { color: 'E5E7EB', width: 1 }
+  });
+  slide.addText(`AI-Educate · ${index}/${total}`, {
+    x: 0.7,
+    y: 7.2,
+    w: 12.0,
+    h: 0.3,
+    fontSize: 10,
+    fontFace: theme.font,
+    color: theme.muted,
+    align: 'right'
+  });
+}
+
+function addTitle(slide, title, theme) {
   slide.addText(title, {
-    x: 0.6,
+    x: 0.8,
     y: 0.5,
-    w: 12.0,
-    h: 0.8,
-    fontSize: 36,
+    w: 11.8,
+    h: 0.9,
+    fontSize: 32,
     bold: true,
-    fontFace: FONT,
-    color: '1F2937'
+    fontFace: theme.font,
+    color: theme.text
   });
 }
 
-function addSubtitle(slide, text) {
+function addSubtitle(slide, text, theme) {
   slide.addText(text, {
-    x: 0.6,
+    x: 0.8,
     y: 1.6,
-    w: 12.0,
+    w: 11.5,
     h: 0.5,
-    fontSize: 18,
-    fontFace: FONT,
-    color: '6B7280'
+    fontSize: 16,
+    fontFace: theme.font,
+    color: theme.muted
   });
 }
 
-function addBullets(slide, items) {
+function addBullets(slide, items, theme, opts = {}) {
   const bulletText = items.map((item) => `• ${item}`).join('\n');
   slide.addText(bulletText, {
-    x: 0.9,
-    y: 1.8,
-    w: 11.5,
-    h: 4.5,
-    fontSize: 20,
-    fontFace: FONT,
-    color: '111827',
+    x: opts.x ?? 0.9,
+    y: opts.y ?? 1.8,
+    w: opts.w ?? 7.2,
+    h: opts.h ?? 4.8,
+    fontSize: opts.fontSize ?? 18,
+    fontFace: theme.font,
+    color: theme.text,
     valign: 'top'
   });
 }
@@ -62,35 +121,145 @@ function buildPptx(draft) {
   pptx.company = 'AI-Educate';
   pptx.subject = 'Teaching Slides';
   pptx.title = 'Teaching Deck';
+  const theme = getTheme(draft);
+  pptx.theme = {
+    headFontFace: theme.font,
+    bodyFontFace: theme.font,
+    lang: 'zh-CN'
+  };
 
   const slides = draft.ppt;
   if (slides.length === 0) return pptx;
 
+  const rawHints = Array.isArray(draft.layoutHints) && draft.layoutHints.length
+    ? draft.layoutHints
+    : ['cover_right_panel', 'content_two_column', 'summary_cards'];
+  const layoutHints = new Set(rawHints);
   const cover = slides.find((s) => s.type === 'cover') || slides[0];
   const toc = slides.find((s) => s.type === 'toc');
   const summary = slides.find((s) => s.type === 'summary');
   const contentSlides = slides.filter((s) => s.type === 'content');
 
+  const totalSlides = (toc ? 1 : 0) + contentSlides.length + (summary ? 1 : 0) + 1;
+  let slideIndex = 1;
+
   const coverSlide = pptx.addSlide();
-  addTitle(coverSlide, cover.title || '教学课件');
-  addSubtitle(coverSlide, (cover.bullets || []).filter(Boolean).join(' · ') || '');
+  addBackground(coverSlide, theme);
+  if (layoutHints.has('cover_right_panel')) {
+    coverSlide.addShape(PptxGenJS.ShapeType.rect, {
+      x: 9.8,
+      y: 0,
+      w: 3.53,
+      h: 7.5,
+      fill: { color: theme.accent },
+      line: { color: theme.accent }
+    });
+  }
+  addTitle(coverSlide, cover.title || '教学课件', theme);
+  addSubtitle(coverSlide, (cover.bullets || []).filter(Boolean).join(' · ') || '', theme);
+  addFooter(coverSlide, theme, slideIndex++, totalSlides);
 
   if (toc) {
     const tocSlide = pptx.addSlide();
-    addTitle(tocSlide, toc.title || '目录');
-    addBullets(tocSlide, toc.bullets || []);
+    addBackground(tocSlide, theme);
+    addTopBar(tocSlide, theme);
+    addTitle(tocSlide, toc.title || '目录', theme);
+    addBullets(tocSlide, toc.bullets || [], theme, { x: 1.0, y: 1.8, w: 11.5 });
+    addFooter(tocSlide, theme, slideIndex++, totalSlides);
   }
 
   contentSlides.forEach((content) => {
     const slide = pptx.addSlide();
-    addTitle(slide, content.title || '内容');
-    addBullets(slide, content.bullets || []);
+    addBackground(slide, theme);
+    addTopBar(slide, theme);
+    addTitle(slide, content.title || '内容', theme);
+    const bullets = content.bullets || [];
+    if (layoutHints.has('content_two_column')) {
+      addBullets(slide, bullets, theme, { x: 0.9, y: 1.6, w: 7.0, h: 4.8 });
+      slide.addShape(PptxGenJS.ShapeType.roundRect, {
+        x: 8.3,
+        y: 1.6,
+        w: 4.3,
+        h: 4.8,
+        fill: { color: 'EFF6FF' },
+        line: { color: 'CBD5F5' },
+        radius: 0.1
+      });
+      slide.addText('课堂提示', {
+        x: 8.55,
+        y: 1.8,
+        w: 3.8,
+        h: 0.4,
+        fontSize: 14,
+        bold: true,
+        fontFace: theme.font,
+        color: theme.primary
+      });
+      const tipItems = bullets.slice(0, 2);
+      slide.addText(tipItems.length ? tipItems.map((item) => `• ${item}`).join('\n') : '可加入案例或互动', {
+        x: 8.55,
+        y: 2.3,
+        w: 3.8,
+        h: 3.8,
+        fontSize: 12,
+        fontFace: theme.font,
+        color: theme.text,
+        valign: 'top'
+      });
+    } else {
+      addBullets(slide, bullets, theme);
+    }
+    addFooter(slide, theme, slideIndex++, totalSlides);
   });
 
   if (summary) {
     const summarySlide = pptx.addSlide();
-    addTitle(summarySlide, summary.title || '总结');
-    addBullets(summarySlide, summary.bullets || []);
+    addBackground(summarySlide, theme);
+    addTopBar(summarySlide, theme);
+    addTitle(summarySlide, summary.title || '总结', theme);
+    const bullets = summary.bullets || [];
+    if (layoutHints.has('summary_cards')) {
+      const cardWidth = 3.9;
+      const cardHeight = 3.8;
+      const startX = 0.9;
+      const startY = 1.7;
+      const groups = [bullets.slice(0, 2), bullets.slice(2, 4), bullets.slice(4, 6)];
+      groups.forEach((group, idx) => {
+        const x = startX + idx * (cardWidth + 0.4);
+        summarySlide.addShape(PptxGenJS.ShapeType.roundRect, {
+          x,
+          y: startY,
+          w: cardWidth,
+          h: cardHeight,
+          fill: { color: 'FFFFFF' },
+          line: { color: 'E2E8F0' },
+          radius: 0.1
+        });
+        summarySlide.addText(`要点 ${idx + 1}`, {
+          x: x + 0.2,
+          y: startY + 0.2,
+          w: cardWidth - 0.4,
+          h: 0.3,
+          fontSize: 12,
+          bold: true,
+          fontFace: theme.font,
+          color: theme.primary
+        });
+        summarySlide.addText(group.length ? group.map((item) => `• ${item}`).join('\n') : '补充总结内容', {
+          x: x + 0.2,
+          y: startY + 0.7,
+          w: cardWidth - 0.4,
+          h: cardHeight - 0.9,
+          fontSize: 12,
+          fontFace: theme.font,
+          color: theme.text,
+          valign: 'top'
+        });
+      });
+    } else {
+      addBullets(summarySlide, bullets, theme, { x: 1.0, y: 1.8, w: 11.5 });
+    }
+    addFooter(summarySlide, theme, slideIndex++, totalSlides);
   }
 
   return pptx;

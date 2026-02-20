@@ -383,6 +383,8 @@ function normalizeDraft(raw) {
 
   const lessonPlan = raw.lessonPlan || {};
   const interactionIdea = raw.interactionIdea || {};
+  const theme = raw.theme || {};
+  const layoutHints = Array.isArray(raw.layoutHints) ? raw.layoutHints : [];
 
   return {
     ppt,
@@ -397,6 +399,8 @@ function normalizeDraft(raw) {
       title: interactionIdea.title || "",
       description: interactionIdea.description || ""
     },
+    theme,
+    layoutHints,
     updatedAt: new Date().toISOString()
   };
 }

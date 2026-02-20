@@ -50,6 +50,21 @@
       },
       "required": ["title", "description"]
     },
+    "theme": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "primary": { "type": "string" },
+        "accent": { "type": "string" },
+        "background": { "type": "string" },
+        "text": { "type": "string" },
+        "font": { "type": "string" }
+      }
+    },
+    "layoutHints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
     "updatedAt": { "type": "string" }
   },
   "required": ["ppt", "lessonPlan", "interactionIdea", "updatedAt"]
