@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const PptxGenJS = require('pptxgenjs');
+const { ensureTemplateFile } = require('./template');
 
 const EXPORT_DIR = path.join(__dirname, '..', '..', 'data', 'exports');
 const DEFAULT_THEME = {
@@ -187,7 +188,9 @@ function normalizeSpec(spec, fallbackSlides) {
   return {
     slides: spec.slides.map((slide, idx) => ({
       title: slide.title || fallbackSlides[idx]?.title || '内容',
-      type: slide.type || fallbackSlides[idx]?.type || 'content',
+      type: ['cover', 'toc', 'content', 'summary'].includes(slide.type)
+        ? slide.type
+        : (fallbackSlides[idx]?.type || 'content'),
       bullets: Array.isArray(slide.bullets) ? slide.bullets : fallbackSlides[idx]?.bullets || [],
       example: slide.example || '',
       question: slide.question || '',
@@ -197,6 +200,152 @@ function normalizeSpec(spec, fallbackSlides) {
     theme: spec.theme || null,
     layoutHints: Array.isArray(spec.layoutHints) ? spec.layoutHints : []
   };
+}
+
+function resolveSlides(spec, fallbackSlides) {
+  const slides = spec.slides || [];
+  const fallback = Array.isArray(fallbackSlides) ? fallbackSlides : [];
+  const cover = slides.find((s) => s.type === 'cover') || fallback.find((s) => s.type === 'cover') || slides[0];
+  const summary = slides.find((s) => s.type === 'summary') || fallback.find((s) => s.type === 'summary');
+  const contentSlides = slides.filter((s) => s.type === 'content');
+  let toc = slides.find((s) => s.type === 'toc') || fallback.find((s) => s.type === 'toc');
+  if (!toc) {
+    toc = {
+      title: '目录',
+      type: 'toc',
+      bullets: contentSlides.map((item) => item.title).filter(Boolean)
+    };
+  }
+  return { cover, toc, summary, contentSlides };
+}
+
+async function loadAutomizer() {
+  const mod = await import('pptx-automizer');
+  return {
+    Automizer: mod.default || mod.Automizer || mod,
+    modify: mod.modify || mod.default?.modify
+  };
+}
+
+function bulletText(items) {
+  if (!Array.isArray(items)) return '';
+  return items.filter(Boolean).map((item) => `• ${item}`).join('\n');
+}
+
+function buildCoverMeta(draft, fields = {}, coverSlide) {
+  const metaParts = [];
+  if (fields.grade) metaParts.push(fields.grade);
+  if (fields.duration) metaParts.push(fields.duration);
+  if (fields.style) metaParts.push(fields.style);
+  const meta = metaParts.join(' · ');
+  if (meta) return meta;
+  if (coverSlide?.bullets?.length) return coverSlide.bullets.join(' · ');
+  return 'AI-Educate';
+}
+
+function buildSummaryNote(draft) {
+  if (draft?.lessonPlan?.homework) return draft.lessonPlan.homework;
+  if (draft?.interactionIdea?.description) return draft.interactionIdea.description;
+  return '';
+}
+
+async function applyReplacements(slide, replacements, modify) {
+  const items = Object.entries(replacements).map(([key, value]) => ({
+    replace: key,
+    by: { text: value || '' }
+  }));
+  const elements = await slide.getAllTextElementIds();
+  elements.forEach((element) => {
+    slide.modifyElement(element, modify.replaceText(items));
+  });
+}
+
+async function buildPptxWithTemplate(draft, fileName, options = {}) {
+  const templatePath = await ensureTemplateFile(options.templatePath);
+  const { Automizer, modify } = await loadAutomizer();
+  if (!Automizer || !modify) {
+    throw new Error('template_engine_unavailable');
+  }
+  const templateDir = path.dirname(templatePath);
+  const templateName = path.basename(templatePath);
+
+  const spec = normalizeSpec(options.pptSpec, draft.ppt);
+  const { cover, toc, summary, contentSlides } = resolveSlides(spec, draft.ppt);
+  const coverMeta = buildCoverMeta(draft, options.fields, cover);
+  const summaryNote = buildSummaryNote(draft);
+  const tocBullets = toc?.bullets?.length ? toc.bullets : contentSlides.map((s) => s.title).filter(Boolean);
+
+  const automizer = new Automizer({
+    templateDir,
+    outputDir: EXPORT_DIR,
+    removeExistingSlides: true,
+    autoImportSlideMasters: true,
+    verbosity: 0
+  });
+
+  const pres = automizer.loadRoot(templateName).load(templateName, 'template');
+
+  if (cover) {
+    pres.addSlide('template', 1, async (slide) => {
+      await applyReplacements(slide, {
+        title: cover.title || '教学课件',
+        subtitle: cover.bullets?.join(' · ') || '',
+        meta: coverMeta,
+        bullets: '',
+        example: '',
+        question: '',
+        visual: '',
+        summary_note: ''
+      }, modify);
+    });
+  }
+
+  if (toc) {
+    pres.addSlide('template', 2, async (slide) => {
+      await applyReplacements(slide, {
+        title: toc.title || '目录',
+        bullets: bulletText(tocBullets),
+        subtitle: '',
+        meta: coverMeta,
+        example: '',
+        question: '',
+        visual: '',
+        summary_note: ''
+      }, modify);
+    });
+  }
+
+  contentSlides.forEach((content) => {
+    pres.addSlide('template', 3, async (slide) => {
+      await applyReplacements(slide, {
+        title: content.title || '内容',
+        bullets: bulletText(content.bullets),
+        example: content.example || '',
+        question: content.question || '',
+        visual: content.visual || '',
+        subtitle: '',
+        meta: coverMeta,
+        summary_note: ''
+      }, modify);
+    });
+  });
+
+  if (summary) {
+    pres.addSlide('template', 4, async (slide) => {
+      await applyReplacements(slide, {
+        title: summary.title || '总结',
+        bullets: bulletText(summary.bullets),
+        summary_note: summaryNote,
+        subtitle: '',
+        meta: coverMeta,
+        example: '',
+        question: '',
+        visual: ''
+      }, modify);
+    });
+  }
+
+  await pres.write(fileName);
 }
 
 function buildPptx(draft, options = {}) {
@@ -222,10 +371,7 @@ function buildPptx(draft, options = {}) {
     ? spec.layoutHints
     : ['cover_right_panel', 'content_two_column', 'summary_cards'];
   const layoutHints = new Set(rawHints);
-  const cover = slides.find((s) => s.type === 'cover') || slides[0];
-  const toc = slides.find((s) => s.type === 'toc');
-  const summary = slides.find((s) => s.type === 'summary');
-  const contentSlides = slides.filter((s) => s.type === 'content');
+  const { cover, toc, summary, contentSlides } = resolveSlides(spec, draft.ppt);
 
   const totalSlides = (toc ? 1 : 0) + contentSlides.length + (summary ? 1 : 0) + 1;
   let slideIndex = 1;
@@ -333,6 +479,15 @@ async function exportPptx(draft, fileNamePrefix = 'lesson', options = {}) {
   ensureExportDir();
   const fileName = `${fileNamePrefix}-${Date.now()}.pptx`;
   const filePath = path.join(EXPORT_DIR, fileName);
+  const useTemplate = options.useTemplate !== false;
+  if (useTemplate) {
+    try {
+      await buildPptxWithTemplate(normalized, fileName, options);
+      return { fileName, filePath };
+    } catch (error) {
+      // fallback to generated slides
+    }
+  }
   const pptx = buildPptx(normalized, options);
   await pptx.writeFile({ fileName: filePath });
   return { fileName, filePath };

@@ -81,6 +81,7 @@ curl -s http://localhost:5174/api/rag/query \
 
 - 默认使用“现代企业蓝”主题（主色 #1F3B73，强调色 #4C8BF5）  
 - 内容页为双栏布局，右侧提示卡自动填充要点  
+- 模板文件位于 `server/templates/ai-educate-template.pptx`，可替换为自定义设计稿  
 
 ## 10. AI 增强 PPT 内容
 

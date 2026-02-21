@@ -75,6 +75,7 @@ Request example:
 {
   "sessionId": "optional",
   "draft": { "ppt": [] },
-  "useAi": true
+  "useAi": true,
+  "useTemplate": true
 }
 ```

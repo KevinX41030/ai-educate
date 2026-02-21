@@ -72,13 +72,15 @@ app.post('/api/rag/reload', (_, res) => {
 });
 
 app.post('/api/export/pptx', async (req, res) => {
-  const { sessionId, draft, useAi = true } = req.body || {};
+  const { sessionId, draft, useAi = true, useTemplate = true } = req.body || {};
   let exportDraft = draft;
   let ragContext = [];
+  let fields = {};
   if (!exportDraft && sessionId && sessions.has(sessionId)) {
     const session = sessions.get(sessionId);
     exportDraft = session.state.draft;
     ragContext = session.state.rag || [];
+    fields = session.state.fields || {};
   }
   if (!exportDraft) {
     return res.status(400).json({ error: 'draft_required' });
@@ -93,7 +95,7 @@ app.post('/api/export/pptx', async (req, res) => {
         pptSpec = null;
       }
     }
-    const result = await exportPptx(exportDraft, 'lesson', { pptSpec });
+    const result = await exportPptx(exportDraft, 'lesson', { pptSpec, useTemplate, fields });
     if (!result) return res.status(400).json({ error: 'invalid_draft' });
     return res.download(result.filePath, result.fileName);
   } catch (error) {

@@ -218,7 +218,9 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
           '"theme": {"primary": string, "accent": string, "background": string, "text": string, "font": string},' +
           '"layoutHints": string[]' +
           '}。' +
-          'PPT 至少包含封面、目录、内容页（每个知识点一页）、总结页。' +
+          'PPT 至少包含封面、目录、总结页。内容页每个知识点至少 2 页：概念/原理页 + 应用/案例/易错点页。' +
+          '每页 3-5 条 bullets，使用完整短句，保证信息量充足。' +
+          'lessonPlan.process 至少 5 个步骤，activities/homework 要具体可执行。' +
           '请提供现代企业蓝风格的 theme，例如 primary=#1F3B73, accent=#4C8BF5。' +
           'layoutHints 可包含 cover_right_panel、content_two_column、summary_cards。'
       },
@@ -240,7 +242,7 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
       }
     ],
     text: { format: { type: 'json_object' } },
-    max_output_tokens: 1200
+    max_output_tokens: 1600
   };
 
   try {
@@ -301,6 +303,8 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
           '"layoutHints": string[]' +
           '}。' +
           '内容页请补充示例、互动提问、视觉提示(如流程图/示意图)。' +
+          '如有教学流程/互动设计/练习/案例，请生成对应内容页。' +
+          '总页数建议 8-14 页，内容页每页 4-6 条 bullets，确保内容丰富。' +
           '封面/目录/总结页也可补充简要说明。' +
           '风格使用现代企业蓝。'
       },
@@ -308,6 +312,8 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
         role: 'user',
         content: JSON.stringify({
           slides: draft.ppt,
+          lessonPlan: draft.lessonPlan || null,
+          interactionIdea: draft.interactionIdea || null,
           theme: draft.theme || null,
           layoutHints: draft.layoutHints || null
         })
@@ -318,7 +324,7 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
       }
     ],
     text: { format: { type: 'json_object' } },
-    max_output_tokens: 1400
+    max_output_tokens: 1800
   };
 
   try {
