@@ -293,6 +293,7 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
           '"slides": [{' +
           '"title": string,' +
           '"type": "cover"|"toc"|"content"|"summary",' +
+          '"layout": "concept"|"process"|"case"|"activity",' +
           '"bullets": string[],' +
           '"example": string,' +
           '"question": string,' +
@@ -303,8 +304,9 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
           '"layoutHints": string[]' +
           '}。' +
           '内容页请补充示例、互动提问、视觉提示(如流程图/示意图)。' +
-          '如有教学流程/互动设计/练习/案例，请生成对应内容页。' +
-          '总页数建议 8-14 页，内容页每页 4-6 条 bullets，确保内容丰富。' +
+          '为每个内容页选择合适 layout：概念/原理=concept，步骤/流程=process，应用/案例=case，练习/讨论/活动=activity。' +
+          '如有教学流程/互动设计/练习/案例，请生成对应内容页并匹配 layout。' +
+          '总页数建议 10-16 页，内容页每页 4-6 条 bullets，确保内容丰富。' +
           '封面/目录/总结页也可补充简要说明。' +
           '风格使用现代企业蓝。'
       },

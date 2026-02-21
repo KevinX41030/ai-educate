@@ -195,7 +195,8 @@ function normalizeSpec(spec, fallbackSlides) {
       example: slide.example || '',
       question: slide.question || '',
       visual: slide.visual || '',
-      notes: slide.notes || ''
+      notes: slide.notes || '',
+      layout: slide.layout || slide.variant || ''
     })),
     theme: spec.theme || null,
     layoutHints: Array.isArray(spec.layoutHints) ? spec.layoutHints : []
@@ -217,6 +218,35 @@ function resolveSlides(spec, fallbackSlides) {
     };
   }
   return { cover, toc, summary, contentSlides };
+}
+
+function splitBullets(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return { left: '', right: '' };
+  }
+  const mid = Math.ceil(items.length / 2);
+  const left = items.slice(0, mid);
+  const right = items.slice(mid);
+  return {
+    left: left.map((item) => `• ${item}`).join('\n'),
+    right: right.map((item) => `• ${item}`).join('\n')
+  };
+}
+
+function numberedText(items) {
+  if (!Array.isArray(items)) return '';
+  return items.filter(Boolean).map((item, idx) => `${idx + 1}. ${item}`).join('\n');
+}
+
+function inferLayout(slide) {
+  if (slide.layout) return slide.layout;
+  if (slide.type !== 'content') return '';
+  const title = String(slide.title || '');
+  const text = [title, ...(slide.bullets || [])].join(' ');
+  if (/(流程|步骤|过程|机制|路径|循环)/.test(text)) return 'process';
+  if (/(案例|应用|实验|场景|实例|拓展|综合)/.test(text)) return 'case';
+  if (/(练习|互动|讨论|小测|活动|任务|探究)/.test(text)) return 'activity';
+  return 'concept';
 }
 
 async function loadAutomizer() {
@@ -251,7 +281,7 @@ function buildSummaryNote(draft) {
 
 async function applyReplacements(slide, replacements, modify) {
   const items = Object.entries(replacements).map(([key, value]) => ({
-    replace: key,
+    replace: key.includes('{{') ? key : `{{${key}}}`,
     by: { text: value || '' }
   }));
   const elements = await slide.getAllTextElementIds();
@@ -292,10 +322,16 @@ async function buildPptxWithTemplate(draft, fileName, options = {}) {
         subtitle: cover.bullets?.join(' · ') || '',
         meta: coverMeta,
         bullets: '',
+        bullets_left: '',
+        bullets_right: '',
         example: '',
         question: '',
         visual: '',
-        summary_note: ''
+        summary_note: '',
+        steps: '',
+        case: '',
+        takeaways: '',
+        activity: ''
       }, modify);
     });
   }
@@ -305,42 +341,73 @@ async function buildPptxWithTemplate(draft, fileName, options = {}) {
       await applyReplacements(slide, {
         title: toc.title || '目录',
         bullets: bulletText(tocBullets),
+        bullets_left: '',
+        bullets_right: '',
         subtitle: '',
         meta: coverMeta,
         example: '',
         question: '',
         visual: '',
-        summary_note: ''
+        summary_note: '',
+        steps: '',
+        case: '',
+        takeaways: '',
+        activity: ''
       }, modify);
     });
   }
 
   contentSlides.forEach((content) => {
-    pres.addSlide('template', 3, async (slide) => {
+    const layout = inferLayout(content);
+    const layoutIndex = layout === 'process'
+      ? 4
+      : layout === 'case'
+        ? 5
+        : layout === 'activity'
+          ? 6
+          : 3;
+    const bullets = Array.isArray(content.bullets) ? content.bullets : [];
+    const { left, right } = splitBullets(bullets);
+    const replacements = {
+      title: content.title || '内容',
+      bullets: bulletText(bullets),
+      bullets_left: left,
+      bullets_right: right,
+      example: content.example || '',
+      question: content.question || '',
+      visual: content.visual || '',
+      steps: numberedText(bullets),
+      case: content.example || bulletText(bullets.slice(0, 4)),
+      takeaways: bulletText(bullets.slice(-3)),
+      activity: content.question || content.example || bulletText(bullets.slice(0, 4)),
+      subtitle: '',
+      meta: coverMeta,
+      summary_note: ''
+    };
+    pres.addSlide('template', layoutIndex, async (slide) => {
       await applyReplacements(slide, {
-        title: content.title || '内容',
-        bullets: bulletText(content.bullets),
-        example: content.example || '',
-        question: content.question || '',
-        visual: content.visual || '',
-        subtitle: '',
-        meta: coverMeta,
-        summary_note: ''
+        ...replacements
       }, modify);
     });
   });
 
   if (summary) {
-    pres.addSlide('template', 4, async (slide) => {
+    pres.addSlide('template', 7, async (slide) => {
       await applyReplacements(slide, {
         title: summary.title || '总结',
         bullets: bulletText(summary.bullets),
+        bullets_left: '',
+        bullets_right: '',
         summary_note: summaryNote,
         subtitle: '',
         meta: coverMeta,
         example: '',
         question: '',
-        visual: ''
+        visual: '',
+        steps: '',
+        case: '',
+        takeaways: '',
+        activity: ''
       }, modify);
     });
   }
