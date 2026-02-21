@@ -5,12 +5,12 @@
       <button class="secondary" @click="handleExport">导出课件</button>
     </div>
 
-    <div class="preview-block">
+    <div class="preview-block" id="section-summary">
       <h3>需求摘要</h3>
       <pre class="summary">{{ summary || '暂无' }}</pre>
     </div>
 
-    <div class="preview-block">
+    <div class="preview-block" id="section-confirm">
       <h3>需求确认</h3>
       <div class="confirm-box">
         <p v-if="intent && intent.confirmed" class="confirm-status success">已确认，可生成课件。</p>
@@ -24,11 +24,16 @@
       </div>
     </div>
 
-    <div class="preview-block">
+    <div class="preview-block" id="section-slides">
       <h3>PPT 结构草稿</h3>
       <div class="cards">
         <p v-if="!slides.length" class="muted">等待生成课件初稿。</p>
-        <div v-for="(slide, index) in slides" :key="slide.id" class="card">
+        <div
+          v-for="(slide, index) in slides"
+          :key="slide.id"
+          class="card"
+          :id="`slide-${index + 1}`"
+        >
           <h4>{{ index + 1 }}. {{ slide.title }}</h4>
           <ul v-if="slide.bullets && slide.bullets.length">
             <li v-for="(bullet, bIndex) in slide.bullets" :key="bIndex">{{ bullet }}</li>
@@ -37,7 +42,7 @@
       </div>
     </div>
 
-    <div class="preview-block">
+    <div class="preview-block" id="section-plan">
       <h3>教案草稿</h3>
       <div class="plan">
         <p v-if="!lessonPlan" class="muted">暂无教案草稿。</p>
@@ -51,7 +56,7 @@
       </div>
     </div>
 
-    <div class="preview-block">
+    <div class="preview-block" id="section-interaction">
       <h3>互动设计</h3>
       <div class="interaction">
         <p v-if="!interactionIdea" class="muted">暂无互动设计。</p>
@@ -63,7 +68,7 @@
       </div>
     </div>
 
-    <div class="preview-block">
+    <div class="preview-block" id="section-rag">
       <h3>知识库引用</h3>
       <div class="rag-box">
         <p v-if="!rag.length" class="muted">暂无知识库引用。</p>

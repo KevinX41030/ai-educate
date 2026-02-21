@@ -1,42 +1,66 @@
 <template>
   <div class="app">
     <HeroHeader :status="status" />
-    <main class="layout">
-      <div class="sidebar">
-        <IntentPanel
-          :fields="fields"
-          :intent="intent"
-          :on-submit="handleFormSubmit"
-          :on-reset="handleClear"
-        />
-      </div>
-      <div class="workspace">
-        <div class="workspace-head">
+    <main class="layout toc-layout">
+      <aside class="toc">
+        <div class="toc-card">
+          <div class="toc-title">目录导航</div>
+          <a href="#section-intent">教学需求</a>
+          <a href="#section-chat">多轮对话</a>
+          <a href="#section-preview">课件预览</a>
+          <a href="#section-summary">需求摘要</a>
+          <a href="#section-confirm">需求确认</a>
+          <a href="#section-slides">PPT 结构</a>
+          <a href="#section-plan">教案草稿</a>
+          <a href="#section-interaction">互动设计</a>
+          <a href="#section-rag">知识库引用</a>
+        </div>
+        <div class="toc-card" v-if="draft && draft.ppt && draft.ppt.length">
+          <div class="toc-title">PPT 目录</div>
+          <a v-for="(slide, index) in draft.ppt" :key="slide.id" :href="`#slide-${index + 1}`">
+            {{ index + 1 }}. {{ slide.title }}
+          </a>
+        </div>
+      </aside>
+      <div class="content">
+        <div class="content-head">
           <div>
             <h2>生成工作区</h2>
-            <p>通过对话逐步明确需求，实时预览课件结构与教案。</p>
+            <p>按章节式浏览教学需求、对话与课件产出。</p>
           </div>
           <div class="workspace-actions">
             <button class="ghost" @click="handleClear">重置会话</button>
             <button class="primary" @click="handleExport">导出课件</button>
           </div>
         </div>
-        <div class="workspace-grid">
-          <ChatPanel
-            :messages="messages"
-            :files="files"
-            :on-send="handleSend"
-            :on-clear="handleClear"
-            :on-upload="handleUpload"
-          />
-          <PreviewPanel
-            :summary="summary"
-            :draft="draft"
-            :intent="intent"
-            :rag="rag"
-            :on-confirm="handleConfirm"
-            :on-export="handleExport"
-          />
+        <div class="content-surface">
+          <section id="section-intent" class="doc-section">
+            <IntentPanel
+              :fields="fields"
+              :intent="intent"
+              :on-submit="handleFormSubmit"
+              :on-reset="handleClear"
+            />
+          </section>
+          <section id="section-chat" class="doc-section">
+            <ChatPanel
+              :messages="messages"
+              :files="files"
+              :on-send="handleSend"
+              :on-clear="handleClear"
+              :on-upload="handleUpload"
+            />
+          </section>
+          <section id="section-preview" class="doc-section">
+            <PreviewPanel
+              :summary="summary"
+              :draft="draft"
+              :intent="intent"
+              :rag="rag"
+              :on-confirm="handleConfirm"
+              :on-export="handleExport"
+            />
+          </section>
         </div>
       </div>
     </main>

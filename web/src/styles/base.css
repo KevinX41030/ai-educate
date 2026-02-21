@@ -135,38 +135,55 @@ body {
 .layout {
   display: grid;
   gap: 28px;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   align-items: start;
 }
 
-.sidebar {
+.toc {
   position: sticky;
   top: 28px;
+  display: grid;
+  gap: 16px;
 }
 
-.workspace {
+.toc-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-subtle);
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.toc-title {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.toc a {
+  display: block;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.toc a:hover {
+  background: var(--accent-soft);
+  color: var(--primary);
+}
+
+.content {
   display: block;
 }
 
-.workspace-grid {
-  display: grid;
-  gap: 24px;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-}
-
-.panel {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-subtle);
-}
-
-.panel.intent {
-  border-left: 4px solid var(--primary);
-}
-
-.workspace-head {
+.content-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -179,16 +196,50 @@ body {
   margin-bottom: 20px;
 }
 
-.workspace-head h2 {
+.content-head h2 {
   margin: 0;
   font-size: 18px;
   font-family: var(--font-display);
 }
 
-.workspace-head p {
+.content-head p {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+.content-surface {
+  background: var(--surface);
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+
+.doc-section {
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+  scroll-margin-top: 120px;
+}
+
+.doc-section:last-child {
+  border-bottom: none;
+}
+
+.doc-section:target {
+  background: #f0f6ff;
+}
+
+.panel {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.panel.intent {
+  border-left: 4px solid var(--primary);
+  padding-left: 16px;
 }
 
 .workspace-actions {
@@ -339,7 +390,8 @@ input:focus {
 
 .preview-block {
   padding: 12px 0 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px dashed var(--border);
+  scroll-margin-top: 120px;
 }
 
 .preview-block:last-child {
@@ -541,16 +593,8 @@ input:focus {
     grid-template-columns: 1fr;
   }
 
-  .sidebar {
-    position: static;
-  }
-
   .chat-list {
     height: 240px;
-  }
-
-  .workspace-grid {
-    grid-template-columns: 1fr;
   }
 
   .form-grid {
@@ -571,5 +615,9 @@ input:focus {
 
   .topbar-flow {
     justify-content: flex-start;
+  }
+
+  .toc {
+    position: static;
   }
 }
