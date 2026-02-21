@@ -29,11 +29,11 @@ export async function uploadFiles({ sessionId, files }) {
   return response.json();
 }
 
-export async function exportPptx({ sessionId, draft }) {
+export async function exportPptx({ sessionId, draft, useAi = true }) {
   const response = await fetch('/api/export/pptx', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, draft })
+    body: JSON.stringify({ sessionId, draft, useAi })
   });
   if (!response.ok) throw new Error('export_failed');
   return response;

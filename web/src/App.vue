@@ -146,7 +146,7 @@ const handleExport = async () => {
     return;
   }
   try {
-    const response = await exportPptx({ sessionId: sessionId.value, draft: draft.value });
+    const response = await exportPptx({ sessionId: sessionId.value, draft: draft.value, useAi: true });
     const blob = await response.blob();
     const disposition = response.headers.get('Content-Disposition') || '';
     const match = disposition.match(/filename=\"?([^\";]+)\"?/i);

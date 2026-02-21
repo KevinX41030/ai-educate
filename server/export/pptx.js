@@ -109,31 +109,117 @@ function addBullets(slide, items, theme, opts = {}) {
   });
 }
 
+function addInfoCard(slide, theme, data) {
+  const x = 8.3;
+  const y = 1.6;
+  const w = 4.3;
+  const h = 4.8;
+  slide.addShape(slide.ShapeType ? slide.ShapeType.roundRect : PptxGenJS.ShapeType.roundRect, {
+    x,
+    y,
+    w,
+    h,
+    fill: { color: 'EFF6FF' },
+    line: { color: 'CBD5F5' },
+    radius: 0.1
+  });
+  slide.addText('课堂示例', {
+    x: x + 0.2,
+    y: y + 0.2,
+    w: w - 0.4,
+    h: 0.3,
+    fontSize: 12,
+    bold: true,
+    fontFace: theme.font,
+    color: theme.primary
+  });
+  slide.addText(data.example || '（可补充教学案例）', {
+    x: x + 0.2,
+    y: y + 0.6,
+    w: w - 0.4,
+    h: 1.3,
+    fontSize: 11,
+    fontFace: theme.font,
+    color: theme.text,
+    valign: 'top'
+  });
+  slide.addText('互动提问', {
+    x: x + 0.2,
+    y: y + 2.0,
+    w: w - 0.4,
+    h: 0.3,
+    fontSize: 12,
+    bold: true,
+    fontFace: theme.font,
+    color: theme.primary
+  });
+  slide.addText(data.question || '（可加入课堂提问）', {
+    x: x + 0.2,
+    y: y + 2.4,
+    w: w - 0.4,
+    h: 1.0,
+    fontSize: 11,
+    fontFace: theme.font,
+    color: theme.text,
+    valign: 'top'
+  });
+  slide.addText(`视觉提示：${data.visual || '流程图/示意图'}`, {
+    x: x + 0.2,
+    y: y + 3.7,
+    w: w - 0.4,
+    h: 0.6,
+    fontSize: 10,
+    fontFace: theme.font,
+    color: theme.muted,
+    valign: 'top'
+  });
+}
+
 function normalizeDraft(draft) {
   if (!draft || !Array.isArray(draft.ppt)) return null;
   return draft;
 }
 
-function buildPptx(draft) {
+function normalizeSpec(spec, fallbackSlides) {
+  if (!spec || !Array.isArray(spec.slides)) {
+    return { slides: fallbackSlides, theme: null, layoutHints: [] };
+  }
+  return {
+    slides: spec.slides.map((slide, idx) => ({
+      title: slide.title || fallbackSlides[idx]?.title || '内容',
+      type: slide.type || fallbackSlides[idx]?.type || 'content',
+      bullets: Array.isArray(slide.bullets) ? slide.bullets : fallbackSlides[idx]?.bullets || [],
+      example: slide.example || '',
+      question: slide.question || '',
+      visual: slide.visual || '',
+      notes: slide.notes || ''
+    })),
+    theme: spec.theme || null,
+    layoutHints: Array.isArray(spec.layoutHints) ? spec.layoutHints : []
+  };
+}
+
+function buildPptx(draft, options = {}) {
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE';
   pptx.author = 'AI-Educate';
   pptx.company = 'AI-Educate';
   pptx.subject = 'Teaching Slides';
   pptx.title = 'Teaching Deck';
-  const theme = getTheme(draft);
+  const spec = normalizeSpec(options.pptSpec, draft.ppt);
+  const theme = getTheme({ theme: spec.theme || draft.theme });
   pptx.theme = {
     headFontFace: theme.font,
     bodyFontFace: theme.font,
     lang: 'zh-CN'
   };
 
-  const slides = draft.ppt;
+  const slides = spec.slides;
   const SHAPE = pptx.ShapeType || PptxGenJS.ShapeType;
   if (slides.length === 0) return pptx;
 
-  const rawHints = Array.isArray(draft.layoutHints) && draft.layoutHints.length
-    ? draft.layoutHints
+  const rawHints = Array.isArray(spec.layoutHints) && spec.layoutHints.length
+    ? spec.layoutHints
     : ['cover_right_panel', 'content_two_column', 'summary_cards'];
   const layoutHints = new Set(rawHints);
   const cover = slides.find((s) => s.type === 'cover') || slides[0];
@@ -177,38 +263,12 @@ function buildPptx(draft) {
     const bullets = content.bullets || [];
     if (layoutHints.has('content_two_column')) {
       addBullets(slide, bullets, theme, { x: 0.9, y: 1.6, w: 7.0, h: 4.8 });
-      slide.addShape(SHAPE.roundRect, {
-        x: 8.3,
-        y: 1.6,
-        w: 4.3,
-        h: 4.8,
-        fill: { color: 'EFF6FF' },
-        line: { color: 'CBD5F5' },
-        radius: 0.1
-      });
-      slide.addText('课堂提示', {
-        x: 8.55,
-        y: 1.8,
-        w: 3.8,
-        h: 0.4,
-        fontSize: 14,
-        bold: true,
-        fontFace: theme.font,
-        color: theme.primary
-      });
-      const tipItems = bullets.slice(0, 2);
-      slide.addText(tipItems.length ? tipItems.map((item) => `• ${item}`).join('\n') : '可加入案例或互动', {
-        x: 8.55,
-        y: 2.3,
-        w: 3.8,
-        h: 3.8,
-        fontSize: 12,
-        fontFace: theme.font,
-        color: theme.text,
-        valign: 'top'
-      });
+      addInfoCard(slide, theme, content);
     } else {
       addBullets(slide, bullets, theme);
+    }
+    if (content.notes && slide.addNotes) {
+      slide.addNotes(content.notes);
     }
     addFooter(slide, theme, slideIndex++, totalSlides, SHAPE);
   });
@@ -266,14 +326,14 @@ function buildPptx(draft) {
   return pptx;
 }
 
-async function exportPptx(draft, fileNamePrefix = 'lesson') {
+async function exportPptx(draft, fileNamePrefix = 'lesson', options = {}) {
   const normalized = normalizeDraft(draft);
   if (!normalized) return null;
 
   ensureExportDir();
   const fileName = `${fileNamePrefix}-${Date.now()}.pptx`;
   const filePath = path.join(EXPORT_DIR, fileName);
-  const pptx = buildPptx(normalized);
+  const pptx = buildPptx(normalized, options);
   await pptx.writeFile({ fileName: filePath });
   return { fileName, filePath };
 }

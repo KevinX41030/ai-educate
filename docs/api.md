@@ -74,6 +74,7 @@ Request example:
 ```json
 {
   "sessionId": "optional",
-  "draft": { "ppt": [] }
+  "draft": { "ppt": [] },
+  "useAi": true
 }
 ```

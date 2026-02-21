@@ -272,8 +272,82 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
   return safeJsonParse(chatText);
 }
 
+async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
+  if (!isLLMConfigured()) return null;
+  if (!draft || !Array.isArray(draft.ppt)) return null;
+
+  const knowledge = Array.isArray(ragContext) && ragContext.length
+    ? ragContext.map((item, idx) => `(${idx + 1}) [${item.source}] ${item.content}`).join('\n')
+    : '';
+
+  const payload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    input: [
+      {
+        role: 'system',
+        content:
+          '你是教学课件设计师。根据已有草稿生成更丰富的PPT内容与版式方案。' +
+          '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
+          '"slides": [{' +
+          '"title": string,' +
+          '"type": "cover"|"toc"|"content"|"summary",' +
+          '"bullets": string[],' +
+          '"example": string,' +
+          '"question": string,' +
+          '"visual": string,' +
+          '"notes": string' +
+          '}],' +
+          '"theme": {"primary": string, "accent": string, "background": string, "text": string, "font": string},' +
+          '"layoutHints": string[]' +
+          '}。' +
+          '内容页请补充示例、互动提问、视觉提示(如流程图/示意图)。' +
+          '封面/目录/总结页也可补充简要说明。' +
+          '风格使用现代企业蓝。'
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          slides: draft.ppt,
+          theme: draft.theme || null,
+          layoutHints: draft.layoutHints || null
+        })
+      },
+      {
+        role: 'user',
+        content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
+      }
+    ],
+    text: { format: { type: 'json_object' } },
+    max_output_tokens: 1400
+  };
+
+  try {
+    const response = await callResponsesApi(payload);
+    debugLog('responses_spec_raw', response);
+    const outputText = extractOutputText(response);
+    debugLog('responses_spec_text', outputText);
+    const parsed = safeJsonParse(outputText);
+    if (parsed) return parsed;
+  } catch (error) {
+    debugLog('responses_spec_error', String(error));
+  }
+
+  const chatPayload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    messages: [payload.input[0], payload.input[1], payload.input[2]],
+    response_format: { type: 'json_object' },
+    temperature: 0.4
+  };
+  const chatResponse = await callChatCompletionsApi(chatPayload);
+  debugLog('chat_spec_raw', chatResponse);
+  const chatText = extractChatText(chatResponse);
+  debugLog('chat_spec_text', chatText);
+  return safeJsonParse(chatText);
+}
+
 module.exports = {
   extractIntentWithLLM,
   generateDraftWithLLM,
+  generatePptSpecWithLLM,
   isLLMConfigured
 };

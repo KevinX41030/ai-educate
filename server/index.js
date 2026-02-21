@@ -6,7 +6,7 @@ const multer = require('multer');
 const { nanoid } = require('nanoid');
 const { createInitialState, handleMessage, buildIntentPayload } = require('./agent');
 const { getStats, searchKnowledge, reloadKnowledgeBase } = require('./rag');
-const { isLLMConfigured } = require('./llm');
+const { isLLMConfigured, generatePptSpecWithLLM } = require('./llm');
 const { exportPptx } = require('./export/pptx');
 
 const app = express();
@@ -72,17 +72,28 @@ app.post('/api/rag/reload', (_, res) => {
 });
 
 app.post('/api/export/pptx', async (req, res) => {
-  const { sessionId, draft } = req.body || {};
+  const { sessionId, draft, useAi = true } = req.body || {};
   let exportDraft = draft;
+  let ragContext = [];
   if (!exportDraft && sessionId && sessions.has(sessionId)) {
-    exportDraft = sessions.get(sessionId).state.draft;
+    const session = sessions.get(sessionId);
+    exportDraft = session.state.draft;
+    ragContext = session.state.rag || [];
   }
   if (!exportDraft) {
     return res.status(400).json({ error: 'draft_required' });
   }
 
   try {
-    const result = await exportPptx(exportDraft, 'lesson');
+    let pptSpec = null;
+    if (useAi) {
+      try {
+        pptSpec = await generatePptSpecWithLLM({ draft: exportDraft, ragContext });
+      } catch (error) {
+        pptSpec = null;
+      }
+    }
+    const result = await exportPptx(exportDraft, 'lesson', { pptSpec });
     if (!result) return res.status(400).json({ error: 'invalid_draft' });
     return res.download(result.filePath, result.fileName);
   } catch (error) {
