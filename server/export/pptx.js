@@ -39,8 +39,8 @@ function addBackground(slide, theme) {
   slide.background = { color: theme.background };
 }
 
-function addTopBar(slide, theme) {
-  slide.addShape(PptxGenJS.ShapeType.rect, {
+function addTopBar(slide, theme, SHAPE) {
+  slide.addShape(SHAPE.rect, {
     x: 0,
     y: 0,
     w: 13.33,
@@ -50,8 +50,8 @@ function addTopBar(slide, theme) {
   });
 }
 
-function addFooter(slide, theme, index, total) {
-  slide.addShape(PptxGenJS.ShapeType.line, {
+function addFooter(slide, theme, index, total, SHAPE) {
+  slide.addShape(SHAPE.line, {
     x: 0.6,
     y: 7.1,
     w: 12.2,
@@ -129,6 +129,7 @@ function buildPptx(draft) {
   };
 
   const slides = draft.ppt;
+  const SHAPE = pptx.ShapeType || PptxGenJS.ShapeType;
   if (slides.length === 0) return pptx;
 
   const rawHints = Array.isArray(draft.layoutHints) && draft.layoutHints.length
@@ -146,7 +147,7 @@ function buildPptx(draft) {
   const coverSlide = pptx.addSlide();
   addBackground(coverSlide, theme);
   if (layoutHints.has('cover_right_panel')) {
-    coverSlide.addShape(PptxGenJS.ShapeType.rect, {
+    coverSlide.addShape(SHAPE.rect, {
       x: 9.8,
       y: 0,
       w: 3.53,
@@ -157,26 +158,26 @@ function buildPptx(draft) {
   }
   addTitle(coverSlide, cover.title || '教学课件', theme);
   addSubtitle(coverSlide, (cover.bullets || []).filter(Boolean).join(' · ') || '', theme);
-  addFooter(coverSlide, theme, slideIndex++, totalSlides);
+  addFooter(coverSlide, theme, slideIndex++, totalSlides, SHAPE);
 
   if (toc) {
     const tocSlide = pptx.addSlide();
     addBackground(tocSlide, theme);
-    addTopBar(tocSlide, theme);
+    addTopBar(tocSlide, theme, SHAPE);
     addTitle(tocSlide, toc.title || '目录', theme);
     addBullets(tocSlide, toc.bullets || [], theme, { x: 1.0, y: 1.8, w: 11.5 });
-    addFooter(tocSlide, theme, slideIndex++, totalSlides);
+    addFooter(tocSlide, theme, slideIndex++, totalSlides, SHAPE);
   }
 
   contentSlides.forEach((content) => {
     const slide = pptx.addSlide();
     addBackground(slide, theme);
-    addTopBar(slide, theme);
+    addTopBar(slide, theme, SHAPE);
     addTitle(slide, content.title || '内容', theme);
     const bullets = content.bullets || [];
     if (layoutHints.has('content_two_column')) {
       addBullets(slide, bullets, theme, { x: 0.9, y: 1.6, w: 7.0, h: 4.8 });
-      slide.addShape(PptxGenJS.ShapeType.roundRect, {
+      slide.addShape(SHAPE.roundRect, {
         x: 8.3,
         y: 1.6,
         w: 4.3,
@@ -209,13 +210,13 @@ function buildPptx(draft) {
     } else {
       addBullets(slide, bullets, theme);
     }
-    addFooter(slide, theme, slideIndex++, totalSlides);
+    addFooter(slide, theme, slideIndex++, totalSlides, SHAPE);
   });
 
   if (summary) {
     const summarySlide = pptx.addSlide();
     addBackground(summarySlide, theme);
-    addTopBar(summarySlide, theme);
+    addTopBar(summarySlide, theme, SHAPE);
     addTitle(summarySlide, summary.title || '总结', theme);
     const bullets = summary.bullets || [];
     if (layoutHints.has('summary_cards')) {
@@ -226,7 +227,7 @@ function buildPptx(draft) {
       const groups = [bullets.slice(0, 2), bullets.slice(2, 4), bullets.slice(4, 6)];
       groups.forEach((group, idx) => {
         const x = startX + idx * (cardWidth + 0.4);
-        summarySlide.addShape(PptxGenJS.ShapeType.roundRect, {
+        summarySlide.addShape(SHAPE.roundRect, {
           x,
           y: startY,
           w: cardWidth,
@@ -259,7 +260,7 @@ function buildPptx(draft) {
     } else {
       addBullets(summarySlide, bullets, theme, { x: 1.0, y: 1.8, w: 11.5 });
     }
-    addFooter(summarySlide, theme, slideIndex++, totalSlides);
+    addFooter(summarySlide, theme, slideIndex++, totalSlides, SHAPE);
   }
 
   return pptx;
