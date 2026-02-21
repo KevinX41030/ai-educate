@@ -109,12 +109,12 @@ function addBullets(slide, items, theme, opts = {}) {
   });
 }
 
-function addInfoCard(slide, theme, data) {
+function addInfoCard(slide, theme, data, SHAPE) {
   const x = 8.3;
   const y = 1.6;
   const w = 4.3;
   const h = 4.8;
-  slide.addShape(slide.ShapeType ? slide.ShapeType.roundRect : PptxGenJS.ShapeType.roundRect, {
+  slide.addShape(SHAPE.roundRect, {
     x,
     y,
     w,
@@ -263,7 +263,7 @@ function buildPptx(draft, options = {}) {
     const bullets = content.bullets || [];
     if (layoutHints.has('content_two_column')) {
       addBullets(slide, bullets, theme, { x: 0.9, y: 1.6, w: 7.0, h: 4.8 });
-      addInfoCard(slide, theme, content);
+      addInfoCard(slide, theme, content, SHAPE);
     } else {
       addBullets(slide, bullets, theme);
     }
