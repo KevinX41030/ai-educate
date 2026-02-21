@@ -1,8 +1,17 @@
 <template>
   <header class="topbar">
-    <div>
-      <h1>多模态AI互动式教学智能体</h1>
-      <p>企业级教学共创工作台 · 课件智能生成</p>
+    <div class="brand">
+      <div class="brand-mark">AI</div>
+      <div class="brand-copy">
+        <h1>多模态AI互动式教学智能体</h1>
+        <p>企业级教学共创工作台 · 课件智能生成</p>
+      </div>
+    </div>
+    <div class="topbar-flow">
+      <span>需求梳理</span>
+      <span>多轮对话</span>
+      <span>课件草稿</span>
+      <span>一键导出</span>
     </div>
     <div class="topbar-meta">
       <span class="status-pill">{{ status }}</span>

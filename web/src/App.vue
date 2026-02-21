@@ -11,6 +11,16 @@
         />
       </div>
       <div class="workspace">
+        <div class="workspace-head">
+          <div>
+            <h2>生成工作区</h2>
+            <p>通过对话逐步明确需求，实时预览课件结构与教案。</p>
+          </div>
+          <div class="workspace-actions">
+            <button class="ghost" @click="handleClear">重置会话</button>
+            <button class="primary" @click="handleExport">导出课件</button>
+          </div>
+        </div>
         <div class="workspace-grid">
           <ChatPanel
             :messages="messages"

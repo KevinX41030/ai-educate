@@ -2,7 +2,7 @@
   <section class="panel preview">
     <div class="panel-title">
       <h2>课件预览</h2>
-      <button class="secondary" @click="handleExport">导出占位</button>
+      <button class="secondary" @click="handleExport">导出课件</button>
     </div>
 
     <div class="preview-block">
