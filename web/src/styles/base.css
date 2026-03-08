@@ -208,6 +208,10 @@ body {
   font-size: 12px;
 }
 
+.mode-hint-text {
+  max-width: 520px;
+}
+
 .content-surface {
   background: var(--surface);
   border-radius: 24px;
@@ -246,6 +250,18 @@ body {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.mode-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mode-select span {
+  white-space: nowrap;
 }
 
 .panel-title {
@@ -358,10 +374,21 @@ textarea {
 }
 
 textarea:focus,
-input:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+select {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  background: var(--surface-2);
+  color: var(--ink);
 }
 
 .upload-block {

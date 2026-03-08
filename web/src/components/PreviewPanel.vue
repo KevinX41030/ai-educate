@@ -4,7 +4,7 @@
       <h2>课件预览</h2>
       <div class="tools">
         <button class="secondary" :disabled="!draft" @click="handleRegenerateScene">重新排版</button>
-        <button class="secondary" @click="handleExport">导出课件</button>
+        <button class="secondary" @click="handleExport">{{ exportLabel }}</button>
       </div>
     </div>
 
@@ -129,6 +129,10 @@ const props = defineProps({
   onExport: {
     type: Function,
     default: null
+  },
+  exportLabel: {
+    type: String,
+    default: '导出课件'
   },
   onRegenerateScene: {
     type: Function,

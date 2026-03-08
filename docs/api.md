@@ -83,7 +83,7 @@ Request example:
 ```
 
 Notes:
-- `mode` currently supports `editable`
+- `mode` currently supports `editable` and `hybrid`
 - `regenerateScene=true` will rebuild the intermediate scene before export
 - if the session already has `scene`, export will reuse it instead of regenerating on every click
 

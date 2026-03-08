@@ -75,8 +75,9 @@ curl -s http://localhost:5174/api/rag/query \
 
 1) 生成课件初稿后，确认右侧出现“PPT 场景预览”  
 2) 点击“重新排版”，预览更新且提示“场景已就绪”  
-3) 点击“导出”按钮，浏览器下载 `lesson-*.pptx` 文件  
-4) 打开文件确认包含封面/目录/内容/总结页
+3) 选择“可编辑版”导出，确认下载 `lesson-*.pptx` 文件  
+4) 再切换到“混合版”导出，确认同样成功下载  
+5) 打开两个文件，对比混合版的背景、右侧卡片和总结页卡片视觉更完整
 
 ## 9. PPTX 主题样式
 
@@ -93,3 +94,17 @@ curl -s http://localhost:5174/api/rag/query \
 - 点击“重新排版”时会调用 AI 生成增强 scene
 - 导出默认复用现有 scene，避免每次导出都重新跑排版
 - 如果 AI 排版失败，会回退到基于草稿的基础 scene
+- `hybrid` 模式会把背景和装饰层合成为页面图层，同时保留核心标题/正文为原生文字
+
+## 11. 一键 smoke 验证
+
+如果本地服务已经启动，可执行：
+
+```bash
+scripts/ppt-export-smoke.sh
+```
+
+该脚本会依次验证：
+- `/api/ppt/scene/regenerate`
+- `editable` 导出
+- `hybrid` 导出

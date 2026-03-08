@@ -27,10 +27,18 @@
           <div>
             <h2>生成工作区</h2>
             <p>按章节式浏览教学需求、对话与课件产出。</p>
+            <p class="mode-hint-text">当前导出：{{ exportModeHint }}</p>
           </div>
           <div class="workspace-actions">
+            <label class="mode-select">
+              <span>导出模式</span>
+              <select v-model="exportMode">
+                <option value="editable">可编辑版</option>
+                <option value="hybrid">混合版</option>
+              </select>
+            </label>
             <button class="ghost" @click="handleClear">重置会话</button>
-            <button class="primary" @click="handleExport">导出课件</button>
+            <button class="primary" @click="handleExport">{{ exportLabel }}</button>
           </div>
         </div>
         <div class="content-surface">
@@ -61,6 +69,7 @@
               :rag="rag"
               :on-confirm="handleConfirm"
               :on-export="handleExport"
+              :export-label="exportLabel"
               :on-regenerate-scene="handleRegenerateScene"
             />
           </section>
@@ -86,6 +95,7 @@ const summary = ref('暂无');
 const draft = ref(null);
 const scene = ref(null);
 const sceneStatus = ref('idle');
+const exportMode = ref('editable');
 const intent = ref(null);
 const rag = ref([]);
 const fields = ref({
@@ -128,6 +138,13 @@ const outlineSlides = computed(() => {
   return draft.value?.ppt ?? [];
 });
 
+const exportLabel = computed(() => exportMode.value === 'hybrid' ? '导出混合版' : '导出可编辑版');
+const exportModeHint = computed(() => (
+  exportMode.value === 'hybrid'
+    ? '混合版会保留标题/正文可编辑，并把背景与装饰合成为页面图层。'
+    : '可编辑版使用原生文本框与形状，适合导出后继续逐页修改。'
+));
+
 const handleSend = async (text) => {
   appendMessage('user', text);
   try {
@@ -166,6 +183,7 @@ const handleClear = () => {
   files.value = [];
   intent.value = null;
   rag.value = [];
+  exportMode.value = 'editable';
   fields.value = {
     subject: '',
     grade: '',
@@ -213,12 +231,13 @@ const handleExport = async () => {
     return;
   }
   try {
+    const regenerateScene = exportMode.value === 'hybrid' && sceneStatus.value !== 'ready';
     const response = await exportPptx({
       sessionId: sessionId.value,
       draft: draft.value,
       useAi: true,
-      mode: 'editable',
-      regenerateScene: false
+      mode: exportMode.value,
+      regenerateScene
     });
     const blob = await response.blob();
     const disposition = response.headers.get('Content-Disposition') || '';
@@ -232,7 +251,7 @@ const handleExport = async () => {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-    appendMessage('assistant', 'PPTX 已生成并下载。');
+    appendMessage('assistant', `${exportMode.value === 'hybrid' ? '混合版' : '可编辑版'} PPTX 已生成并下载。`);
   } catch (error) {
     appendMessage('assistant', '导出失败，请稍后重试。');
   }
