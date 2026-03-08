@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-educate.local/schema/ppt-scene.schema.json",
+  "title": "PptScene",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "theme": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "primary": { "type": "string" },
+        "accent": { "type": "string" },
+        "background": { "type": "string" },
+        "text": { "type": "string" },
+        "font": { "type": "string" }
+      },
+      "required": ["primary", "accent", "background", "text", "font"]
+    },
+    "layoutHints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "slides": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "role": {
+            "type": "string",
+            "enum": ["cover", "toc", "content", "summary"]
+          },
+          "variant": {
+            "type": "string",
+            "enum": ["cover", "toc", "concept", "process", "case", "activity", "summary"]
+          },
+          "background": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": { "type": "string", "enum": ["solid", "image"] },
+              "color": { "type": "string" },
+              "image": { "type": "string" }
+            },
+            "required": ["type", "color"]
+          },
+          "blocks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string" },
+                "type": {
+                  "type": "string",
+                  "enum": ["title", "subtitle", "bullets", "callout", "question", "summaryCards"]
+                },
+                "title": { "type": "string" },
+                "text": { "type": "string" },
+                "items": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "box": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "x": { "type": "number" },
+                    "y": { "type": "number" },
+                    "w": { "type": "number" },
+                    "h": { "type": "number" }
+                  },
+                  "required": ["x", "y", "w", "h"]
+                }
+              },
+              "required": ["id", "type", "box"]
+            }
+          },
+          "notes": { "type": "string" }
+        },
+        "required": ["id", "title", "role", "variant", "background", "blocks"]
+      }
+    },
+    "updatedAt": { "type": "string" }
+  },
+  "required": ["theme", "slides", "updatedAt"]
+}

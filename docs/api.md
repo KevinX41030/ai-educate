@@ -76,6 +76,38 @@ Request example:
   "sessionId": "optional",
   "draft": { "ppt": [] },
   "useAi": true,
-  "useTemplate": true
+  "useTemplate": true,
+  "mode": "editable",
+  "regenerateScene": false
+}
+```
+
+Notes:
+- `mode` currently supports `editable`
+- `regenerateScene=true` will rebuild the intermediate scene before export
+- if the session already has `scene`, export will reuse it instead of regenerating on every click
+
+## POST /api/ppt/scene/regenerate
+Generate or refresh the intermediate PPT scene spec used by preview and export.
+
+Request example:
+```json
+{
+  "sessionId": "optional",
+  "draft": { "ppt": [] },
+  "force": true
+}
+```
+
+Response example:
+```json
+{
+  "sessionId": "optional",
+  "source": "llm",
+  "updatedAt": "2026-03-08T12:00:00.000Z",
+  "scene": {
+    "theme": {},
+    "slides": []
+  }
 }
 ```

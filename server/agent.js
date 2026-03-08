@@ -1,6 +1,7 @@
 const { nanoid } = require('nanoid');
-const { extractIntentWithLLM, generateDraftWithLLM } = require('./llm');
+const { extractIntentWithLLM, generateDraftWithLLM, isLLMConfigured } = require('./llm');
 const { searchKnowledge } = require('./rag');
+const { buildPptSceneFromDraft } = require('./ppt/scene');
 
 const REQUIRED_FIELDS = ["subject", "grade", "duration", "goals", "keyPoints"];
 
@@ -48,9 +49,31 @@ function createInitialState() {
     ready: false,
     confirmed: false,
     draft: null,
+    scene: null,
+    sceneStatus: 'idle',
+    sceneSource: '',
+    sceneUpdatedAt: '',
+    sceneVersion: 0,
     lastEdit: "",
     rag: []
   };
+}
+
+function syncSceneFromDraft(state) {
+  if (!state?.draft) {
+    state.scene = null;
+    state.sceneStatus = 'idle';
+    state.sceneSource = '';
+    state.sceneUpdatedAt = '';
+    return;
+  }
+
+  const scene = buildPptSceneFromDraft(state.draft);
+  state.scene = scene;
+  state.sceneSource = 'draft';
+  state.sceneStatus = isLLMConfigured() ? 'stale' : 'ready';
+  state.sceneUpdatedAt = scene?.updatedAt || new Date().toISOString();
+  state.sceneVersion = (state.sceneVersion || 0) + 1;
 }
 
 function normalizeKeyPoints(value) {
@@ -276,7 +299,8 @@ function buildIntentPayload(state) {
     fields: state.fields,
     missingFields: getMissingFields(state),
     ready: state.ready,
-    confirmed: state.confirmed
+    confirmed: state.confirmed,
+    sceneStatus: state.sceneStatus || 'idle'
   };
 }
 
@@ -471,11 +495,13 @@ async function handleMessage(state, text, messages = []) {
   const editInstruction = llmResult?.edit || text;
   if (state.draft && (llmResult?.intent === "edit" || isEdit(text))) {
     state.draft = applyEdit(state.draft, editInstruction);
+    syncSceneFromDraft(state);
     state.lastEdit = editInstruction;
     return {
       reply: "已根据你的修改建议更新课件草稿。还需要调整哪些部分？",
       state,
-      draft: state.draft
+      draft: state.draft,
+      scene: state.scene
     };
   }
 
@@ -487,7 +513,8 @@ async function handleMessage(state, text, messages = []) {
     return {
       reply: buildSmallTalkReply(smallTalkIntent, state, missingField),
       state,
-      draft: state.draft || null
+      draft: state.draft || null,
+      scene: state.scene || null
     };
   }
 
@@ -514,12 +541,14 @@ async function handleMessage(state, text, messages = []) {
       const llmDraft = await generateDraftWithLLM({ state, ragContext: state.rag });
       const normalized = normalizeDraft(llmDraft);
       state.draft = normalized || generateDraft(state);
+      syncSceneFromDraft(state);
     }
     state.confirmed = true;
     return {
       reply: "初稿已生成，可在右侧预览。需要修改请直接描述。",
       state,
-      draft: state.draft
+      draft: state.draft,
+      scene: state.scene
     };
   }
 

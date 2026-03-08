@@ -6,8 +6,9 @@ const multer = require('multer');
 const { nanoid } = require('nanoid');
 const { createInitialState, handleMessage, buildIntentPayload } = require('./agent');
 const { getStats, searchKnowledge, reloadKnowledgeBase } = require('./rag');
-const { isLLMConfigured, generatePptSpecWithLLM } = require('./llm');
+const { isLLMConfigured, generatePptSceneWithLLM } = require('./llm');
 const { exportPptx } = require('./export/pptx');
+const { buildPptSceneFromDraft, normalizeScene } = require('./ppt/scene');
 
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -46,6 +47,34 @@ function getSession(id) {
   return sessions.get(id) || Array.from(sessions.values()).pop();
 }
 
+function applySceneToState(state, scene, source = 'draft', status = 'ready') {
+  if (!state) return;
+  state.scene = scene;
+  state.sceneSource = scene ? source : '';
+  state.sceneStatus = scene ? status : 'idle';
+  state.sceneUpdatedAt = scene?.updatedAt || '';
+  state.sceneVersion = (state.sceneVersion || 0) + (scene ? 1 : 0);
+}
+
+async function buildScenePayload({ draft, ragContext = [], useAi = true }) {
+  const fallbackScene = buildPptSceneFromDraft(draft);
+  if (!fallbackScene) return { scene: null, source: 'draft' };
+
+  if (useAi) {
+    try {
+      const rawScene = await generatePptSceneWithLLM({ draft, ragContext });
+      const normalized = normalizeScene(rawScene, draft);
+      if (normalized) {
+        return { scene: normalized, source: 'llm' };
+      }
+    } catch (error) {
+      // fallback below
+    }
+  }
+
+  return { scene: fallbackScene, source: 'draft' };
+}
+
 app.get('/api/status', (_, res) => {
   res.json({
     ok: true,
@@ -71,14 +100,55 @@ app.post('/api/rag/reload', (_, res) => {
   res.json({ ok: true, ...stats });
 });
 
+app.post('/api/ppt/scene/regenerate', async (req, res) => {
+  const { sessionId, draft, force = true } = req.body || {};
+  const hasSession = sessionId && sessions.has(sessionId);
+  const session = hasSession ? sessions.get(sessionId) : null;
+  const exportDraft = draft || session?.state?.draft;
+  const ragContext = session?.state?.rag || [];
+
+  if (!exportDraft) {
+    return res.status(400).json({ error: 'draft_required' });
+  }
+
+  try {
+    const result = await buildScenePayload({ draft: exportDraft, ragContext, useAi: force !== false });
+    if (!result.scene) {
+      return res.status(400).json({ error: 'invalid_draft' });
+    }
+    if (session) {
+      applySceneToState(session.state, result.scene, result.source, 'ready');
+    }
+    return res.json({
+      sessionId: session?.id || sessionId || '',
+      scene: result.scene,
+      source: result.source,
+      updatedAt: result.scene.updatedAt
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'scene_regenerate_failed', message: String(error) });
+  }
+});
+
 app.post('/api/export/pptx', async (req, res) => {
-  const { sessionId, draft, useAi = true, useTemplate = true } = req.body || {};
+  const {
+    sessionId,
+    draft,
+    useAi = true,
+    useTemplate = true,
+    regenerateScene = false,
+    mode = 'editable'
+  } = req.body || {};
   let exportDraft = draft;
   let ragContext = [];
   let fields = {};
-  if (!exportDraft && sessionId && sessions.has(sessionId)) {
-    const session = sessions.get(sessionId);
+  const session = sessionId && sessions.has(sessionId) ? sessions.get(sessionId) : null;
+  let exportScene = session?.state?.scene || (draft ? buildPptSceneFromDraft(draft) : null);
+  if (!exportDraft && session) {
     exportDraft = session.state.draft;
+    ragContext = session.state.rag || [];
+    fields = session.state.fields || {};
+  } else if (session) {
     ragContext = session.state.rag || [];
     fields = session.state.fields || {};
   }
@@ -87,15 +157,19 @@ app.post('/api/export/pptx', async (req, res) => {
   }
 
   try {
-    let pptSpec = null;
-    if (useAi) {
-      try {
-        pptSpec = await generatePptSpecWithLLM({ draft: exportDraft, ragContext });
-      } catch (error) {
-        pptSpec = null;
+    if (!exportScene || regenerateScene) {
+      const generated = await buildScenePayload({ draft: exportDraft, ragContext, useAi });
+      exportScene = generated.scene || exportScene;
+      if (session && exportScene) {
+        applySceneToState(session.state, exportScene, generated.source, 'ready');
       }
     }
-    const result = await exportPptx(exportDraft, 'lesson', { pptSpec, useTemplate, fields });
+    const result = await exportPptx(exportDraft, 'lesson', {
+      scene: exportScene,
+      useTemplate: mode === 'editable' ? useTemplate : false,
+      fields,
+      mode
+    });
     if (!result) return res.status(400).json({ error: 'invalid_draft' });
     return res.download(result.filePath, result.fileName);
   } catch (error) {
@@ -129,6 +203,8 @@ app.post('/api/chat', async (req, res) => {
     state: result.state,
     intent: buildIntentPayload(result.state),
     draft: result.draft || null,
+    scene: result.scene || result.state?.scene || null,
+    sceneStatus: result.state?.sceneStatus || 'idle',
     rag: result.state?.rag || []
   });
 });

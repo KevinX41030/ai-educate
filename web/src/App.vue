@@ -15,9 +15,9 @@
           <a href="#section-interaction">互动设计</a>
           <a href="#section-rag">知识库引用</a>
         </div>
-        <div class="toc-card" v-if="draft && draft.ppt && draft.ppt.length">
+        <div class="toc-card" v-if="outlineSlides.length">
           <div class="toc-title">PPT 目录</div>
-          <a v-for="(slide, index) in draft.ppt" :key="slide.id" :href="`#slide-${index + 1}`">
+          <a v-for="(slide, index) in outlineSlides" :key="slide.id" :href="`#slide-${index + 1}`">
             {{ index + 1 }}. {{ slide.title }}
           </a>
         </div>
@@ -55,10 +55,13 @@
             <PreviewPanel
               :summary="summary"
               :draft="draft"
+              :scene="scene"
+              :scene-status="sceneStatus"
               :intent="intent"
               :rag="rag"
               :on-confirm="handleConfirm"
               :on-export="handleExport"
+              :on-regenerate-scene="handleRegenerateScene"
             />
           </section>
         </div>
@@ -68,12 +71,12 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import HeroHeader from './components/HeroHeader.vue';
 import IntentPanel from './components/IntentPanel.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import PreviewPanel from './components/PreviewPanel.vue';
-import { getStatus, sendMessage, uploadFiles, exportPptx } from './services/api';
+import { getStatus, sendMessage, uploadFiles, exportPptx, regeneratePptScene } from './services/api';
 
 const status = ref('准备就绪');
 const sessionId = ref(localStorage.getItem('sessionId') || '');
@@ -81,6 +84,8 @@ const messages = ref([]);
 const files = ref([]);
 const summary = ref('暂无');
 const draft = ref(null);
+const scene = ref(null);
+const sceneStatus = ref('idle');
 const intent = ref(null);
 const rag = ref([]);
 const fields = ref({
@@ -118,6 +123,11 @@ const appendMessage = (role, text) => {
   messages.value.push({ role, text });
 };
 
+const outlineSlides = computed(() => {
+  if (scene.value?.slides?.length) return scene.value.slides;
+  return draft.value?.ppt ?? [];
+});
+
 const handleSend = async (text) => {
   appendMessage('user', text);
   try {
@@ -127,6 +137,8 @@ const handleSend = async (text) => {
     if (data.state) summary.value = buildSummary(data.state);
     if (data.intent) intent.value = data.intent;
     if (data.draft) draft.value = data.draft;
+    scene.value = data.scene || null;
+    sceneStatus.value = data.sceneStatus || data.state?.sceneStatus || 'idle';
     if (data.rag) rag.value = data.rag;
     if (data.state?.fields) fields.value = data.state.fields;
   } catch (error) {
@@ -149,6 +161,8 @@ const handleClear = () => {
   messages.value = [];
   summary.value = '暂无';
   draft.value = null;
+  scene.value = null;
+  sceneStatus.value = 'idle';
   files.value = [];
   intent.value = null;
   rag.value = [];
@@ -174,13 +188,38 @@ const handleConfirm = async () => {
   await handleSend('确认');
 };
 
+const handleRegenerateScene = async () => {
+  if (!draft.value) {
+    appendMessage('assistant', '请先生成课件初稿，再重新排版。');
+    return;
+  }
+
+  sceneStatus.value = 'generating';
+  try {
+    const data = await regeneratePptScene({ sessionId: sessionId.value, draft: draft.value });
+    syncSession(data.sessionId);
+    scene.value = data.scene || null;
+    sceneStatus.value = 'ready';
+    appendMessage('assistant', data.source === 'llm' ? '已完成场景重排，预览已更新。' : '已按当前草稿刷新场景预览。');
+  } catch (error) {
+    sceneStatus.value = scene.value ? 'stale' : 'idle';
+    appendMessage('assistant', '重新排版失败，请稍后重试。');
+  }
+};
+
 const handleExport = async () => {
   if (!draft.value) {
     appendMessage('assistant', '请先生成课件初稿，再导出。');
     return;
   }
   try {
-    const response = await exportPptx({ sessionId: sessionId.value, draft: draft.value, useAi: true });
+    const response = await exportPptx({
+      sessionId: sessionId.value,
+      draft: draft.value,
+      useAi: true,
+      mode: 'editable',
+      regenerateScene: false
+    });
     const blob = await response.blob();
     const disposition = response.headers.get('Content-Disposition') || '';
     const match = disposition.match(/filename=\"?([^\";]+)\"?/i);

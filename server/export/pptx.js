@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const PptxGenJS = require('pptxgenjs');
 const { ensureTemplateFile } = require('./template');
+const { sceneToPptSpec } = require('../ppt/scene');
 
 const EXPORT_DIR = path.join(__dirname, '..', '..', 'data', 'exports');
 const DEFAULT_THEME = {
@@ -203,6 +204,17 @@ function normalizeSpec(spec, fallbackSlides) {
   };
 }
 
+function getEffectiveSpec(draft, options = {}) {
+  const fallbackSlides = Array.isArray(draft?.ppt) ? draft.ppt : [];
+  if (options.scene) {
+    const mapped = sceneToPptSpec(options.scene, fallbackSlides);
+    if (mapped) {
+      return normalizeSpec(mapped, fallbackSlides);
+    }
+  }
+  return normalizeSpec(options.pptSpec, fallbackSlides);
+}
+
 function resolveSlides(spec, fallbackSlides) {
   const slides = spec.slides || [];
   const fallback = Array.isArray(fallbackSlides) ? fallbackSlides : [];
@@ -299,7 +311,7 @@ async function buildPptxWithTemplate(draft, fileName, options = {}) {
   const templateDir = path.dirname(templatePath);
   const templateName = path.basename(templatePath);
 
-  const spec = normalizeSpec(options.pptSpec, draft.ppt);
+  const spec = getEffectiveSpec(draft, options);
   const { cover, toc, summary, contentSlides } = resolveSlides(spec, draft.ppt);
   const coverMeta = buildCoverMeta(draft, options.fields, cover);
   const summaryNote = buildSummaryNote(draft);
@@ -422,7 +434,7 @@ function buildPptx(draft, options = {}) {
   pptx.company = 'AI-Educate';
   pptx.subject = 'Teaching Slides';
   pptx.title = 'Teaching Deck';
-  const spec = normalizeSpec(options.pptSpec, draft.ppt);
+  const spec = getEffectiveSpec(draft, options);
   const theme = getTheme({ theme: spec.theme || draft.theme });
   pptx.theme = {
     headFontFace: theme.font,

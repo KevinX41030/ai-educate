@@ -2,7 +2,10 @@
   <section class="panel preview">
     <div class="panel-title">
       <h2>课件预览</h2>
-      <button class="secondary" @click="handleExport">导出课件</button>
+      <div class="tools">
+        <button class="secondary" :disabled="!draft" @click="handleRegenerateScene">重新排版</button>
+        <button class="secondary" @click="handleExport">导出课件</button>
+      </div>
     </div>
 
     <div class="preview-block" id="section-summary">
@@ -25,11 +28,20 @@
     </div>
 
     <div class="preview-block" id="section-slides">
-      <h3>PPT 结构草稿</h3>
+      <div class="preview-header">
+        <h3>PPT 场景预览</h3>
+        <span v-if="displaySlides.length" class="scene-status">{{ sceneStatusText }}</span>
+      </div>
       <div class="cards">
-        <p v-if="!slides.length" class="muted">等待生成课件初稿。</p>
+        <p v-if="!displaySlides.length" class="muted">等待生成课件初稿。</p>
+        <SceneSlideCard
+          v-for="(slide, index) in sceneSlides"
+          :key="slide.id"
+          :slide="slide"
+          :index="index"
+        />
         <div
-          v-for="(slide, index) in slides"
+          v-for="(slide, index) in fallbackSlides"
           :key="slide.id"
           class="card"
           :id="`slide-${index + 1}`"
@@ -83,6 +95,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import SceneSlideCard from './SceneSlideCard.vue';
 
 const props = defineProps({
   summary: {
@@ -92,6 +105,14 @@ const props = defineProps({
   draft: {
     type: Object,
     default: null
+  },
+  scene: {
+    type: Object,
+    default: null
+  },
+  sceneStatus: {
+    type: String,
+    default: 'idle'
   },
   intent: {
     type: Object,
@@ -108,10 +129,16 @@ const props = defineProps({
   onExport: {
     type: Function,
     default: null
+  },
+  onRegenerateScene: {
+    type: Function,
+    default: null
   }
 });
 
-const slides = computed(() => props.draft?.ppt ?? []);
+const sceneSlides = computed(() => props.scene?.slides ?? []);
+const fallbackSlides = computed(() => (sceneSlides.value.length ? [] : (props.draft?.ppt ?? [])));
+const displaySlides = computed(() => sceneSlides.value.length ? sceneSlides.value : fallbackSlides.value);
 const lessonPlan = computed(() => props.draft?.lessonPlan || null);
 const interactionIdea = computed(() => props.draft?.interactionIdea || null);
 const updatedAt = computed(() => props.draft?.updatedAt || null);
@@ -129,6 +156,12 @@ const missingFields = computed(() =>
   (props.intent?.missingFields || []).map((field) => FIELD_LABELS[field] || field)
 );
 const canConfirm = computed(() => props.intent && props.intent.ready && !props.intent.confirmed);
+const sceneStatusText = computed(() => {
+  if (props.sceneStatus === 'stale') return '当前为草稿场景，可点击“重新排版”生成增强版式';
+  if (props.sceneStatus === 'generating') return '正在生成场景';
+  if (props.sceneStatus === 'ready') return '场景已就绪';
+  return '当前使用基础预览';
+});
 
 const formatTime = (value) => {
   if (!value) return '';
@@ -147,8 +180,28 @@ const handleExport = () => {
   window.alert('导出功能为占位，后续将生成 .pptx/.docx 文件。');
 };
 
+const handleRegenerateScene = () => {
+  if (props.onRegenerateScene) {
+    props.onRegenerateScene();
+  }
+};
+
 const handleConfirm = () => {
   if (!props.onConfirm) return;
   props.onConfirm();
 };
 </script>
+
+<style scoped>
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.scene-status {
+  color: var(--muted);
+  font-size: 12px;
+}
+</style>

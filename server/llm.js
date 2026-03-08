@@ -353,9 +353,87 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
   return safeJsonParse(chatText);
 }
 
+async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
+  if (!isLLMConfigured()) return null;
+  if (!draft || !Array.isArray(draft.ppt)) return null;
+
+  const knowledge = Array.isArray(ragContext) && ragContext.length
+    ? ragContext.map((item, idx) => `(${idx + 1}) [${item.source}] ${item.content}`).join('\n')
+    : '';
+
+  const payload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    input: [
+      {
+        role: 'system',
+        content:
+          '你是教学课件设计师。请根据已有草稿生成用于页面预览与 PPT 导出的 scene JSON。' +
+          '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
+          '"theme": {"primary": string, "accent": string, "background": string, "text": string, "font": string},' +
+          '"layoutHints": string[],' +
+          '"slides": [{' +
+          '"title": string,' +
+          '"role": "cover"|"toc"|"content"|"summary",' +
+          '"variant": "cover"|"toc"|"concept"|"process"|"case"|"activity"|"summary",' +
+          '"notes": string,' +
+          '"blocks": [{' +
+          '"type": "title"|"subtitle"|"bullets"|"callout"|"question"|"summaryCards",' +
+          '"title": string,' +
+          '"text": string,' +
+          '"items": string[]' +
+          '}]' +
+          '}]' +
+          '}。' +
+          '封面至少包含 title/subtitle；目录页包含 bullets；内容页包含 title、bullets，并尽量补充 callout 或 question；总结页优先使用 summaryCards。' +
+          '不要输出 markdown，不要解释。'
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          slides: draft.ppt,
+          lessonPlan: draft.lessonPlan || null,
+          interactionIdea: draft.interactionIdea || null,
+          theme: draft.theme || null,
+          layoutHints: draft.layoutHints || null
+        })
+      },
+      {
+        role: 'user',
+        content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
+      }
+    ],
+    text: { format: { type: 'json_object' } },
+    max_output_tokens: 2200
+  };
+
+  try {
+    const response = await callResponsesApi(payload);
+    debugLog('responses_scene_raw', response);
+    const outputText = extractOutputText(response);
+    debugLog('responses_scene_text', outputText);
+    const parsed = safeJsonParse(outputText);
+    if (parsed) return parsed;
+  } catch (error) {
+    debugLog('responses_scene_error', String(error));
+  }
+
+  const chatPayload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    messages: [payload.input[0], payload.input[1], payload.input[2]],
+    response_format: { type: 'json_object' },
+    temperature: 0.4
+  };
+  const chatResponse = await callChatCompletionsApi(chatPayload);
+  debugLog('chat_scene_raw', chatResponse);
+  const chatText = extractChatText(chatResponse);
+  debugLog('chat_scene_text', chatText);
+  return safeJsonParse(chatText);
+}
+
 module.exports = {
   extractIntentWithLLM,
   generateDraftWithLLM,
   generatePptSpecWithLLM,
+  generatePptSceneWithLLM,
   isLLMConfigured
 };
