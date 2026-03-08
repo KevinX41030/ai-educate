@@ -62,7 +62,7 @@
                 "id": { "type": "string" },
                 "type": {
                   "type": "string",
-                  "enum": ["title", "subtitle", "bullets", "callout", "question", "summaryCards"]
+                  "enum": ["title", "subtitle", "bullets", "callout", "question", "summaryCards", "factCards", "steps", "columns", "taskCards"]
                 },
                 "title": { "type": "string" },
                 "text": { "type": "string" },

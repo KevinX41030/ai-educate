@@ -102,9 +102,13 @@ function sortBlocks(blocks = []) {
     title: 1,
     subtitle: 2,
     bullets: 3,
-    summaryCards: 4,
-    callout: 5,
-    question: 6
+    factCards: 4,
+    steps: 5,
+    columns: 6,
+    taskCards: 7,
+    summaryCards: 8,
+    callout: 9,
+    question: 10
   };
   return [...blocks].sort((left, right) => (order[left.type] || 99) - (order[right.type] || 99));
 }
@@ -138,19 +142,26 @@ function buildCommonDecorations(theme, designPreset) {
 function buildContentPanels(sceneSlide, theme, designPreset) {
   const accent = withHash(theme.accent);
   const primary = withHash(theme.primary);
-  const bulletsBox = pxBox(findBlock(sceneSlide, 'bullets')?.box, { x: 0.9, y: 1.8, w: 7.0, h: 4.8 });
+  const primaryContentBlock = findBlock(sceneSlide, 'bullets')
+    || findBlock(sceneSlide, 'factCards')
+    || findBlock(sceneSlide, 'steps')
+    || findBlock(sceneSlide, 'columns')
+    || findBlock(sceneSlide, 'taskCards');
+  const bulletsBox = primaryContentBlock?.box ? pxBox(primaryContentBlock.box) : null;
   const calloutBox = findBlock(sceneSlide, 'callout')?.box ? pxBox(findBlock(sceneSlide, 'callout').box) : null;
   const questionBox = findBlock(sceneSlide, 'question')?.box ? pxBox(findBlock(sceneSlide, 'question').box) : null;
   const panels = [];
 
   if (designPreset === 'editorial') {
-    panels.push(panelSvg(expandBox(bulletsBox, 16, 18), {
-      fill: '#FFFDF8',
-      stroke: primary,
-      opacity: 0.97,
-      radius: 10,
-      strokeWidth: 1.2
-    }));
+    if (bulletsBox) {
+      panels.push(panelSvg(expandBox(bulletsBox, 16, 18), {
+        fill: '#FFFDF8',
+        stroke: primary,
+        opacity: 0.97,
+        radius: 10,
+        strokeWidth: 1.2
+      }));
+    }
     if (questionBox) {
       panels.push(panelSvg(questionBox, {
         fill: '#FFFFFF',
@@ -168,13 +179,15 @@ function buildContentPanels(sceneSlide, theme, designPreset) {
   }
 
   if (designPreset === 'classroom') {
-    panels.push(panelSvg(expandBox(bulletsBox, 20, 20), {
-      fill: '#FFFFFF',
-      stroke: primary,
-      opacity: 0.97,
-      radius: 26,
-      strokeWidth: 1.5
-    }));
+    if (bulletsBox) {
+      panels.push(panelSvg(expandBox(bulletsBox, 20, 20), {
+        fill: '#FFFFFF',
+        stroke: primary,
+        opacity: 0.97,
+        radius: 26,
+        strokeWidth: 1.5
+      }));
+    }
     if (calloutBox) {
       panels.push(panelSvg(calloutBox, {
         fill: SOFT_PANELS.classroom,
@@ -197,13 +210,15 @@ function buildContentPanels(sceneSlide, theme, designPreset) {
     return panels;
   }
 
-  panels.push(panelSvg(expandBox(bulletsBox, 26, 28), {
-    fill: '#FFFFFF',
-    stroke: accent,
-    opacity: 0.95,
-    radius: 26,
-    strokeWidth: 1.5
-  }));
+  if (bulletsBox) {
+    panels.push(panelSvg(expandBox(bulletsBox, 26, 28), {
+      fill: '#FFFFFF',
+      stroke: accent,
+      opacity: 0.95,
+      radius: 26,
+      strokeWidth: 1.5
+    }));
+  }
 
   if (calloutBox) {
     const fill = sceneSlide.variant === 'case' ? '#F8FBFF' : '#FFFFFF';
@@ -239,7 +254,7 @@ function buildContentPanels(sceneSlide, theme, designPreset) {
     }
   }
 
-  if (!calloutBox && !questionBox) {
+  if (!bulletsBox && !calloutBox && !questionBox) {
     panels.push(panelSvg({ x: 820, y: 148, w: 350, h: 340 }, {
       fill: '#F8FBFF',
       stroke: accent,
@@ -423,6 +438,155 @@ function addCalloutText(slide, block, theme, options = {}) {
   }, theme, { fontSize: 11, color: bodyColor });
 }
 
+function addPanel(slide, box, SHAPE, options = {}) {
+  slide.addShape(options.shape || SHAPE.roundRect, {
+    x: box.x,
+    y: box.y,
+    w: box.w,
+    h: box.h,
+    fill: { color: options.fill || 'FFFFFF', transparency: options.transparency ?? 0 },
+    line: { color: options.stroke || options.fill || 'E2E8F0', width: options.lineWidth ?? 1 },
+    radius: options.radius ?? 0.12
+  });
+}
+
+function addCircle(slide, x, y, size, fill, SHAPE, transparency = 0) {
+  slide.addShape(SHAPE.ellipse, {
+    x,
+    y,
+    w: size,
+    h: size,
+    fill: { color: fill, transparency },
+    line: { color: fill, transparency }
+  });
+}
+
+function addFactCards(slide, block, theme, designPreset, SHAPE) {
+  if (!block?.box || !Array.isArray(block.items) || !block.items.length) return;
+  const columns = Math.min(block.items.length, 3);
+  const rows = Math.ceil(block.items.length / columns);
+  const gapX = 0.24;
+  const gapY = 0.22;
+  const cardWidth = (block.box.w - gapX * (columns - 1)) / columns;
+  const cardHeight = (block.box.h - gapY * (rows - 1)) / rows;
+
+  block.items.forEach((item, index) => {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const x = block.box.x + col * (cardWidth + gapX);
+    const y = block.box.y + row * (cardHeight + gapY);
+    addPanel(slide, { x, y, w: cardWidth, h: cardHeight }, SHAPE, {
+      fill: designPreset === 'editorial' ? 'FFFDF8' : 'FFFFFF',
+      stroke: designPreset === 'classroom' ? theme.primary : theme.accent,
+      radius: designPreset === 'editorial' ? 0.08 : 0.18
+    });
+    addText(slide, item, {
+      x: x + 0.18,
+      y: y + 0.18,
+      w: Math.max(cardWidth - 0.36, 0.2),
+      h: Math.max(cardHeight - 0.36, 0.3)
+    }, theme, { fontSize: 13 });
+  });
+}
+
+function addSteps(slide, block, theme, designPreset, SHAPE) {
+  if (!block?.box || !Array.isArray(block.items) || !block.items.length) return;
+  const count = block.items.length;
+  const startX = block.box.x + 0.35;
+  const cardX = block.box.x + 0.95;
+  const availableH = block.box.h;
+  const stepHeight = Math.min(0.82, (availableH - (count - 1) * 0.18) / count);
+
+  slide.addShape(SHAPE.line, {
+    x: startX + 0.12,
+    y: block.box.y + 0.36,
+    w: 0,
+    h: Math.max(0.3, availableH - 0.72),
+    line: { color: theme.accent, width: 2 }
+  });
+
+  block.items.forEach((item, index) => {
+    const y = block.box.y + index * (stepHeight + 0.18);
+    addCircle(slide, startX, y + 0.06, 0.32, theme.accent, SHAPE, 0);
+    addText(slide, String(index + 1), {
+      x: startX,
+      y: y + 0.1,
+      w: 0.32,
+      h: 0.18
+    }, theme, { fontSize: 10, bold: true, color: 'FFFFFF', align: 'center', valign: 'mid' });
+    addPanel(slide, { x: cardX, y, w: block.box.w - 1.15, h: stepHeight }, SHAPE, {
+      fill: designPreset === 'editorial' ? 'FFFDF8' : 'FFFFFF',
+      stroke: designPreset === 'editorial' ? theme.primary : theme.accent,
+      radius: designPreset === 'editorial' ? 0.08 : 0.14
+    });
+    addText(slide, item, {
+      x: cardX + 0.18,
+      y: y + 0.14,
+      w: Math.max(block.box.w - 1.51, 0.3),
+      h: Math.max(stepHeight - 0.22, 0.2)
+    }, theme, { fontSize: 13 });
+  });
+}
+
+function addColumns(slide, block, theme, designPreset, SHAPE) {
+  if (!block?.box || !Array.isArray(block.items) || !block.items.length) return;
+  const count = Math.min(block.items.length, 3);
+  const gap = 0.24;
+  const columnWidth = (block.box.w - gap * (count - 1)) / count;
+
+  block.items.slice(0, 3).forEach((item, index) => {
+    const x = block.box.x + index * (columnWidth + gap);
+    addPanel(slide, { x, y: block.box.y, w: columnWidth, h: block.box.h }, SHAPE, {
+      fill: index === 1 && designPreset === 'classroom' ? 'FFEDD5' : (designPreset === 'editorial' ? 'FFFDF8' : 'FFFFFF'),
+      stroke: designPreset === 'editorial' ? theme.primary : theme.accent,
+      radius: designPreset === 'editorial' ? 0.08 : 0.16
+    });
+    addText(slide, item, {
+      x: x + 0.18,
+      y: block.box.y + 0.22,
+      w: Math.max(columnWidth - 0.36, 0.3),
+      h: Math.max(block.box.h - 0.4, 0.4)
+    }, theme, { fontSize: 13 });
+  });
+}
+
+function addTaskCards(slide, block, theme, designPreset, SHAPE) {
+  if (!block?.box || !Array.isArray(block.items) || !block.items.length) return;
+  const columns = Math.min(block.items.length, 2);
+  const rows = Math.ceil(block.items.length / columns);
+  const gapX = 0.26;
+  const gapY = 0.22;
+  const cardWidth = (block.box.w - gapX * (columns - 1)) / columns;
+  const cardHeight = (block.box.h - gapY * (rows - 1)) / rows;
+  const fills = designPreset === 'editorial'
+    ? ['FFFDF8', 'FFF7ED', 'FEF3C7', 'FFFFFF']
+    : ['FFFFFF', 'FFEDD5', 'D1FAE5', 'FFFFFF'];
+
+  block.items.forEach((item, index) => {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const x = block.box.x + col * (cardWidth + gapX);
+    const y = block.box.y + row * (cardHeight + gapY);
+    addPanel(slide, { x, y, w: cardWidth, h: cardHeight }, SHAPE, {
+      fill: fills[index % fills.length],
+      stroke: theme.accent,
+      radius: 0.2
+    });
+    addText(slide, `任务 ${index + 1}`, {
+      x: x + 0.18,
+      y: y + 0.14,
+      w: Math.max(cardWidth - 0.36, 0.2),
+      h: 0.22
+    }, theme, { fontSize: 12, bold: true, color: theme.primary });
+    addText(slide, item, {
+      x: x + 0.18,
+      y: y + 0.46,
+      w: Math.max(cardWidth - 0.36, 0.2),
+      h: Math.max(cardHeight - 0.58, 0.3)
+    }, theme, { fontSize: 12 });
+  });
+}
+
 function addSummaryCards(slide, block, theme) {
   if (!block?.box || !Array.isArray(block.items) || block.items.length === 0) return;
   const groups = [block.items.slice(0, 2), block.items.slice(2, 4), block.items.slice(4, 6)];
@@ -479,6 +643,26 @@ function renderHybridSceneSlide(slide, sceneSlide, theme, designPreset, index, t
       addBullets(slide, block.items, block.box, theme, {
         fontSize: sceneSlide.role === 'toc' ? 16 : 17
       });
+      return;
+    }
+
+    if (block.type === 'factCards') {
+      addFactCards(slide, block, theme, designPreset, SHAPE);
+      return;
+    }
+
+    if (block.type === 'steps') {
+      addSteps(slide, block, theme, designPreset, SHAPE);
+      return;
+    }
+
+    if (block.type === 'columns') {
+      addColumns(slide, block, theme, designPreset, SHAPE);
+      return;
+    }
+
+    if (block.type === 'taskCards') {
+      addTaskCards(slide, block, theme, designPreset, SHAPE);
       return;
     }
 

@@ -24,6 +24,31 @@
             <li v-for="(item, itemIndex) in block.items" :key="itemIndex">{{ item }}</li>
           </ul>
         </template>
+        <template v-else-if="block.type === 'factCards' || block.type === 'taskCards'">
+          <div class="scene-block-title" v-if="block.title">{{ block.title }}</div>
+          <div class="scene-grid-cards">
+            <div v-for="(item, itemIndex) in block.items" :key="itemIndex" class="scene-mini-card">
+              {{ item }}
+            </div>
+          </div>
+        </template>
+        <template v-else-if="block.type === 'steps'">
+          <div class="scene-block-title" v-if="block.title">{{ block.title }}</div>
+          <ol class="scene-steps">
+            <li v-for="(item, itemIndex) in block.items" :key="itemIndex">
+              <span>{{ itemIndex + 1 }}</span>
+              <p>{{ item }}</p>
+            </li>
+          </ol>
+        </template>
+        <template v-else-if="block.type === 'columns'">
+          <div class="scene-block-title" v-if="block.title">{{ block.title }}</div>
+          <div class="scene-columns">
+            <div v-for="(item, itemIndex) in block.items" :key="itemIndex" class="scene-column-card">
+              {{ item }}
+            </div>
+          </div>
+        </template>
         <template v-else>
           <div class="scene-block-title">{{ block.title || fallbackTitle(block.type) }}</div>
           <p>{{ block.text }}</p>
@@ -124,6 +149,55 @@ const fallbackTitle = (type) => {
   padding-left: 18px;
   display: grid;
   gap: 6px;
+}
+
+.scene-grid-cards,
+.scene-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.scene-mini-card,
+.scene-column-card {
+  border-radius: 10px;
+  padding: 10px;
+  background: #f8fbff;
+  border: 1px solid rgba(31, 59, 115, 0.08);
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.scene-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.scene-steps li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.scene-steps span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #1f3b73;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.scene-steps p {
+  margin: 2px 0 0;
 }
 
 .block-title {

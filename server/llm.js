@@ -382,14 +382,15 @@ async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
           '"variant": "cover"|"toc"|"concept"|"process"|"case"|"activity"|"summary",' +
           '"notes": string,' +
           '"blocks": [{' +
-          '"type": "title"|"subtitle"|"bullets"|"callout"|"question"|"summaryCards",' +
+          '"type": "title"|"subtitle"|"bullets"|"callout"|"question"|"summaryCards"|"factCards"|"steps"|"columns"|"taskCards",' +
           '"title": string,' +
           '"text": string,' +
           '"items": string[]' +
           '}]' +
           '}]' +
           '}。' +
-          '封面至少包含 title/subtitle；目录页包含 bullets；内容页包含 title、bullets，并尽量补充 callout 或 question；总结页优先使用 summaryCards。' +
+          '封面至少包含 title/subtitle；目录页包含 bullets；总结页优先使用 summaryCards。' +
+          '内容页不要都做成一个大 bullets 框。概念页优先用 factCards，流程页优先用 steps，案例页优先用 columns，活动页优先用 taskCards。' +
           'designPreset 只能从 corporate、editorial、classroom 中选择，并与主题风格一致。' +
           '不要输出 markdown，不要解释。'
       },

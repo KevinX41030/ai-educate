@@ -9,7 +9,38 @@ const {
 
 const VALID_ROLES = new Set(['cover', 'toc', 'content', 'summary']);
 const VALID_VARIANTS = new Set(['cover', 'toc', 'concept', 'process', 'case', 'activity', 'summary']);
-const VALID_BLOCK_TYPES = new Set(['title', 'subtitle', 'bullets', 'callout', 'question', 'summaryCards']);
+const VALID_BLOCK_TYPES = new Set([
+  'title',
+  'subtitle',
+  'bullets',
+  'callout',
+  'question',
+  'summaryCards',
+  'factCards',
+  'steps',
+  'columns',
+  'taskCards'
+]);
+
+const CONTENT_VARIANT_BOXES = {
+  concept: {
+    factCards: { x: 0.95, y: 1.8, w: 11.15, h: 2.35 },
+    callout: { x: 0.95, y: 4.6, w: 7.05, h: 1.05 },
+    question: { x: 8.35, y: 4.6, w: 3.75, h: 1.05 }
+  },
+  process: {
+    steps: { x: 0.95, y: 1.8, w: 11.15, h: 3.95 },
+    callout: { x: 0.95, y: 5.95, w: 11.15, h: 0.75 }
+  },
+  case: {
+    columns: { x: 0.95, y: 1.8, w: 11.15, h: 3.75 },
+    callout: { x: 0.95, y: 5.85, w: 11.15, h: 0.8 }
+  },
+  activity: {
+    taskCards: { x: 0.95, y: 1.8, w: 11.15, h: 3.55 },
+    question: { x: 0.95, y: 5.75, w: 11.15, h: 0.82 }
+  }
+};
 
 const BOX_PRESET_FAMILIES = {
   corporate: {
@@ -143,8 +174,8 @@ function inferVariant(slide) {
   const bullets = Array.isArray(slide?.bullets) ? slide.bullets : [];
   const text = [title, ...bullets].join(' ');
   if (/(流程|步骤|过程|机制|路径|循环)/.test(text)) return 'process';
+  if (/(练习|互动|讨论|小测|活动|任务|探究|闯关|抢答|游戏)/.test(text)) return 'activity';
   if (/(案例|应用|实验|场景|实例|拓展|综合)/.test(text)) return 'case';
-  if (/(练习|互动|讨论|小测|活动|任务|探究)/.test(text)) return 'activity';
   return 'concept';
 }
 
@@ -162,6 +193,47 @@ function pickSummaryItems(draft, slide) {
       });
   }
   return summary;
+}
+
+function getVariantBox(variant, type, fallback) {
+  return CONTENT_VARIANT_BOXES[variant]?.[type] || fallback;
+}
+
+function buildConceptItems(bullets = [], draft) {
+  const items = bullets.slice(0, 4);
+  if (items.length >= 3) return items;
+  const fallback = [
+    draft?.lessonPlan?.goals,
+    draft?.lessonPlan?.methods,
+    draft?.interactionIdea?.title
+  ].filter(Boolean);
+  return [...items, ...fallback].slice(0, 4);
+}
+
+function buildProcessItems(bullets = [], draft) {
+  if (Array.isArray(draft?.lessonPlan?.process) && draft.lessonPlan.process.length) {
+    return draft.lessonPlan.process.slice(0, 4);
+  }
+  return bullets.slice(0, 4);
+}
+
+function buildCaseItems(bullets = [], draft) {
+  const items = [];
+  items.push(`案例情境：${draft?.lessonPlan?.activities || bullets[0] || '结合真实课堂或生活场景切入主题。'}`);
+  items.push(`分析重点：${bullets.slice(0, 2).join('；') || '抓住关键现象与核心概念。'}`);
+  items.push(`迁移应用：${bullets[2] || draft?.interactionIdea?.description || '引导学生把知识迁移到新情境中。'}`);
+  return items;
+}
+
+function buildTaskItems(bullets = [], draft) {
+  const items = [];
+  items.push(`任务一：${bullets[0] || '观察/识别关键对象'}`);
+  items.push(`任务二：${bullets[1] || '和同伴讨论并完成记录'}`);
+  items.push(`任务三：${bullets[2] || '展示结果并解释理由'}`);
+  if (draft?.interactionIdea?.title) {
+    items.push(`加分挑战：${draft.interactionIdea.title}`);
+  }
+  return items.slice(0, 4);
 }
 
 function buildBlocksForSlide(slide, draft, designPreset) {
@@ -202,34 +274,65 @@ function buildBlocksForSlide(slide, draft, designPreset) {
     return { blocks, variant };
   }
 
-  blocks.push(createBlock('bullets', { items: bullets }, resolveBoxPreset(designPreset, role, 'bullets')));
-
-  if (variant === 'process' && Array.isArray(draft?.lessonPlan?.process) && draft.lessonPlan.process.length) {
-    blocks.push(createBlock('callout', {
-      title: '教学流程',
-      text: draft.lessonPlan.process.slice(0, 3).join('；')
-    }, resolveBoxPreset(designPreset, role, 'callout')));
-  } else if (variant === 'case' && draft?.lessonPlan?.activities) {
-    blocks.push(createBlock('callout', {
-      title: '应用案例',
-      text: draft.lessonPlan.activities
-    }, resolveBoxPreset(designPreset, role, 'callout')));
-  } else {
+  if (variant === 'concept') {
+    blocks.push(createBlock('factCards', {
+      title: '核心认识',
+      items: buildConceptItems(bullets, draft)
+    }, getVariantBox(variant, 'factCards', resolveBoxPreset(designPreset, role, 'bullets'))));
     blocks.push(createBlock('callout', {
       title: '课堂提示',
-      text: bullets[1] || bullets[0] || '补充教学案例或误区提醒。'
-    }, resolveBoxPreset(designPreset, role, 'callout')));
+      text: bullets[1] || bullets[0] || draft?.lessonPlan?.goals || '补充教学案例或误区提醒。'
+    }, getVariantBox(variant, 'callout', resolveBoxPreset(designPreset, role, 'callout'))));
+    if (draft?.interactionIdea?.title) {
+      blocks.push(createBlock('question', {
+        title: '互动提问',
+        text: `互动建议：${draft.interactionIdea.title}`
+      }, getVariantBox(variant, 'question', resolveBoxPreset(designPreset, role, 'question'))));
+    }
+    return { blocks, variant };
   }
 
-  if (variant === 'activity' && draft?.interactionIdea?.description) {
-    blocks.push(createBlock('question', {
-      text: draft.interactionIdea.description
-    }, resolveBoxPreset(designPreset, role, 'question')));
-  } else if (draft?.interactionIdea?.title) {
-    blocks.push(createBlock('question', {
-      text: `互动建议：${draft.interactionIdea.title}`
-    }, resolveBoxPreset(designPreset, role, 'question')));
+  if (variant === 'process') {
+    blocks.push(createBlock('steps', {
+      title: '学习步骤',
+      items: buildProcessItems(bullets, draft)
+    }, getVariantBox(variant, 'steps', resolveBoxPreset(designPreset, role, 'bullets'))));
+    blocks.push(createBlock('callout', {
+      title: '关键提醒',
+      text: bullets.slice(0, 3).join('；') || '抓住每一步的输入、变化与结果。'
+    }, getVariantBox(variant, 'callout', resolveBoxPreset(designPreset, role, 'callout'))));
+    return { blocks, variant };
   }
+
+  if (variant === 'case') {
+    blocks.push(createBlock('columns', {
+      title: '案例拆解',
+      items: buildCaseItems(bullets, draft)
+    }, getVariantBox(variant, 'columns', resolveBoxPreset(designPreset, role, 'bullets'))));
+    blocks.push(createBlock('callout', {
+      title: '迁移提示',
+      text: draft?.interactionIdea?.description || bullets[2] || '把案例结论迁移到新的问题情境。'
+    }, getVariantBox(variant, 'callout', resolveBoxPreset(designPreset, role, 'callout'))));
+    return { blocks, variant };
+  }
+
+  if (variant === 'activity') {
+    blocks.push(createBlock('taskCards', {
+      title: '课堂任务板',
+      items: buildTaskItems(bullets, draft)
+    }, getVariantBox(variant, 'taskCards', resolveBoxPreset(designPreset, role, 'bullets'))));
+    blocks.push(createBlock('question', {
+      title: '互动挑战',
+      text: draft?.interactionIdea?.description || draft?.interactionIdea?.title || '设计一个和同伴合作完成的小任务。'
+    }, getVariantBox(variant, 'question', resolveBoxPreset(designPreset, role, 'question'))));
+    return { blocks, variant };
+  }
+
+  blocks.push(createBlock('bullets', { items: bullets }, resolveBoxPreset(designPreset, role, 'bullets')));
+  blocks.push(createBlock('callout', {
+    title: '课堂提示',
+    text: bullets[1] || bullets[0] || '补充教学案例或误区提醒。'
+  }, resolveBoxPreset(designPreset, role, 'callout')));
 
   return { blocks, variant };
 }
@@ -347,6 +450,18 @@ function normalizeScene(scene, draft) {
 function extractBullets(slide, fallbackSlide) {
   const bulletBlock = getBlockByType(slide?.blocks, 'bullets');
   if (bulletBlock?.items?.length) return bulletBlock.items;
+
+  const factCards = getBlockByType(slide?.blocks, 'factCards');
+  if (factCards?.items?.length) return factCards.items;
+
+  const steps = getBlockByType(slide?.blocks, 'steps');
+  if (steps?.items?.length) return steps.items;
+
+  const columns = getBlockByType(slide?.blocks, 'columns');
+  if (columns?.items?.length) return columns.items;
+
+  const taskCards = getBlockByType(slide?.blocks, 'taskCards');
+  if (taskCards?.items?.length) return taskCards.items;
 
   const summaryCards = getBlockByType(slide?.blocks, 'summaryCards');
   if (summaryCards?.items?.length) return summaryCards.items;
