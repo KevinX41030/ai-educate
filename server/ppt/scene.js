@@ -1,41 +1,89 @@
 const { nanoid } = require('nanoid');
-
-const DEFAULT_THEME = {
-  primary: '#1F3B73',
-  accent: '#4C8BF5',
-  background: '#F8FAFC',
-  text: '#0F172A',
-  font: 'Microsoft YaHei'
-};
+const {
+  inferDesignPreset,
+  resolveDesignPreset,
+  mergeThemeWithPreset,
+  getDesignPresetHints,
+  normalizeColor
+} = require('./design');
 
 const VALID_ROLES = new Set(['cover', 'toc', 'content', 'summary']);
 const VALID_VARIANTS = new Set(['cover', 'toc', 'concept', 'process', 'case', 'activity', 'summary']);
 const VALID_BLOCK_TYPES = new Set(['title', 'subtitle', 'bullets', 'callout', 'question', 'summaryCards']);
 
-const BOX_PRESETS = {
-  title: { x: 0.8, y: 0.5, w: 11.8, h: 0.9 },
-  subtitle: { x: 0.8, y: 1.45, w: 11.2, h: 0.6 },
-  bullets: { x: 0.9, y: 1.8, w: 7.0, h: 4.8 },
-  callout: { x: 8.2, y: 1.8, w: 4.1, h: 1.8 },
-  question: { x: 8.2, y: 3.9, w: 4.1, h: 1.3 },
-  summaryCards: { x: 0.9, y: 1.8, w: 11.4, h: 3.9 }
+const BOX_PRESET_FAMILIES = {
+  corporate: {
+    cover: {
+      title: { x: 0.8, y: 0.5, w: 8.8, h: 0.9 },
+      subtitle: { x: 0.8, y: 1.45, w: 8.2, h: 0.6 },
+      callout: { x: 8.2, y: 1.8, w: 4.1, h: 1.8 }
+    },
+    toc: {
+      title: { x: 0.8, y: 0.5, w: 11.8, h: 0.9 },
+      bullets: { x: 0.9, y: 1.8, w: 11.0, h: 4.8 }
+    },
+    content: {
+      title: { x: 0.8, y: 0.5, w: 11.8, h: 0.9 },
+      bullets: { x: 0.9, y: 1.8, w: 7.0, h: 4.8 },
+      callout: { x: 8.2, y: 1.8, w: 4.1, h: 1.8 },
+      question: { x: 8.2, y: 3.9, w: 4.1, h: 1.3 }
+    },
+    summary: {
+      title: { x: 0.8, y: 0.5, w: 11.8, h: 0.9 },
+      summaryCards: { x: 0.9, y: 1.8, w: 11.4, h: 3.9 },
+      callout: { x: 0.9, y: 5.1, w: 11.0, h: 1.2 }
+    }
+  },
+  editorial: {
+    cover: {
+      title: { x: 0.95, y: 0.8, w: 8.2, h: 1.0 },
+      subtitle: { x: 0.95, y: 2.0, w: 7.2, h: 0.5 },
+      callout: { x: 0.95, y: 5.45, w: 5.0, h: 1.05 }
+    },
+    toc: {
+      title: { x: 0.95, y: 0.65, w: 10.8, h: 0.8 },
+      bullets: { x: 1.1, y: 1.9, w: 10.3, h: 4.6 }
+    },
+    content: {
+      title: { x: 0.95, y: 0.65, w: 10.8, h: 0.8 },
+      bullets: { x: 0.95, y: 1.9, w: 7.9, h: 3.35 },
+      callout: { x: 0.95, y: 5.55, w: 7.3, h: 0.8 },
+      question: { x: 9.0, y: 1.95, w: 2.9, h: 2.25 }
+    },
+    summary: {
+      title: { x: 0.95, y: 0.65, w: 10.8, h: 0.8 },
+      summaryCards: { x: 0.95, y: 2.0, w: 11.2, h: 3.2 },
+      callout: { x: 0.95, y: 5.65, w: 11.2, h: 0.75 }
+    }
+  },
+  classroom: {
+    cover: {
+      title: { x: 0.9, y: 0.8, w: 7.4, h: 0.95 },
+      subtitle: { x: 0.95, y: 1.95, w: 6.4, h: 0.5 },
+      callout: { x: 7.9, y: 1.9, w: 4.15, h: 1.95 }
+    },
+    toc: {
+      title: { x: 0.9, y: 0.65, w: 10.8, h: 0.8 },
+      bullets: { x: 1.0, y: 1.85, w: 10.7, h: 4.75 }
+    },
+    content: {
+      title: { x: 0.9, y: 0.65, w: 10.8, h: 0.8 },
+      bullets: { x: 0.95, y: 1.95, w: 6.15, h: 4.35 },
+      callout: { x: 7.55, y: 1.9, w: 4.35, h: 1.95 },
+      question: { x: 7.55, y: 4.2, w: 4.35, h: 1.45 }
+    },
+    summary: {
+      title: { x: 0.9, y: 0.65, w: 10.8, h: 0.8 },
+      summaryCards: { x: 0.85, y: 1.95, w: 11.6, h: 3.55 },
+      callout: { x: 1.0, y: 5.85, w: 10.9, h: 0.8 }
+    }
+  }
 };
 
-function normalizeColor(color, fallback) {
-  if (!color) return fallback;
-  const normalized = String(color).trim();
-  if (!normalized) return fallback;
-  return normalized.startsWith('#') ? normalized.toUpperCase() : `#${normalized.toUpperCase()}`;
-}
+const DEFAULT_BOX_PRESETS = BOX_PRESET_FAMILIES.corporate.content;
 
-function normalizeTheme(theme = {}) {
-  return {
-    primary: normalizeColor(theme.primary, DEFAULT_THEME.primary),
-    accent: normalizeColor(theme.accent, DEFAULT_THEME.accent),
-    background: normalizeColor(theme.background, DEFAULT_THEME.background),
-    text: normalizeColor(theme.text, DEFAULT_THEME.text),
-    font: theme.font || DEFAULT_THEME.font
-  };
+function normalizeTheme(theme = {}, designPreset = 'corporate') {
+  return mergeThemeWithPreset(theme, designPreset);
 }
 
 function normalizeNumber(value, fallback) {
@@ -43,8 +91,14 @@ function normalizeNumber(value, fallback) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
+function resolveBoxPreset(designPreset, role, type) {
+  const preset = BOX_PRESET_FAMILIES[resolveDesignPreset(designPreset)] || BOX_PRESET_FAMILIES.corporate;
+  const family = preset[role] || preset.content;
+  return family[type] || preset.content[type] || DEFAULT_BOX_PRESETS[type] || { x: 0.9, y: 1.8, w: 7.0, h: 4.8 };
+}
+
 function normalizeBox(box, fallback) {
-  const base = fallback || BOX_PRESETS.bullets;
+  const base = fallback || DEFAULT_BOX_PRESETS.bullets;
   const raw = box && typeof box === 'object' ? box : {};
   return {
     x: normalizeNumber(raw.x, base.x),
@@ -80,7 +134,7 @@ function createBlock(type, data = {}, fallbackBox) {
     title: typeof data.title === 'string' ? data.title : '',
     text: typeof data.text === 'string' ? data.text : '',
     items: normalizeItems(data.items),
-    box: normalizeBox(data.box, fallbackBox || BOX_PRESETS[type] || BOX_PRESETS.bullets)
+    box: normalizeBox(data.box, fallbackBox)
   };
 }
 
@@ -110,83 +164,96 @@ function pickSummaryItems(draft, slide) {
   return summary;
 }
 
-function buildBlocksForSlide(slide, draft) {
+function buildBlocksForSlide(slide, draft, designPreset) {
   const role = VALID_ROLES.has(slide?.type) ? slide.type : 'content';
   const variant = role === 'content' ? inferVariant(slide) : role;
   const bullets = normalizeItems(slide?.bullets);
   const blocks = [];
 
-  blocks.push(createBlock('title', { text: slide?.title || '内容' }, BOX_PRESETS.title));
+  blocks.push(createBlock('title', { text: slide?.title || '内容' }, resolveBoxPreset(designPreset, role, 'title')));
 
   if (role === 'cover') {
     const subtitle = bullets.join(' · ');
     if (subtitle) {
-      blocks.push(createBlock('subtitle', { text: subtitle }, BOX_PRESETS.subtitle));
+      blocks.push(createBlock('subtitle', { text: subtitle }, resolveBoxPreset(designPreset, role, 'subtitle')));
     }
     if (draft?.lessonPlan?.goals) {
       blocks.push(createBlock('callout', {
         title: '教学目标',
         text: draft.lessonPlan.goals
-      }, BOX_PRESETS.callout));
+      }, resolveBoxPreset(designPreset, role, 'callout')));
     }
     return { blocks, variant };
   }
 
   if (role === 'toc') {
-    blocks.push(createBlock('bullets', { items: bullets }, { x: 0.9, y: 1.8, w: 11.0, h: 4.8 }));
+    blocks.push(createBlock('bullets', { items: bullets }, resolveBoxPreset(designPreset, role, 'bullets')));
     return { blocks, variant };
   }
 
   if (role === 'summary') {
-    blocks.push(createBlock('summaryCards', { items: pickSummaryItems(draft, slide) }, BOX_PRESETS.summaryCards));
+    blocks.push(createBlock('summaryCards', { items: pickSummaryItems(draft, slide) }, resolveBoxPreset(designPreset, role, 'summaryCards')));
     if (draft?.lessonPlan?.homework) {
       blocks.push(createBlock('callout', {
         title: '课后延伸',
         text: draft.lessonPlan.homework
-      }, { x: 0.9, y: 5.1, w: 11.0, h: 1.2 }));
+      }, resolveBoxPreset(designPreset, role, 'callout')));
     }
     return { blocks, variant };
   }
 
-  blocks.push(createBlock('bullets', { items: bullets }, BOX_PRESETS.bullets));
+  blocks.push(createBlock('bullets', { items: bullets }, resolveBoxPreset(designPreset, role, 'bullets')));
 
   if (variant === 'process' && Array.isArray(draft?.lessonPlan?.process) && draft.lessonPlan.process.length) {
     blocks.push(createBlock('callout', {
       title: '教学流程',
       text: draft.lessonPlan.process.slice(0, 3).join('；')
-    }, BOX_PRESETS.callout));
+    }, resolveBoxPreset(designPreset, role, 'callout')));
   } else if (variant === 'case' && draft?.lessonPlan?.activities) {
     blocks.push(createBlock('callout', {
       title: '应用案例',
       text: draft.lessonPlan.activities
-    }, BOX_PRESETS.callout));
+    }, resolveBoxPreset(designPreset, role, 'callout')));
   } else {
     blocks.push(createBlock('callout', {
       title: '课堂提示',
       text: bullets[1] || bullets[0] || '补充教学案例或误区提醒。'
-    }, BOX_PRESETS.callout));
+    }, resolveBoxPreset(designPreset, role, 'callout')));
   }
 
   if (variant === 'activity' && draft?.interactionIdea?.description) {
     blocks.push(createBlock('question', {
       text: draft.interactionIdea.description
-    }, BOX_PRESETS.question));
+    }, resolveBoxPreset(designPreset, role, 'question')));
   } else if (draft?.interactionIdea?.title) {
     blocks.push(createBlock('question', {
       text: `互动建议：${draft.interactionIdea.title}`
-    }, BOX_PRESETS.question));
+    }, resolveBoxPreset(designPreset, role, 'question')));
   }
 
   return { blocks, variant };
 }
 
+function resolveSceneDesignPreset(draft = {}) {
+  return inferDesignPreset({
+    designPreset: draft.designPreset,
+    style: draft.style || draft.lessonPlan?.methods,
+    subject: draft.ppt?.[0]?.title,
+    grade: Array.isArray(draft.ppt?.[0]?.bullets) ? draft.ppt[0].bullets.join(' ') : '',
+    interactions: [draft.interactionIdea?.title, draft.interactionIdea?.description].filter(Boolean).join(' '),
+    methods: draft.lessonPlan?.methods,
+    title: draft.ppt?.[0]?.title
+  });
+}
+
 function buildPptSceneFromDraft(draft) {
   if (!draft || !Array.isArray(draft.ppt) || draft.ppt.length === 0) return null;
 
-  const theme = normalizeTheme(draft.theme || {});
+  const designPreset = resolveSceneDesignPreset(draft);
+  const theme = normalizeTheme(draft.theme || {}, designPreset);
   const slides = draft.ppt.map((slide) => {
     const role = VALID_ROLES.has(slide?.type) ? slide.type : 'content';
-    const { blocks, variant } = buildBlocksForSlide(slide, draft);
+    const { blocks, variant } = buildBlocksForSlide(slide, draft, designPreset);
     return {
       id: slide?.id || nanoid(),
       title: slide?.title || '内容',
@@ -199,8 +266,9 @@ function buildPptSceneFromDraft(draft) {
   });
 
   return {
+    designPreset,
     theme,
-    layoutHints: Array.isArray(draft.layoutHints) ? draft.layoutHints : [],
+    layoutHints: Array.isArray(draft.layoutHints) && draft.layoutHints.length ? draft.layoutHints : getDesignPresetHints(designPreset),
     slides,
     updatedAt: new Date().toISOString()
   };
@@ -224,7 +292,7 @@ function normalizeBlocks(blocks, fallbackBlocks = []) {
     .map((block, index) => {
       if (!VALID_BLOCK_TYPES.has(block?.type)) return null;
       const fallback = fallbackBlocks.find((item) => item.type === block.type) || fallbackBlocks[index];
-      return createBlock(block.type, block, fallback?.box || BOX_PRESETS[block.type]);
+      return createBlock(block.type, block, fallback?.box);
     })
     .filter(Boolean);
 
@@ -240,7 +308,8 @@ function normalizeScene(scene, draft) {
     return fallbackScene;
   }
 
-  const theme = normalizeTheme({ ...fallbackScene.theme, ...(scene.theme || {}) });
+  const designPreset = resolveDesignPreset(scene.designPreset || fallbackScene.designPreset);
+  const theme = normalizeTheme({ ...fallbackScene.theme, ...(scene.theme || {}) }, designPreset);
   const slideCount = Math.max(scene.slides.length, fallbackScene.slides.length);
 
   const slides = Array.from({ length: slideCount }, (_, index) => {
@@ -252,7 +321,7 @@ function normalizeScene(scene, draft) {
       : (role === 'content' ? fallbackSlide.variant || inferVariant(slide) : fallbackSlide.variant || role);
     const blocks = normalizeBlocks(slide?.blocks, fallbackSlide.blocks);
     if (!getBlockByType(blocks, 'title')) {
-      blocks.unshift(createBlock('title', { text: slide?.title || fallbackSlide.title || '内容' }, BOX_PRESETS.title));
+      blocks.unshift(createBlock('title', { text: slide?.title || fallbackSlide.title || '内容' }, resolveBoxPreset(designPreset, role, 'title')));
     }
 
     return {
@@ -267,8 +336,9 @@ function normalizeScene(scene, draft) {
   });
 
   return {
+    designPreset,
     theme,
-    layoutHints: Array.isArray(scene.layoutHints) ? scene.layoutHints : fallbackScene.layoutHints,
+    layoutHints: Array.isArray(scene.layoutHints) && scene.layoutHints.length ? scene.layoutHints : fallbackScene.layoutHints,
     slides,
     updatedAt: new Date().toISOString()
   };
@@ -296,6 +366,7 @@ function sceneToPptSpec(scene, fallbackSlides = []) {
   if (!scene || !Array.isArray(scene.slides) || scene.slides.length === 0) return null;
 
   return {
+    designPreset: resolveDesignPreset(scene.designPreset),
     theme: scene.theme || null,
     layoutHints: Array.isArray(scene.layoutHints) ? scene.layoutHints : [],
     slides: scene.slides.map((slide, index) => {
@@ -320,5 +391,6 @@ module.exports = {
   buildPptSceneFromDraft,
   normalizeScene,
   sceneToPptSpec,
-  inferVariant
+  inferVariant,
+  resolveSceneDesignPreset
 };

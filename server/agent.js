@@ -2,6 +2,7 @@ const { nanoid } = require('nanoid');
 const { extractIntentWithLLM, generateDraftWithLLM, isLLMConfigured } = require('./llm');
 const { searchKnowledge } = require('./rag');
 const { buildPptSceneFromDraft } = require('./ppt/scene');
+const { inferDesignPreset, mergeThemeWithPreset, getDesignPresetHints } = require('./ppt/design');
 
 const REQUIRED_FIELDS = ["subject", "grade", "duration", "goals", "keyPoints"];
 
@@ -335,6 +336,14 @@ function generateDraft(state) {
   const { fields } = state;
   const keyPoints = normalizeKeyPoints(fields.keyPoints);
   const slides = [];
+  const designPreset = inferDesignPreset({
+    style: fields.style,
+    subject: fields.subject,
+    grade: fields.grade,
+    interactions: fields.interactions
+  });
+  const theme = mergeThemeWithPreset({}, designPreset);
+  const layoutHints = getDesignPresetHints(designPreset);
 
   slides.push({
     id: nanoid(),
@@ -389,9 +398,12 @@ function generateDraft(state) {
   };
 
   return {
+    designPreset,
     ppt: slides,
     lessonPlan,
     interactionIdea,
+    theme,
+    layoutHints,
     updatedAt: new Date().toISOString()
   };
 }
@@ -407,10 +419,19 @@ function normalizeDraft(raw) {
 
   const lessonPlan = raw.lessonPlan || {};
   const interactionIdea = raw.interactionIdea || {};
-  const theme = raw.theme || {};
-  const layoutHints = Array.isArray(raw.layoutHints) ? raw.layoutHints : [];
+  const designPreset = inferDesignPreset({
+    designPreset: raw.designPreset,
+    style: lessonPlan.methods,
+    subject: ppt[0]?.title,
+    interactions: [interactionIdea.title, interactionIdea.description].filter(Boolean).join(' ')
+  });
+  const theme = mergeThemeWithPreset(raw.theme || {}, designPreset);
+  const layoutHints = Array.isArray(raw.layoutHints) && raw.layoutHints.length
+    ? raw.layoutHints
+    : getDesignPresetHints(designPreset);
 
   return {
+    designPreset,
     ppt,
     lessonPlan: {
       goals: lessonPlan.goals || "",

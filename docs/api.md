@@ -86,6 +86,7 @@ Notes:
 - `mode` currently supports `editable` and `hybrid`
 - `regenerateScene=true` will rebuild the intermediate scene before export
 - if the session already has `scene`, export will reuse it instead of regenerating on every click
+- current `scene` may also carry `designPreset`, e.g. `corporate`, `editorial`, `classroom`
 
 ## POST /api/ppt/scene/regenerate
 Generate or refresh the intermediate PPT scene spec used by preview and export.
@@ -106,6 +107,7 @@ Response example:
   "source": "llm",
   "updatedAt": "2026-03-08T12:00:00.000Z",
   "scene": {
+    "designPreset": "editorial",
     "theme": {},
     "slides": []
   }

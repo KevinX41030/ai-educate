@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const PptxGenJS = require('pptxgenjs');
 const { ensureTemplateFile } = require('./template');
+const { buildEditablePptx } = require('./editable');
 const { buildHybridPptx } = require('./hybrid');
 const { sceneToPptSpec } = require('../ppt/scene');
 
@@ -563,6 +564,12 @@ async function exportPptx(draft, fileNamePrefix = 'lesson', options = {}) {
 
   if (mode === 'hybrid') {
     const pptx = buildHybridPptx(normalized, options);
+    await pptx.writeFile({ fileName: filePath });
+    return { fileName, filePath };
+  }
+
+  if (options.scene) {
+    const pptx = buildEditablePptx(normalized, options);
     await pptx.writeFile({ fileName: filePath });
     return { fileName, filePath };
   }

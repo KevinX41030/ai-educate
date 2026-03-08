@@ -81,11 +81,11 @@ curl -s http://localhost:5174/api/rag/query \
 
 ## 9. PPTX 主题样式
 
-- 默认使用“现代企业蓝”主题（主色 #1F3B73，强调色 #4C8BF5）  
-- 内容页为双栏布局，右侧提示卡自动填充要点  
-- 模板文件位于 `server/templates/ai-educate-template.pptx`，可替换为自定义设计稿  
-- 内容页包含概念/流程/案例/活动四种版式，导出时自动匹配  
-- 如需强制重建默认模板，设置 `TEMPLATE_REBUILD=1` 后重新导出  
+- 系统现在会在 `corporate` / `editorial` / `classroom` 三种设计预设之间自动选择  
+- 理科/严谨主题更容易落到 `corporate`，人文/极简主题更容易落到 `editorial`，低龄/互动主题更容易落到 `classroom`  
+- 编辑态导出优先走 scene 渲染，不再被单一模板固定住  
+- 模板文件仍保留在 `server/templates/ai-educate-template.pptx`，用于兼容旧路径  
+- 内容页包含概念/流程/案例/活动四种信息结构，导出时自动匹配  
 
 ## 10. AI 增强 PPT 内容
 
@@ -95,6 +95,7 @@ curl -s http://localhost:5174/api/rag/query \
 - 导出默认复用现有 scene，避免每次导出都重新跑排版
 - 如果 AI 排版失败，会回退到基于草稿的基础 scene
 - `hybrid` 模式会把背景和装饰层合成为页面图层，同时保留核心标题/正文为原生文字
+- `scene` 现在还会带一个 `designPreset`，用于区分整体视觉风格而不是只换文案
 
 ## 11. 一键 smoke 验证
 

@@ -5,6 +5,10 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "designPreset": {
+      "type": "string",
+      "enum": ["corporate", "editorial", "classroom"]
+    },
     "theme": {
       "type": "object",
       "additionalProperties": false,

@@ -212,6 +212,7 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
         content:
           '你是教学课件生成助手。请根据给定教学意图生成课件草稿。' +
           '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
+          '"designPreset": "corporate"|"editorial"|"classroom",' +
           '"ppt": [{"title": string, "type": "cover"|"toc"|"content"|"summary", "bullets": string[]}],' +
           '"lessonPlan": {"goals": string, "process": string[], "methods": string, "activities": string, "homework": string},' +
           '"interactionIdea": {"title": string, "description": string},' +
@@ -221,7 +222,8 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
           'PPT 至少包含封面、目录、总结页。内容页每个知识点至少 2 页：概念/原理页 + 应用/案例/易错点页。' +
           '每页 3-5 条 bullets，使用完整短句，保证信息量充足。' +
           'lessonPlan.process 至少 5 个步骤，activities/homework 要具体可执行。' +
-          '请提供现代企业蓝风格的 theme，例如 primary=#1F3B73, accent=#4C8BF5。' +
+          'designPreset 用法：理科/严谨/清爽用 corporate，人文/极简/高级感用 editorial，低龄/互动/趣味课堂用 classroom。' +
+          'theme 要和 designPreset 保持一致，不要所有课都给企业蓝。' +
           'layoutHints 可包含 cover_right_panel、content_two_column、summary_cards。'
       },
       {
@@ -290,6 +292,7 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
         content:
           '你是教学课件设计师。根据已有草稿生成更丰富的PPT内容与版式方案。' +
           '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
+          '"designPreset": "corporate"|"editorial"|"classroom",' +
           '"slides": [{' +
           '"title": string,' +
           '"type": "cover"|"toc"|"content"|"summary",' +
@@ -308,11 +311,12 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
           '如有教学流程/互动设计/练习/案例，请生成对应内容页并匹配 layout。' +
           '总页数建议 10-16 页，内容页每页 4-6 条 bullets，确保内容丰富。' +
           '封面/目录/总结页也可补充简要说明。' +
-          '风格使用现代企业蓝。'
+          'designPreset 要和主题气质一致，不要固定成一种风格。'
       },
       {
         role: 'user',
         content: JSON.stringify({
+          designPreset: draft.designPreset || null,
           slides: draft.ppt,
           lessonPlan: draft.lessonPlan || null,
           interactionIdea: draft.interactionIdea || null,
@@ -369,6 +373,7 @@ async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
         content:
           '你是教学课件设计师。请根据已有草稿生成用于页面预览与 PPT 导出的 scene JSON。' +
           '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
+          '"designPreset": "corporate"|"editorial"|"classroom",' +
           '"theme": {"primary": string, "accent": string, "background": string, "text": string, "font": string},' +
           '"layoutHints": string[],' +
           '"slides": [{' +
@@ -385,11 +390,13 @@ async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
           '}]' +
           '}。' +
           '封面至少包含 title/subtitle；目录页包含 bullets；内容页包含 title、bullets，并尽量补充 callout 或 question；总结页优先使用 summaryCards。' +
+          'designPreset 只能从 corporate、editorial、classroom 中选择，并与主题风格一致。' +
           '不要输出 markdown，不要解释。'
       },
       {
         role: 'user',
         content: JSON.stringify({
+          designPreset: draft.designPreset || null,
           slides: draft.ppt,
           lessonPlan: draft.lessonPlan || null,
           interactionIdea: draft.interactionIdea || null,

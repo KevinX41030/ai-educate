@@ -1,5 +1,6 @@
 const PptxGenJS = require('pptxgenjs');
 const { buildPptSceneFromDraft, normalizeScene } = require('../ppt/scene');
+const { resolveDesignPreset } = require('../ppt/design');
 
 const DEFAULT_THEME = {
   primary: '1F3B73',
@@ -13,6 +14,11 @@ const DEFAULT_THEME = {
 const SLIDE_WIDTH = 13.33;
 const SLIDE_HEIGHT = 7.5;
 const PX_PER_INCH = 96;
+const SOFT_PANELS = {
+  corporate: '#EFF6FF',
+  editorial: '#FEF3C7',
+  classroom: '#D1FAE5'
+};
 
 function normalizeColor(color, fallback) {
   if (!color) return fallback;
@@ -103,9 +109,24 @@ function sortBlocks(blocks = []) {
   return [...blocks].sort((left, right) => (order[left.type] || 99) - (order[right.type] || 99));
 }
 
-function buildCommonDecorations(theme) {
+function buildCommonDecorations(theme, designPreset) {
   const primary = withHash(theme.primary);
   const accent = withHash(theme.accent);
+  if (designPreset === 'editorial') {
+    return [
+      `<rect x="90" y="40" width="1080" height="2" fill="${primary}" fill-opacity="0.9" />`,
+      `<rect x="90" y="52" width="86" height="8" fill="${accent}" fill-opacity="0.9" />`,
+      `<rect x="90" y="120" width="10" height="470" fill="${accent}" fill-opacity="0.72" />`
+    ];
+  }
+  if (designPreset === 'classroom') {
+    return [
+      circleSvg(1120, 98, 128, accent, 0.16),
+      circleSvg(1180, 162, 72, primary, 0.1),
+      circleSvg(90, 620, 108, accent, 0.1),
+      `<rect x="980" y="36" width="180" height="18" rx="9" fill="${primary}" fill-opacity="0.14" />`
+    ];
+  }
   return [
     `<rect x="0" y="0" width="1280" height="18" fill="${primary}" />`,
     circleSvg(1120, 96, 150, accent, 0.16),
@@ -114,13 +135,67 @@ function buildCommonDecorations(theme) {
   ];
 }
 
-function buildContentPanels(sceneSlide, theme) {
+function buildContentPanels(sceneSlide, theme, designPreset) {
   const accent = withHash(theme.accent);
   const primary = withHash(theme.primary);
   const bulletsBox = pxBox(findBlock(sceneSlide, 'bullets')?.box, { x: 0.9, y: 1.8, w: 7.0, h: 4.8 });
   const calloutBox = findBlock(sceneSlide, 'callout')?.box ? pxBox(findBlock(sceneSlide, 'callout').box) : null;
   const questionBox = findBlock(sceneSlide, 'question')?.box ? pxBox(findBlock(sceneSlide, 'question').box) : null;
   const panels = [];
+
+  if (designPreset === 'editorial') {
+    panels.push(panelSvg(expandBox(bulletsBox, 16, 18), {
+      fill: '#FFFDF8',
+      stroke: primary,
+      opacity: 0.97,
+      radius: 10,
+      strokeWidth: 1.2
+    }));
+    if (questionBox) {
+      panels.push(panelSvg(questionBox, {
+        fill: '#FFFFFF',
+        stroke: accent,
+        opacity: 0.98,
+        radius: 10,
+        strokeWidth: 1.2
+      }));
+      panels.push(`<rect x="${questionBox.x}" y="${questionBox.y}" width="${questionBox.w}" height="12" fill="${accent}" fill-opacity="0.92" />`);
+    }
+    if (calloutBox) {
+      panels.push(lineSvg(calloutBox.x, calloutBox.y + 8, calloutBox.x + calloutBox.w, calloutBox.y + 8, primary, 0.8, 2));
+    }
+    return panels;
+  }
+
+  if (designPreset === 'classroom') {
+    panels.push(panelSvg(expandBox(bulletsBox, 20, 20), {
+      fill: '#FFFFFF',
+      stroke: primary,
+      opacity: 0.97,
+      radius: 26,
+      strokeWidth: 1.5
+    }));
+    if (calloutBox) {
+      panels.push(panelSvg(calloutBox, {
+        fill: SOFT_PANELS.classroom,
+        stroke: accent,
+        opacity: 0.96,
+        radius: 24,
+        strokeWidth: 1.4
+      }));
+    }
+    if (questionBox) {
+      panels.push(panelSvg(questionBox, {
+        fill: '#FFEDD5',
+        stroke: accent,
+        opacity: 0.98,
+        radius: 24,
+        strokeWidth: 1.4
+      }));
+    }
+    panels.push(circleSvg(1100, 112, 90, accent, 0.12));
+    return panels;
+  }
 
   panels.push(panelSvg(expandBox(bulletsBox, 26, 28), {
     fill: '#FFFFFF',
@@ -192,7 +267,7 @@ function buildContentPanels(sceneSlide, theme) {
   return panels;
 }
 
-function buildHybridBackdrop(sceneSlide, theme) {
+function buildHybridBackdrop(sceneSlide, theme, designPreset) {
   const primary = withHash(theme.primary);
   const accent = withHash(theme.accent);
   const backgroundColor = withHash(sceneSlide?.background?.color || theme.background);
@@ -203,28 +278,41 @@ function buildHybridBackdrop(sceneSlide, theme) {
 
   const parts = [
     `<rect x="0" y="0" width="1280" height="720" fill="${backgroundColor}" />`,
-    ...buildCommonDecorations(theme)
+    ...buildCommonDecorations(theme, designPreset)
   ];
 
   if (role === 'cover') {
-    parts.push(`<rect x="960" y="0" width="320" height="720" fill="url(#accentGradient)" />`);
-    parts.push(circleSvg(1120, 116, 158, '#FFFFFF', 0.16));
-    if (calloutBlock?.box) {
-      parts.push(panelSvg(pxBox(calloutBlock.box), {
+    if (designPreset === 'editorial') {
+      parts.push(`<rect x="84" y="118" width="12" height="470" fill="${accent}" fill-opacity="0.78" />`);
+      parts.push(lineSvg(94, 585, 470, 585, primary, 0.9, 3));
+    } else if (designPreset === 'classroom') {
+      parts.push(panelSvg({ x: 720, y: 140, w: 440, h: 248 }, {
         fill: '#FFFFFF',
         stroke: accent,
+        opacity: 0.95,
+        radius: 28,
+        strokeWidth: 1.5
+      }));
+    } else {
+      parts.push(`<rect x="960" y="0" width="320" height="720" fill="url(#accentGradient)" />`);
+      parts.push(circleSvg(1120, 116, 158, '#FFFFFF', 0.16));
+    }
+    if (calloutBlock?.box) {
+      parts.push(panelSvg(pxBox(calloutBlock.box), {
+        fill: designPreset === 'classroom' ? SOFT_PANELS.classroom : '#FFFFFF',
+        stroke: designPreset === 'editorial' ? primary : accent,
         opacity: 0.94,
-        radius: 22,
+        radius: designPreset === 'editorial' ? 10 : 22,
         strokeWidth: 1.5
       }));
     }
   } else if (role === 'toc') {
     const bulletsBox = pxBox(bulletsBlock?.box, { x: 1.0, y: 1.8, w: 11.2, h: 4.8 });
     parts.push(panelSvg(expandBox(bulletsBox, 18, 22), {
-      fill: '#FFFFFF',
-      stroke: accent,
+      fill: designPreset === 'editorial' ? '#FFFDF8' : '#FFFFFF',
+      stroke: designPreset === 'editorial' ? primary : accent,
       opacity: 0.95,
-      radius: 24,
+      radius: designPreset === 'editorial' ? 10 : 24,
       strokeWidth: 1.5
     }));
     parts.push(`<rect x="76" y="148" width="12" height="420" rx="6" fill="${accent}" fill-opacity="0.82" />`);
@@ -235,25 +323,25 @@ function buildHybridBackdrop(sceneSlide, theme) {
     for (let index = 0; index < 3; index += 1) {
       const x = summaryBox.x + index * (cardWidth + gap);
       parts.push(panelSvg({ x, y: summaryBox.y, w: cardWidth, h: summaryBox.h }, {
-        fill: '#FFFFFF',
-        stroke: accent,
+        fill: designPreset === 'editorial' ? '#FFFDF8' : '#FFFFFF',
+        stroke: designPreset === 'editorial' ? primary : accent,
         opacity: 0.95,
-        radius: 22,
+        radius: designPreset === 'editorial' ? 10 : 22,
         strokeWidth: 1.5
       }));
-      parts.push(`<rect x="${x}" y="${summaryBox.y}" width="${cardWidth}" height="14" rx="22" fill="${accent}" fill-opacity="0.82" />`);
+      parts.push(`<rect x="${x}" y="${summaryBox.y}" width="${cardWidth}" height="14" ${designPreset === 'editorial' ? '' : 'rx="22"'} fill="${designPreset === 'classroom' ? primary : accent}" fill-opacity="0.82" />`);
     }
     if (calloutBlock?.box) {
       parts.push(panelSvg(pxBox(calloutBlock.box), {
-        fill: '#EFF6FF',
-        stroke: accent,
+        fill: SOFT_PANELS[designPreset] || SOFT_PANELS.corporate,
+        stroke: designPreset === 'editorial' ? primary : accent,
         opacity: 0.98,
-        radius: 22,
+        radius: designPreset === 'editorial' ? 10 : 22,
         strokeWidth: 1.5
       }));
     }
   } else {
-    parts.push(...buildContentPanels(sceneSlide, theme));
+    parts.push(...buildContentPanels(sceneSlide, theme, designPreset));
   }
 
   return `
@@ -358,10 +446,10 @@ function addSummaryCards(slide, block, theme) {
   });
 }
 
-function renderHybridSceneSlide(slide, sceneSlide, theme, index, total, SHAPE) {
+function renderHybridSceneSlide(slide, sceneSlide, theme, designPreset, index, total, SHAPE) {
   slide.background = { color: theme.background };
   slide.addImage({
-    data: svgDataUri(buildHybridBackdrop(sceneSlide, theme)),
+    data: svgDataUri(buildHybridBackdrop(sceneSlide, theme, designPreset)),
     x: 0,
     y: 0,
     w: SLIDE_WIDTH,
@@ -437,6 +525,7 @@ function buildHybridPptx(draft, options = {}) {
 
   const scene = getEffectiveScene(draft, options);
   const theme = getTheme(scene, draft);
+  const designPreset = resolveDesignPreset(scene?.designPreset || draft?.designPreset);
   pptx.theme = {
     headFontFace: theme.font,
     bodyFontFace: theme.font,
@@ -447,7 +536,7 @@ function buildHybridPptx(draft, options = {}) {
   const SHAPE = pptx.ShapeType || PptxGenJS.ShapeType;
   slides.forEach((sceneSlide, index) => {
     const slide = pptx.addSlide();
-    renderHybridSceneSlide(slide, sceneSlide, theme, index + 1, slides.length, SHAPE);
+    renderHybridSceneSlide(slide, sceneSlide, theme, designPreset, index + 1, slides.length, SHAPE);
   });
 
   return pptx;
