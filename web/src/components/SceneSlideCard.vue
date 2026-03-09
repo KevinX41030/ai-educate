@@ -1,7 +1,10 @@
 <template>
-  <article class="card scene-card" :id="`slide-${index + 1}`">
+  <article class="scene-card" :id="`slide-${index + 1}`">
     <div class="scene-card-head">
-      <h4>{{ index + 1 }}. {{ slide.title }}</h4>
+      <div>
+        <h4>{{ index + 1 }}. {{ slide.title }}</h4>
+        <p>{{ variantLabel }}</p>
+      </div>
       <span class="scene-chip">{{ variantLabel }}</span>
     </div>
 
@@ -95,76 +98,90 @@ const fallbackTitle = (type) => {
 <style scoped>
 .scene-card {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .scene-card-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 14px;
 }
 
 .scene-card-head h4 {
   margin: 0;
+  font-size: 24px;
+}
+
+.scene-card-head p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .scene-chip {
   flex-shrink: 0;
-  padding: 4px 10px;
+  padding: 8px 12px;
   border-radius: 999px;
-  background: #e8f1ff;
-  color: #1f3b73;
+  background: rgba(91, 108, 255, 0.12);
+  color: var(--primary-strong);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .scene-card-body {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(91, 108, 255, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 255, 0.96));
+  border: 1px solid rgba(91, 108, 255, 0.12);
 }
 
 .scene-block {
-  border: 1px solid rgba(31, 59, 115, 0.08);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(91, 108, 255, 0.1);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .scene-block-title {
   font-size: 12px;
-  font-weight: 600;
-  color: #1f3b73;
-  margin-bottom: 6px;
+  font-weight: 700;
+  color: var(--primary-strong);
+  margin-bottom: 8px;
 }
 
 .scene-block p,
 .scene-block strong {
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .scene-block ul {
   margin: 0;
   padding-left: 18px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  line-height: 1.7;
 }
 
 .scene-grid-cards,
 .scene-columns {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .scene-mini-card,
 .scene-column-card {
-  border-radius: 10px;
-  padding: 10px;
-  background: #f8fbff;
-  border: 1px solid rgba(31, 59, 115, 0.08);
-  line-height: 1.6;
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(91, 108, 255, 0.06);
+  border: 1px solid rgba(91, 108, 255, 0.12);
+  line-height: 1.7;
   font-size: 13px;
 }
 
@@ -173,13 +190,13 @@ const fallbackTitle = (type) => {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .scene-steps li {
   display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 10px;
+  grid-template-columns: 32px 1fr;
+  gap: 12px;
   align-items: start;
 }
 
@@ -187,25 +204,25 @@ const fallbackTitle = (type) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
-  background: #1f3b73;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   color: white;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .scene-steps p {
-  margin: 2px 0 0;
+  margin: 3px 0 0;
 }
 
 .block-title {
-  background: linear-gradient(135deg, rgba(31, 59, 115, 0.06), rgba(76, 139, 245, 0.08));
+  background: linear-gradient(135deg, rgba(91, 108, 255, 0.08), rgba(124, 77, 255, 0.08));
 }
 
 .block-callout,
 .block-question {
-  background: #f8fbff;
+  background: rgba(255, 255, 255, 0.96);
 }
 </style>

@@ -1,80 +1,112 @@
 <template>
   <div class="app">
-    <HeroHeader :status="status" />
-    <main class="layout toc-layout">
-      <aside class="toc">
-        <div class="toc-card">
-          <div class="toc-title">目录导航</div>
-          <a href="#section-intent">教学需求</a>
-          <a href="#section-chat">多轮对话</a>
-          <a href="#section-preview">课件预览</a>
-          <a href="#section-summary">需求摘要</a>
-          <a href="#section-confirm">需求确认</a>
-          <a href="#section-slides">PPT 结构</a>
-          <a href="#section-plan">教案草稿</a>
-          <a href="#section-interaction">互动设计</a>
-          <a href="#section-rag">知识库引用</a>
+    <HeroHeader
+      :status="status"
+      :progress-text="progressText"
+      :active-step-label="activeStepLabel"
+      :files-count="files.length"
+      :slides-count="outlineSlides.length"
+    />
+
+    <main class="studio-layout">
+      <aside class="step-rail">
+        <div class="rail-card rail-progress-card">
+          <span class="panel-kicker">创作流程</span>
+          <h3>{{ activeStepLabel }}</h3>
+          <p>{{ activeStep.description }}</p>
+          <div class="rail-progress-bar">
+            <span :style="{ width: `${progressPercent}%` }"></span>
+          </div>
+          <small>{{ progressText }}</small>
         </div>
-        <div class="toc-card" v-if="outlineSlides.length">
-          <div class="toc-title">PPT 目录</div>
-          <a v-for="(slide, index) in outlineSlides" :key="slide.id" :href="`#slide-${index + 1}`">
-            {{ index + 1 }}. {{ slide.title }}
-          </a>
+
+        <div class="rail-card rail-step-list">
+          <button
+            v-for="step in stepItems"
+            :key="step.id"
+            class="rail-step"
+            :class="{ active: step.id === activeStep.id, done: step.done }"
+            @click="scrollToSection(step.target)"
+          >
+            <span class="rail-step-index">{{ step.index }}</span>
+            <span class="rail-step-copy">
+              <strong>{{ step.label }}</strong>
+              <small>{{ step.description }}</small>
+            </span>
+            <span class="rail-step-state">{{ step.stateLabel }}</span>
+          </button>
+        </div>
+
+        <div class="rail-card rail-brief-card">
+          <div class="rail-card-title">课程摘要</div>
+          <div class="brief-list">
+            <div class="brief-item">
+              <span>主题</span>
+              <strong>{{ fields.subject || '待填写' }}</strong>
+            </div>
+            <div class="brief-item">
+              <span>年级</span>
+              <strong>{{ fields.grade || '待填写' }}</strong>
+            </div>
+            <div class="brief-item">
+              <span>课时</span>
+              <strong>{{ fields.duration || '待填写' }}</strong>
+            </div>
+            <div class="brief-item">
+              <span>知识点</span>
+              <strong>{{ keyPointPreview }}</strong>
+            </div>
+          </div>
+          <div v-if="missingFieldLabels.length" class="missing-tags">
+            <span v-for="label in missingFieldLabels" :key="label">{{ label }}</span>
+          </div>
+        </div>
+
+        <div class="rail-card rail-actions-card">
+          <div class="rail-card-title">快速操作</div>
+          <button class="ghost" @click="handleClear">重新开始</button>
+          <button class="primary" :disabled="!draft" @click="handleExport">{{ exportLabel }}</button>
         </div>
       </aside>
-      <div class="content">
-        <div class="content-head">
-          <div>
-            <h2>生成工作区</h2>
-            <p>按章节式浏览教学需求、对话与课件产出。</p>
-            <p class="mode-hint-text">当前导出：{{ exportModeHint }}</p>
-          </div>
-          <div class="workspace-actions">
-            <label class="mode-select">
-              <span>导出模式</span>
-              <select v-model="exportMode">
-                <option value="editable">可编辑版</option>
-                <option value="hybrid">混合版</option>
-              </select>
-            </label>
-            <button class="ghost" @click="handleClear">重置会话</button>
-            <button class="primary" @click="handleExport">{{ exportLabel }}</button>
-          </div>
-        </div>
-        <div class="content-surface">
-          <section id="section-intent" class="doc-section">
-            <IntentPanel
-              :fields="fields"
-              :intent="intent"
-              :on-submit="handleFormSubmit"
-              :on-reset="handleClear"
-            />
-          </section>
-          <section id="section-chat" class="doc-section">
-            <ChatPanel
-              :messages="messages"
-              :files="files"
-              :on-send="handleSend"
-              :on-clear="handleClear"
-              :on-upload="handleUpload"
-            />
-          </section>
-          <section id="section-preview" class="doc-section">
-            <PreviewPanel
-              :summary="summary"
-              :draft="draft"
-              :scene="scene"
-              :scene-status="sceneStatus"
-              :intent="intent"
-              :rag="rag"
-              :on-confirm="handleConfirm"
-              :on-export="handleExport"
-              :export-label="exportLabel"
-              :on-regenerate-scene="handleRegenerateScene"
-            />
-          </section>
-        </div>
-      </div>
+
+      <section class="studio-main">
+        <section id="section-intent" class="studio-section">
+          <IntentPanel
+            :fields="fields"
+            :intent="intent"
+            :on-submit="handleFormSubmit"
+          />
+        </section>
+
+        <section id="section-chat" class="studio-section">
+          <ChatPanel
+            :messages="messages"
+            :files="files"
+            :on-send="handleSend"
+            :on-clear="handleClear"
+            :on-upload="handleUpload"
+          />
+        </section>
+      </section>
+
+      <aside id="section-preview" class="studio-preview">
+        <PreviewPanel
+          :summary="summary"
+          :draft="draft"
+          :scene="scene"
+          :scene-status="sceneStatus"
+          :intent="intent"
+          :rag="rag"
+          :fields="fields"
+          :files="files"
+          :export-mode="exportMode"
+          :on-change-export-mode="handleExportModeChange"
+          :on-confirm="handleConfirm"
+          :on-export="handleExport"
+          :export-label="exportLabel"
+          :on-regenerate-scene="handleRegenerateScene"
+        />
+      </aside>
     </main>
   </div>
 </template>
@@ -87,6 +119,37 @@ import ChatPanel from './components/ChatPanel.vue';
 import PreviewPanel from './components/PreviewPanel.vue';
 import { getStatus, sendMessage, uploadFiles, exportPptx, regeneratePptScene } from './services/api';
 
+const FIELD_LABELS = {
+  subject: '主题/章节',
+  grade: '年级/学段',
+  duration: '课堂时长',
+  goals: '教学目标',
+  keyPoints: '核心知识点',
+  style: '教学风格',
+  interactions: '互动设计'
+};
+
+const emptyFields = () => ({
+  subject: '',
+  grade: '',
+  duration: '',
+  goals: '',
+  keyPoints: [],
+  style: '',
+  interactions: ''
+});
+
+const normalizeList = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => `${item}`.trim()).filter(Boolean);
+  }
+
+  return `${value || ''}`
+    .split(/[，,、\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
 const status = ref('准备就绪');
 const sessionId = ref(localStorage.getItem('sessionId') || '');
 const messages = ref([]);
@@ -98,28 +161,20 @@ const sceneStatus = ref('idle');
 const exportMode = ref('editable');
 const intent = ref(null);
 const rag = ref([]);
-const fields = ref({
-  subject: '',
-  grade: '',
-  duration: '',
-  goals: '',
-  keyPoints: [],
-  style: '',
-  interactions: ''
-});
+const fields = ref(emptyFields());
 
 const buildSummary = (state) => {
   if (!state) return '暂无';
-  const fields = state.fields || {};
-  const keyPoints = Array.isArray(fields.keyPoints) ? fields.keyPoints.join('、') : '';
+  const currentFields = state.fields || {};
+  const keyPoints = Array.isArray(currentFields.keyPoints) ? currentFields.keyPoints.join('、') : '';
   return [
-    `主题/章节：${fields.subject || '未填写'}`,
-    `年级/学段：${fields.grade || '未填写'}`,
-    `课堂时长：${fields.duration || '未填写'}`,
-    `教学目标：${fields.goals || '未填写'}`,
+    `主题/章节：${currentFields.subject || '未填写'}`,
+    `年级/学段：${currentFields.grade || '未填写'}`,
+    `课堂时长：${currentFields.duration || '未填写'}`,
+    `教学目标：${currentFields.goals || '未填写'}`,
     `核心知识点：${keyPoints || '未填写'}`,
-    `教学风格：${fields.style || '未填写'}`,
-    `互动设计：${fields.interactions || '未填写'}`
+    `教学风格：${currentFields.style || '未填写'}`,
+    `互动设计：${currentFields.interactions || '未填写'}`
   ].join('\n');
 };
 
@@ -138,12 +193,80 @@ const outlineSlides = computed(() => {
   return draft.value?.ppt ?? [];
 });
 
+const normalizedKeyPoints = computed(() => normalizeList(fields.value.keyPoints));
+const missingFieldLabels = computed(() =>
+  (intent.value?.missingFields || []).map((field) => FIELD_LABELS[field] || field)
+);
+const hasUserMessages = computed(() => messages.value.some((message) => message.role === 'user'));
 const exportLabel = computed(() => exportMode.value === 'hybrid' ? '导出混合版' : '导出可编辑版');
-const exportModeHint = computed(() => (
-  exportMode.value === 'hybrid'
-    ? '混合版会保留标题/正文可编辑，并把背景与装饰合成为页面图层。'
-    : '可编辑版使用原生文本框与形状，适合导出后继续逐页修改。'
-));
+
+const stepItems = computed(() => {
+  const items = [
+    {
+      id: 'basics',
+      index: '01',
+      label: '基础信息',
+      description: '主题、年级、课时',
+      done: Boolean(fields.value.subject && fields.value.grade && fields.value.duration),
+      target: 'section-intent'
+    },
+    {
+      id: 'goals',
+      index: '02',
+      label: '目标与重点',
+      description: '教学目标、知识点',
+      done: Boolean(fields.value.goals && normalizedKeyPoints.value.length),
+      target: 'section-intent'
+    },
+    {
+      id: 'copilot',
+      index: '03',
+      label: 'AI 共创',
+      description: '对话补全、资料上传',
+      done: Boolean(hasUserMessages.value || files.value.length),
+      target: 'section-chat'
+    },
+    {
+      id: 'confirm',
+      index: '04',
+      label: '确认生成',
+      description: '检查缺失项并生成',
+      done: Boolean(intent.value?.ready || intent.value?.confirmed),
+      target: 'section-preview'
+    },
+    {
+      id: 'preview',
+      index: '05',
+      label: '预览导出',
+      description: '预览页面并导出',
+      done: Boolean(draft.value),
+      target: 'section-preview'
+    }
+  ];
+
+  return items.map((item) => ({
+    ...item,
+    stateLabel: item.done ? '已完成' : '待处理'
+  }));
+});
+
+const completedStepCount = computed(() => stepItems.value.filter((step) => step.done).length);
+const progressPercent = computed(() => (completedStepCount.value / stepItems.value.length) * 100);
+const progressText = computed(() => `${completedStepCount.value}/${stepItems.value.length} 步已完成`);
+const activeStep = computed(() => stepItems.value.find((step) => !step.done) || stepItems.value[stepItems.value.length - 1]);
+const activeStepLabel = computed(() => activeStep.value?.label || '预览导出');
+const keyPointPreview = computed(() => normalizedKeyPoints.value.slice(0, 3).join('、') || '待填写');
+
+const scrollToSection = (targetId) => {
+  if (typeof window === 'undefined') return;
+  const element = document.getElementById(targetId);
+  if (!element) return;
+  element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const handleExportModeChange = (mode) => {
+  exportMode.value = mode;
+};
 
 const handleSend = async (text) => {
   appendMessage('user', text);
@@ -184,15 +307,7 @@ const handleClear = () => {
   intent.value = null;
   rag.value = [];
   exportMode.value = 'editable';
-  fields.value = {
-    subject: '',
-    grade: '',
-    duration: '',
-    goals: '',
-    keyPoints: [],
-    style: '',
-    interactions: ''
-  };
+  fields.value = emptyFields();
   sessionId.value = '';
   localStorage.removeItem('sessionId');
   appendMessage('assistant', '对话已清空，可以重新描述需求。');
