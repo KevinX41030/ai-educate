@@ -10,14 +10,14 @@
 
     <section class="shell-card home-launch-card">
       <div>
-        <span class="panel-kicker">多页面产品流</span>
-        <h2>现在不是一个大页面硬塞所有功能，而是按真实使用流程走</h2>
-        <p>先在创建页定义课件，再去 AI 共创页补全细节，最后在预览页专注看结果和导出。</p>
+        <span class="panel-kicker">开始创作</span>
+        <h2>面向真实教学场景的课件创作工作台</h2>
+        <p>从需求采集、资料补充到课件预览与导出，所有内容围绕当前课件持续保存，适合直接投入正式使用。</p>
       </div>
 
       <div class="home-launch-actions">
-        <RouterLink class="button-link primary-link" to="/create">新建课件</RouterLink>
-        <RouterLink class="button-link secondary-link" to="/copilot">进入 AI 共创</RouterLink>
+        <RouterLink class="button-link primary-link" to="/create">开始创建</RouterLink>
+        <RouterLink class="button-link secondary-link" to="/copilot">进入共创</RouterLink>
         <RouterLink class="button-link ghost-link" to="/preview">查看预览</RouterLink>
       </div>
     </section>
@@ -26,80 +26,85 @@
       <section class="shell-card home-card">
         <div class="home-card-head">
           <div>
-            <span class="panel-kicker">推荐模板</span>
-            <h3>从一个更接近真实课型的模板开始</h3>
+            <span class="panel-kicker">当前课件</span>
+            <h3>{{ lessonTitle }}</h3>
           </div>
-          <p>点击后会自动带入创建页。</p>
+          <p>{{ progressText }}</p>
         </div>
 
-        <div class="home-template-grid">
-          <button
-            v-for="preset in lessonPresets"
-            :key="preset.name"
-            type="button"
-            class="home-template-card"
-            @click="startWithPreset(preset.fields)"
-          >
-            <strong>{{ preset.name }}</strong>
-            <small>{{ preset.note }}</small>
-          </button>
+        <p v-if="!hasWorkspaceContent" class="home-empty-note">
+          当前还没有开始整理课件内容，建议先进入创建页填写课程信息。
+        </p>
+
+        <div class="home-summary-list">
+          <div class="home-summary-item">
+            <span>主题</span>
+            <strong>{{ fields.subject || '未设置' }}</strong>
+          </div>
+          <div class="home-summary-item">
+            <span>年级</span>
+            <strong>{{ fields.grade || '未设置' }}</strong>
+          </div>
+          <div class="home-summary-item">
+            <span>资料</span>
+            <strong>{{ files.length ? `${files.length} 份` : '暂无资料' }}</strong>
+          </div>
+          <div class="home-summary-item">
+            <span>页数</span>
+            <strong>{{ outlineSlides.length ? `${outlineSlides.length} 页` : '尚未生成' }}</strong>
+          </div>
+        </div>
+
+        <div class="home-inline-actions">
+          <RouterLink class="button-link secondary-link" to="/create">完善需求</RouterLink>
+          <RouterLink class="button-link primary-link" to="/preview">继续预览</RouterLink>
         </div>
       </section>
 
       <section class="shell-card home-card">
         <div class="home-card-head">
           <div>
-            <span class="panel-kicker">当前项目</span>
-            <h3>{{ lessonTitle }}</h3>
-          </div>
-          <p>{{ progressText }}</p>
-        </div>
-
-        <div class="home-summary-list">
-          <div class="home-summary-item">
-            <span>主题</span>
-            <strong>{{ fields.subject || '待填写' }}</strong>
-          </div>
-          <div class="home-summary-item">
-            <span>年级</span>
-            <strong>{{ fields.grade || '待填写' }}</strong>
-          </div>
-          <div class="home-summary-item">
-            <span>资料</span>
-            <strong>{{ files.length ? `${files.length} 份` : '未上传' }}</strong>
-          </div>
-          <div class="home-summary-item">
-            <span>页数</span>
-            <strong>{{ outlineSlides.length ? `${outlineSlides.length} 页` : '未生成' }}</strong>
+            <span class="panel-kicker">平台能力</span>
+            <h3>围绕正式教学产出设计</h3>
           </div>
         </div>
 
-        <div class="home-inline-actions">
-          <RouterLink class="button-link secondary-link" to="/create">去填写需求</RouterLink>
-          <RouterLink class="button-link primary-link" to="/preview">去看预览</RouterLink>
+        <div class="capability-grid">
+          <div class="capability-card">
+            <strong>结构化需求采集</strong>
+            <p>把主题、目标、知识点和互动方式整理成可直接生成课件的输入。</p>
+          </div>
+          <div class="capability-card">
+            <strong>资料协同整理</strong>
+            <p>支持上传参考资料并在共创阶段持续补充上下文，减少重复描述。</p>
+          </div>
+          <div class="capability-card">
+            <strong>预览与导出闭环</strong>
+            <p>在独立预览页查看课件结构、教案草稿和导出结果，便于最终交付。</p>
+          </div>
         </div>
       </section>
 
       <section class="shell-card home-card home-card-wide">
         <div class="home-card-head">
           <div>
-            <span class="panel-kicker">为什么拆页</span>
-            <h3>每个页面只负责一种心智任务</h3>
+            <span class="panel-kicker">创作流程</span>
+            <h3>围绕课件交付的三阶段流程</h3>
           </div>
         </div>
 
         <div class="flow-grid">
           <div class="flow-card">
-            <strong>创建页</strong>
-            <p>只采集课程意图和教学目标，不让聊天和预览打断输入状态。</p>
+            <strong>创建课件</strong>
+            <p>先完成课程信息、教学目标和重点内容采集，建立统一需求基础。</p>
           </div>
           <div class="flow-card">
-            <strong>共创页</strong>
-            <p>把 AI 助手单独拉出来，重点处理补充说明、资料上传和连续对话。</p>
+            <strong>AI 共创</strong>
+            <p>继续补充课堂要求、资料、风格和互动方式，让系统获得更完整的上下文。</p>
           </div>
           <div class="flow-card">
-            <strong>预览页</strong>
-            <p>让用户沉浸式查看课件页面、教案草稿和导出状态，更像真正产品。</p>
+            <strong>预览导出</strong>
+            <p>查看页面结构和教案内容，确认无误后导出到正式交付格式。</p>
           </div>
         </div>
       </section>
@@ -108,27 +113,24 @@
 </template>
 
 <script setup>
-import { RouterLink, useRouter } from 'vue-router';
+import { computed } from 'vue';
+import { RouterLink } from 'vue-router';
 import HeroHeader from '../components/HeroHeader.vue';
-import { lessonPresets } from '../constants/lessonPresets';
 import { useWorkspace } from '../composables/useWorkspace';
 
-const router = useRouter();
 const {
   activeStepLabel,
   fields,
   files,
   lessonTitle,
   outlineSlides,
-  prefillWorkspace,
   progressText,
   status
 } = useWorkspace();
 
-const startWithPreset = (presetFields) => {
-  prefillWorkspace(presetFields);
-  router.push('/create');
-};
+const hasWorkspaceContent = computed(() => (
+  Boolean(fields.value.subject || fields.value.goals || files.value.length || outlineSlides.value.length)
+));
 </script>
 
 <style scoped>
@@ -160,7 +162,7 @@ const startWithPreset = (presetFields) => {
 
 .home-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: 1.1fr 0.9fr;
   gap: 20px;
 }
 
@@ -185,48 +187,40 @@ const startWithPreset = (presetFields) => {
   font-size: 24px;
 }
 
-.home-card-head p {
+.home-card-head p,
+.home-empty-note,
+.capability-card p,
+.flow-card p {
   margin: 0;
   color: var(--muted);
   line-height: 1.6;
 }
 
-.home-template-grid,
+.home-summary-list,
+.capability-grid,
 .flow-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 
-.home-template-card,
+.home-summary-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.capability-grid,
+.flow-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.home-summary-item,
+.capability-card,
 .flow-card {
   display: grid;
   gap: 8px;
   padding: 18px;
   border-radius: 22px;
-  text-align: left;
   background: rgba(91, 108, 255, 0.06);
   border: 1px solid rgba(91, 108, 255, 0.1);
-  box-shadow: none;
-}
-
-.home-template-card small,
-.flow-card p {
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-.home-summary-list {
-  display: grid;
-  gap: 12px;
-}
-
-.home-summary-item {
-  display: grid;
-  gap: 6px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: rgba(91, 108, 255, 0.06);
 }
 
 .home-summary-item span {
@@ -247,7 +241,8 @@ const startWithPreset = (presetFields) => {
     align-items: stretch;
   }
 
-  .home-grid {
+  .home-grid,
+  .home-summary-list {
     grid-template-columns: 1fr;
   }
 

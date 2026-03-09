@@ -160,7 +160,7 @@ const initWorkspace = async () => {
   initialized.value = true;
 
   if (!messages.value.length) {
-    appendMessage('assistant', '你好！请描述你的教学目标和需求，我会逐步澄清并生成课件初稿。');
+    appendMessage('assistant', '欢迎使用。请先填写课程信息，或在共创页继续补充教学要求，我会基于你的输入生成课件内容。');
   }
 
   try {
@@ -273,23 +273,6 @@ const handleExport = async () => {
   }
 };
 
-const prefillWorkspace = (templateFields = {}) => {
-  messages.value = [];
-  resetWorkspaceState();
-  fields.value = {
-    ...emptyFields(),
-    ...templateFields,
-    keyPoints: normalizeList(templateFields.keyPoints)
-  };
-  summary.value = buildSummary({
-    fields: {
-      ...fields.value,
-      keyPoints: normalizeList(fields.value.keyPoints)
-    }
-  });
-  appendMessage('assistant', '已载入示例模板，你可以继续微调后再生成课件。');
-};
-
 export function useWorkspace() {
   return {
     status,
@@ -323,7 +306,6 @@ export function useWorkspace() {
     handleFormSubmit,
     handleConfirm,
     handleRegenerateScene,
-    handleExport,
-    prefillWorkspace
+    handleExport
   };
 }

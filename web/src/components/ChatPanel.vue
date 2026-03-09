@@ -68,7 +68,7 @@
         <textarea
           v-model="input"
           rows="4"
-          placeholder="例如：学生对抽象概念接受较慢，希望多一点类比案例；最好增加一个可操作的小组互动环节。"
+          placeholder="请输入补充要求、课堂特点、资料说明或希望调整的方向"
           @keydown.enter.exact.prevent="handleSend"
         ></textarea>
 
@@ -113,10 +113,10 @@ const props = defineProps({
 });
 
 const suggestions = [
-  { label: '补全教学目标', prompt: '请根据当前信息帮我补全本节课的教学目标。' },
-  { label: '推荐互动环节', prompt: '请推荐 2-3 个适合这节课的互动环节，并说明安排位置。' },
-  { label: '更适合低龄学生', prompt: '请把表达方式调整得更适合低龄学生理解。' },
-  { label: '先生成一版大纲', prompt: '请根据当前需求先生成一版 PPT 大纲。' }
+  { label: '梳理教学目标', prompt: '请基于当前信息梳理并优化本节课的教学目标。' },
+  { label: '补充互动设计', prompt: '请结合当前需求补充适合的互动设计与安排位置。' },
+  { label: '优化内容结构', prompt: '请帮我优化当前内容结构，让课件层次更清晰。' },
+  { label: '生成课件大纲', prompt: '请基于当前需求生成一版课件大纲。' }
 ];
 
 const input = ref('');
