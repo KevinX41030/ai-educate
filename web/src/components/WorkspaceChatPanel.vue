@@ -31,7 +31,6 @@
       >
         <div class="workspace-message-avatar">{{ message.role === 'assistant' ? 'AI' : '我' }}</div>
         <div class="workspace-message-bubble">
-          <span class="workspace-message-role">{{ message.role === 'assistant' ? '智能助手' : '我的补充' }}</span>
           <p>{{ message.text }}</p>
         </div>
       </div>
@@ -266,7 +265,7 @@ const handleDrop = async (event) => {
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 16px;
+  border-radius: 12px;
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(20, 184, 166, 0.12));
   color: var(--primary-strong);
   font-size: 13px;
@@ -275,10 +274,9 @@ const handleDrop = async (event) => {
 
 .workspace-message-bubble {
   display: grid;
-  gap: 8px;
   max-width: min(78%, 720px);
   padding: 18px;
-  border-radius: 22px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.16);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
@@ -298,15 +296,8 @@ const handleDrop = async (event) => {
   order: 2;
 }
 
-.workspace-message-row.user .workspace-message-role,
 .workspace-message-row.user .workspace-message-bubble p {
   text-align: right;
-}
-
-.workspace-message-role {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .workspace-message-bubble p {
@@ -320,7 +311,7 @@ const handleDrop = async (event) => {
   display: grid;
   gap: 10px;
   padding: 18px;
-  border-radius: 24px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.18);
 }

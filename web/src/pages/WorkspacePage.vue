@@ -78,6 +78,7 @@ onMounted(() => {
 
 .workspace-pane {
   padding: 22px;
+  border-radius: 20px;
 }
 
 .workspace-chat-pane {
