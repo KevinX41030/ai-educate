@@ -70,12 +70,12 @@ const submit = () => {
   min-height: 184px;
   padding: 28px 88px 28px 28px;
   border-radius: 22px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(40, 49, 78, 0.12);
+  background: rgba(255, 255, 255, 0.96);
   font-size: 18px;
   line-height: 1.8;
   box-shadow:
-    0 24px 80px rgba(15, 23, 42, 0.08),
+    0 24px 60px rgba(40, 49, 78, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
@@ -91,9 +91,9 @@ const submit = () => {
   height: 48px;
   padding: 0;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  background: var(--primary);
   color: #fff;
-  box-shadow: 0 14px 34px rgba(37, 99, 235, 0.24);
+  box-shadow: 0 12px 24px rgba(101, 138, 228, 0.22);
 }
 
 .home-entry-submit svg {

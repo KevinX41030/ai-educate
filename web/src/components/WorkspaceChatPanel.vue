@@ -168,7 +168,7 @@ const handleDrop = async (event) => {
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(20, 184, 166, 0.12));
+  background: rgba(101, 138, 228, 0.16);
   color: var(--primary-strong);
   font-size: 13px;
   font-weight: 800;
@@ -191,11 +191,13 @@ const handleDrop = async (event) => {
 .workspace-message-row.user .workspace-message-bubble {
   order: 1;
   justify-self: end;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(20, 184, 166, 0.08));
+  background: rgba(161, 254, 239, 0.42);
 }
 
 .workspace-message-row.user .workspace-message-avatar {
   order: 2;
+  background: var(--primary-strong);
+  color: #ffffff;
 }
 
 .workspace-message-row.user .workspace-message-bubble p {
@@ -229,8 +231,8 @@ const handleDrop = async (event) => {
 
 .workspace-upload-card.dragging {
   transform: translateY(-1px);
-  border-color: rgba(37, 99, 235, 0.28);
-  background: rgba(239, 246, 255, 0.92);
+  border-color: rgba(101, 138, 228, 0.3);
+  background: rgba(161, 254, 239, 0.22);
 }
 
 .workspace-upload-card p {
