@@ -69,7 +69,7 @@ const submit = () => {
 .home-entry-input-card textarea {
   min-height: 184px;
   padding: 28px 88px 28px 28px;
-  border-radius: 32px;
+  border-radius: 22px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(255, 255, 255, 0.88);
   font-size: 18px;
@@ -114,7 +114,7 @@ const submit = () => {
   .home-entry-input-card textarea {
     min-height: 168px;
     padding: 22px 76px 22px 22px;
-    border-radius: 28px;
+    border-radius: 18px;
     font-size: 16px;
   }
 }

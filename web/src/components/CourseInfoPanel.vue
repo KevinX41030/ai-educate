@@ -159,7 +159,7 @@ const formatSize = (size = 0) => {
   display: grid;
   gap: 10px;
   padding: 18px;
-  border-radius: 18px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(148, 163, 184, 0.16);
 }
@@ -215,7 +215,7 @@ const formatSize = (size = 0) => {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(241, 245, 249, 0.9);
 }
 

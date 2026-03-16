@@ -167,7 +167,7 @@ const handleDrop = async (event) => {
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 10px;
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(20, 184, 166, 0.12));
   color: var(--primary-strong);
   font-size: 13px;
@@ -178,7 +178,7 @@ const handleDrop = async (event) => {
   display: grid;
   max-width: min(78%, 720px);
   padding: 18px;
-  border-radius: 16px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.16);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
@@ -213,7 +213,7 @@ const handleDrop = async (event) => {
   display: grid;
   gap: 10px;
   padding: 18px;
-  border-radius: 18px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.18);
 }

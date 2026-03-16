@@ -198,7 +198,7 @@ const slideSummary = (slide) => {
   display: grid;
   gap: 14px;
   padding: 20px;
-  border-radius: 20px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.16);
 }
@@ -210,7 +210,7 @@ const slideSummary = (slide) => {
 }
 
 .preview-skeleton {
-  border-radius: 16px;
+  border-radius: 12px;
   background: linear-gradient(90deg, rgba(226, 232, 240, 0.8), rgba(241, 245, 249, 1), rgba(226, 232, 240, 0.8));
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
@@ -241,7 +241,7 @@ const slideSummary = (slide) => {
   display: grid;
   gap: 8px;
   padding: 16px;
-  border-radius: 14px;
+  border-radius: 10px;
   border: 1px solid rgba(148, 163, 184, 0.16);
   background: rgba(255, 255, 255, 0.74);
   text-align: left;

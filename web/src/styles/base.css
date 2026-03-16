@@ -16,10 +16,10 @@
   --border: rgba(148, 163, 184, 0.18);
   --shadow-soft: 0 24px 60px rgba(15, 23, 42, 0.08);
   --shadow-medium: 0 18px 40px rgba(15, 23, 42, 0.12);
-  --radius-xl: 30px;
-  --radius-lg: 24px;
-  --radius-md: 18px;
-  --radius-sm: 14px;
+  --radius-xl: 22px;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
   --font-sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
@@ -152,7 +152,7 @@ button,
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 12px 16px;
   font-family: var(--font-sans);
   font-size: 14px;
@@ -198,7 +198,7 @@ input,
 textarea,
 select {
   width: 100%;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.24);
   background: #ffffff;
   padding: 14px 16px;
