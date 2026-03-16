@@ -181,7 +181,6 @@ const handleDrop = async (event) => {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
 }
 
 .workspace-message-row.assistant .workspace-message-bubble {

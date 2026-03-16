@@ -14,8 +14,6 @@
   --accent: #A1FEEF;
   --warning: #f59e0b;
   --border: rgba(40, 49, 78, 0.12);
-  --shadow-soft: 0 20px 44px rgba(40, 49, 78, 0.08);
-  --shadow-medium: 0 14px 28px rgba(40, 49, 78, 0.12);
   --radius-xl: 22px;
   --radius-lg: 18px;
   --radius-md: 14px;
@@ -85,7 +83,6 @@ a {
   border-radius: var(--radius-xl);
   border: 1px solid rgba(40, 49, 78, 0.08);
   background: rgba(255, 255, 255, 0.9);
-  box-shadow: var(--shadow-soft);
   backdrop-filter: blur(24px);
 }
 
@@ -148,20 +145,18 @@ button,
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
 button:hover,
 .button-link:hover {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-medium);
 }
 
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
 }
 
 .primary,
@@ -194,7 +189,7 @@ select {
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 14px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 textarea {
@@ -212,7 +207,7 @@ input:focus,
 select:focus {
   outline: none;
   border-color: rgba(101, 138, 228, 0.46);
-  box-shadow: 0 0 0 4px rgba(101, 138, 228, 0.12);
+  background: #ffffff;
 }
 
 .chat-list {

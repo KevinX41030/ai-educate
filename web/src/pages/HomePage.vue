@@ -74,9 +74,6 @@ const submit = () => {
   background: rgba(255, 255, 255, 0.96);
   font-size: 18px;
   line-height: 1.8;
-  box-shadow:
-    0 24px 60px rgba(40, 49, 78, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 .home-entry-input-card textarea::placeholder {
@@ -93,7 +90,6 @@ const submit = () => {
   border-radius: 999px;
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 12px 24px rgba(101, 138, 228, 0.22);
 }
 
 .home-entry-submit svg {
