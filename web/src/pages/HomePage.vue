@@ -1,136 +1,130 @@
 <template>
-  <section class="shell-card home-hero-card">
-    <div class="home-hero-copy">
-      <span class="panel-kicker">AI 课件制作系统</span>
-      <h1>选择你的创作方式</h1>
-      <p>你可以直接与 AI 共创课件，也可以先自行填写课程内容，再进入后续预览与导出流程。</p>
-    </div>
+  <section class="home-entry-page">
+    <div class="home-entry-card">
+      <div class="home-entry-copy">
+        <span class="panel-kicker">AI 备课工作台</span>
+        <h1>一句话描述你的课程需求</h1>
+      </div>
 
-    <div class="home-entry-grid">
-      <RouterLink class="entry-card entry-card-primary" to="/copilot">
-        <span class="entry-badge">入口 01</span>
-        <strong>与 AI 共创</strong>
-        <p>通过对话逐步补充教学目标、重点内容、互动方式和资料要求。</p>
-        <span class="entry-action">立即开始</span>
-      </RouterLink>
+      <label class="home-entry-input-card">
+        <textarea
+          v-model="prompt"
+          rows="7"
+          placeholder="例如：请帮我准备一节初二物理《压强》的 45 分钟课程，目标是让学生理解压强概念、影响因素，并设计一个简单实验和课堂互动，整体风格简洁清晰。"
+          @keydown.meta.enter.prevent="submit"
+          @keydown.ctrl.enter.prevent="submit"
+        ></textarea>
+      </label>
 
-      <RouterLink class="entry-card" to="/create">
-        <span class="entry-badge">入口 02</span>
-        <strong>自行填写内容</strong>
-        <p>先按结构化方式填写课程信息，再进入共创、预览和导出环节。</p>
-        <span class="entry-action">进入填写</span>
-      </RouterLink>
+      <div class="home-entry-actions">
+        <button class="primary home-entry-button" type="button" :disabled="!canSubmit || isBusy" @click="submit">
+          {{ isBusy ? '正在启动…' : 'AI备课' }}
+        </button>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { RouterLink } from 'vue-router';
+import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useWorkspace } from '../composables/useWorkspace';
+
+const prompt = ref('');
+const router = useRouter();
+const { isBusy, startFromPrompt } = useWorkspace();
+
+const canSubmit = computed(() => prompt.value.trim().length > 0);
+
+const submit = () => {
+  const value = prompt.value.trim();
+  if (!value || isBusy.value) return;
+
+  router.push('/workspace');
+  void startFromPrompt(value);
+  prompt.value = '';
+};
 </script>
 
 <style scoped>
-.home-hero-card {
-  min-height: calc(100vh - 180px);
+.home-entry-page {
+  min-height: calc(100vh - 88px);
   display: grid;
-  align-content: center;
-  gap: 36px;
-  padding: clamp(28px, 5vw, 56px);
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 28%),
-    linear-gradient(135deg, rgba(91, 108, 255, 0.98), rgba(124, 77, 255, 0.94));
-  color: #ffffff;
-  box-shadow: 0 28px 56px rgba(73, 85, 196, 0.24);
+  place-items: center;
 }
 
-.home-hero-copy {
-  max-width: 760px;
+.home-entry-card {
+  width: min(920px, 100%);
+  display: grid;
+  gap: 28px;
+  padding: clamp(28px, 4vw, 52px);
+  border-radius: 36px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 36px 90px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(28px);
 }
 
-.home-hero-copy h1 {
-  margin: 16px 0 14px;
-  font-size: clamp(38px, 6vw, 64px);
+.home-entry-copy {
+  display: grid;
+  gap: 16px;
+  text-align: center;
+  justify-items: center;
+}
+
+.home-entry-copy h1 {
+  margin: 0;
+  font-size: clamp(34px, 5vw, 60px);
   line-height: 1.08;
+  letter-spacing: -0.03em;
 }
 
-.home-hero-copy p {
-  margin: 0;
-  max-width: 620px;
-  color: rgba(255, 255, 255, 0.84);
-  font-size: 16px;
-  line-height: 1.8;
+.home-entry-input-card {
+  display: block;
 }
 
-.home-entry-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.entry-card {
-  display: grid;
-  gap: 14px;
-  padding: 24px;
+.home-entry-input-card textarea {
+  min-height: 240px;
+  padding: 24px 24px 96px;
   border-radius: 28px;
-  text-decoration: none;
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(18px);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  font-size: 16px;
+  line-height: 1.85;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
-.entry-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 22px 36px rgba(36, 44, 116, 0.24);
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.entry-card-primary {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.entry-badge {
-  display: inline-flex;
-  width: fit-content;
-  align-items: center;
+.home-entry-actions {
+  display: flex;
   justify-content: center;
-  padding: 8px 12px;
+}
+
+.home-entry-button {
+  min-width: 188px;
+  min-height: 56px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  font-size: 16px;
+  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.28);
 }
 
-.entry-card strong {
-  font-size: 30px;
-  line-height: 1.2;
-}
-
-.entry-card p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.84);
-  line-height: 1.7;
-}
-
-.entry-action {
-  display: inline-flex;
-  width: fit-content;
-  margin-top: 6px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-@media (max-width: 900px) {
-  .home-hero-card {
+@media (max-width: 720px) {
+  .home-entry-page {
     min-height: auto;
+    padding-top: 8vh;
+    align-items: start;
   }
 
-  .home-entry-grid {
-    grid-template-columns: 1fr;
+  .home-entry-card {
+    gap: 22px;
+  }
+
+  .home-entry-input-card textarea {
+    min-height: 220px;
+    padding: 20px 18px 88px;
+  }
+
+  .home-entry-button {
+    width: 100%;
   }
 }
 </style>

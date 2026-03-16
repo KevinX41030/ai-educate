@@ -4,6 +4,12 @@ export async function getStatus() {
   return response.json();
 }
 
+export async function getSessionSnapshot(sessionId) {
+  const response = await fetch(`/api/session/${sessionId}`);
+  if (!response.ok) throw new Error('session_failed');
+  return response.json();
+}
+
 export async function sendMessage({ sessionId, text }) {
   const response = await fetch('/api/chat', {
     method: 'POST',
