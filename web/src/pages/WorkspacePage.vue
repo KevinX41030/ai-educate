@@ -9,7 +9,6 @@
         :draft="draft"
         :export-label="exportLabel"
         :on-reset="handleClear"
-        :on-refresh-preview="handleRegenerateScene"
         :on-export="handleExport"
       />
     </aside>
@@ -22,22 +21,12 @@
         :on-upload="handleUpload"
       />
     </section>
-
-    <aside class="workspace-pane workspace-preview-pane shell-card">
-      <LivePreviewPanel
-        :draft="draft"
-        :scene="scene"
-        :scene-status="sceneStatus"
-        :fields="fields"
-      />
-    </aside>
   </section>
 </template>
 
 <script setup>
 import { onMounted } from 'vue';
 import CourseInfoPanel from '../components/CourseInfoPanel.vue';
-import LivePreviewPanel from '../components/LivePreviewPanel.vue';
 import WorkspaceChatPanel from '../components/WorkspaceChatPanel.vue';
 import { useWorkspace } from '../composables/useWorkspace';
 
@@ -48,7 +37,6 @@ const {
   files,
   handleClear,
   handleExport,
-  handleRegenerateScene,
   handleSend,
   handleUpload,
   initWorkspace,
@@ -56,8 +44,6 @@ const {
   isBusy,
   messages,
   missingFieldLabels,
-  scene,
-  sceneStatus,
   summary
 } = useWorkspace();
 
@@ -69,7 +55,7 @@ onMounted(() => {
 <style scoped>
 .workspace-page {
   display: grid;
-  grid-template-columns: 288px minmax(0, 1.38fr) 332px;
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
@@ -83,15 +69,14 @@ onMounted(() => {
   min-height: calc(100vh - 40px);
 }
 
-.workspace-info-pane,
-.workspace-preview-pane {
+.workspace-info-pane {
   position: sticky;
   top: 20px;
 }
 
 @media (max-width: 1380px) {
   .workspace-page {
-    grid-template-columns: 260px minmax(0, 1.28fr) 300px;
+    grid-template-columns: 292px minmax(0, 1fr);
   }
 }
 
@@ -100,8 +85,7 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .workspace-info-pane,
-  .workspace-preview-pane {
+  .workspace-info-pane {
     position: static;
   }
 }

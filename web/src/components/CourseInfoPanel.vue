@@ -38,7 +38,6 @@
 
     <div class="course-actions">
       <button class="ghost" type="button" @click="handleReset">重新开始</button>
-      <button class="secondary" type="button" :disabled="!draft" @click="handleRefresh">刷新版式</button>
       <button class="primary" type="button" :disabled="!draft" @click="handleExportClick">{{ exportLabel }}</button>
     </div>
   </section>
@@ -76,10 +75,6 @@ const props = defineProps({
     type: Function,
     default: null
   },
-  onRefreshPreview: {
-    type: Function,
-    default: null
-  },
   onExport: {
     type: Function,
     default: null
@@ -107,10 +102,6 @@ const hintText = computed(() => {
 
 const handleReset = () => {
   if (props.onReset) props.onReset();
-};
-
-const handleRefresh = () => {
-  if (props.onRefreshPreview) props.onRefreshPreview();
 };
 
 const handleExportClick = () => {
