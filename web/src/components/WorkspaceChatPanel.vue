@@ -205,7 +205,11 @@ const handleDrop = async (event) => {
 .workspace-message-bubble p {
   margin: 0;
   white-space: pre-wrap;
-  line-height: 1.75;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.58;
 }
 
 .workspace-upload-card,
