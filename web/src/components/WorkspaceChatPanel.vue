@@ -180,7 +180,9 @@ const handleDrop = async (event) => {
 <style scoped>
 .workspace-chat-panel {
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   gap: 18px;
+  min-height: calc(100vh - 84px);
 }
 
 .workspace-chat-head {
@@ -240,12 +242,12 @@ const handleDrop = async (event) => {
 }
 
 .workspace-message-list {
-  min-height: 420px;
-  max-height: 58vh;
+  min-height: 0;
   overflow-y: auto;
   display: grid;
   gap: 14px;
   padding-right: 6px;
+  align-content: start;
 }
 
 .workspace-message-row {
@@ -253,6 +255,10 @@ const handleDrop = async (event) => {
   grid-template-columns: 42px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
+}
+
+.workspace-message-row.user {
+  grid-template-columns: minmax(0, 1fr) 42px;
 }
 
 .workspace-message-avatar {
@@ -270,6 +276,7 @@ const handleDrop = async (event) => {
 .workspace-message-bubble {
   display: grid;
   gap: 8px;
+  max-width: min(78%, 720px);
   padding: 18px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.9);
@@ -277,8 +284,23 @@ const handleDrop = async (event) => {
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
 }
 
+.workspace-message-row.assistant .workspace-message-bubble {
+  justify-self: start;
+}
+
 .workspace-message-row.user .workspace-message-bubble {
+  order: 1;
+  justify-self: end;
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(20, 184, 166, 0.08));
+}
+
+.workspace-message-row.user .workspace-message-avatar {
+  order: 2;
+}
+
+.workspace-message-row.user .workspace-message-role,
+.workspace-message-row.user .workspace-message-bubble p {
+  text-align: right;
 }
 
 .workspace-message-role {
@@ -321,7 +343,7 @@ const handleDrop = async (event) => {
 }
 
 .workspace-composer-card textarea {
-  min-height: 140px;
+  min-height: 108px;
   padding: 0;
   border: none;
   box-shadow: none;
@@ -345,6 +367,10 @@ const handleDrop = async (event) => {
 }
 
 @media (max-width: 720px) {
+  .workspace-chat-panel {
+    min-height: auto;
+  }
+
   .workspace-chat-head,
   .workspace-composer-footer {
     flex-direction: column;
@@ -352,8 +378,11 @@ const handleDrop = async (event) => {
   }
 
   .workspace-message-list {
-    min-height: 320px;
     max-height: 46vh;
+  }
+
+  .workspace-message-bubble {
+    max-width: 100%;
   }
 }
 </style>

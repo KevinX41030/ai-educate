@@ -71,13 +71,17 @@ onMounted(() => {
 <style scoped>
 .workspace-page {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 480px;
+  grid-template-columns: 272px minmax(0, 1.28fr) 420px;
   gap: 18px;
   align-items: start;
 }
 
 .workspace-pane {
   padding: 22px;
+}
+
+.workspace-chat-pane {
+  min-height: calc(100vh - 40px);
 }
 
 .workspace-info-pane,
@@ -88,7 +92,7 @@ onMounted(() => {
 
 @media (max-width: 1380px) {
   .workspace-page {
-    grid-template-columns: 280px minmax(0, 1fr) 420px;
+    grid-template-columns: 248px minmax(0, 1.2fr) 380px;
   }
 }
 
