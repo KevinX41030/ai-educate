@@ -1,27 +1,5 @@
 <template>
   <section class="workspace-chat-panel">
-    <div class="workspace-chat-head">
-      <div>
-        <span class="panel-kicker">AI 对话</span>
-        <h2>边聊边完善你的课件</h2>
-        <p>继续补充学生特点、课堂限制、互动想法或资料要求，右侧预览会持续更新。</p>
-      </div>
-      <span class="chat-phase-chip" :class="phaseTone">{{ phase }}</span>
-    </div>
-
-    <div class="workspace-suggestion-row">
-      <button
-        v-for="suggestion in suggestions"
-        :key="suggestion.label"
-        type="button"
-        class="workspace-suggestion-chip"
-        :disabled="busy"
-        @click="sendSuggestion(suggestion.prompt)"
-      >
-        {{ suggestion.label }}
-      </button>
-    </div>
-
     <div ref="messageListRef" class="workspace-message-list">
       <div
         v-for="(message, index) in messages"
@@ -79,10 +57,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  phase: {
-    type: String,
-    default: '等待输入课程需求'
-  },
   onSend: {
     type: Function,
     required: true
@@ -93,12 +67,6 @@ const props = defineProps({
   }
 });
 
-const suggestions = [
-  { label: '补充教学目标', prompt: '请帮我把这节课的教学目标写得更清晰、更可衡量。' },
-  { label: '增加课堂互动', prompt: '请给我补充两个适合这节课的课堂互动设计。' },
-  { label: '优化 PPT 结构', prompt: '请优化这份课件的页面结构，让逻辑更清楚。' }
-];
-
 const input = ref('');
 const fileInputRef = ref(null);
 const messageListRef = ref(null);
@@ -106,11 +74,6 @@ const uploading = ref(false);
 const isDragging = ref(false);
 
 const canSubmit = computed(() => input.value.trim().length > 0);
-const phaseTone = computed(() => {
-  if (/生成|优化/.test(props.phase)) return 'active';
-  if (/已生成/.test(props.phase)) return 'success';
-  return 'idle';
-});
 
 const scrollToBottom = async () => {
   await nextTick();
@@ -134,11 +97,6 @@ const submit = async () => {
   if (!text || props.busy) return;
   input.value = '';
   await props.onSend(text, { autoGenerate: true });
-};
-
-const sendSuggestion = async (prompt) => {
-  if (props.busy) return;
-  await props.onSend(prompt, { autoGenerate: true });
 };
 
 const triggerFilePicker = () => {
@@ -179,65 +137,9 @@ const handleDrop = async (event) => {
 <style scoped>
 .workspace-chat-panel {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) auto auto;
   gap: 18px;
   min-height: calc(100vh - 84px);
-}
-
-.workspace-chat-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: flex-start;
-}
-
-.workspace-chat-head h2 {
-  margin: 8px 0;
-  font-size: 30px;
-  line-height: 1.16;
-}
-
-.workspace-chat-head p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.7;
-}
-
-.chat-phase-chip {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.16);
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.chat-phase-chip.active {
-  background: rgba(37, 99, 235, 0.12);
-  color: var(--primary-strong);
-}
-
-.chat-phase-chip.success {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
-}
-
-.workspace-suggestion-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.workspace-suggestion-chip {
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(37, 99, 235, 0.12);
-  color: var(--primary-strong);
-  box-shadow: none;
 }
 
 .workspace-message-list {
@@ -362,7 +264,6 @@ const handleDrop = async (event) => {
     min-height: auto;
   }
 
-  .workspace-chat-head,
   .workspace-composer-footer {
     flex-direction: column;
     align-items: stretch;

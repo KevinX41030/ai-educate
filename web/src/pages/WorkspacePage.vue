@@ -18,7 +18,6 @@
       <WorkspaceChatPanel
         :messages="messages"
         :busy="isBusy || isAutoGenerating"
-        :phase="workspacePhase"
         :on-send="handleSend"
         :on-upload="handleUpload"
       />
@@ -59,8 +58,7 @@ const {
   missingFieldLabels,
   scene,
   sceneStatus,
-  summary,
-  workspacePhase
+  summary
 } = useWorkspace();
 
 onMounted(() => {
@@ -71,7 +69,7 @@ onMounted(() => {
 <style scoped>
 .workspace-page {
   display: grid;
-  grid-template-columns: 272px minmax(0, 1.28fr) 420px;
+  grid-template-columns: 232px minmax(0, 1.55fr) 360px;
   gap: 18px;
   align-items: start;
 }
@@ -93,7 +91,7 @@ onMounted(() => {
 
 @media (max-width: 1380px) {
   .workspace-page {
-    grid-template-columns: 248px minmax(0, 1.2fr) 380px;
+    grid-template-columns: 220px minmax(0, 1.42fr) 320px;
   }
 }
 
