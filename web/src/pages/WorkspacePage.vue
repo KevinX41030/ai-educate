@@ -69,7 +69,7 @@ onMounted(() => {
 <style scoped>
 .workspace-page {
   display: grid;
-  grid-template-columns: 232px minmax(0, 1.55fr) 360px;
+  grid-template-columns: 288px minmax(0, 1.38fr) 332px;
   gap: 18px;
   align-items: start;
 }
@@ -91,7 +91,7 @@ onMounted(() => {
 
 @media (max-width: 1380px) {
   .workspace-page {
-    grid-template-columns: 220px minmax(0, 1.42fr) 320px;
+    grid-template-columns: 260px minmax(0, 1.28fr) 300px;
   }
 }
 
