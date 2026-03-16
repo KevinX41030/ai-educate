@@ -1,26 +1,30 @@
 <template>
   <section class="home-entry-page">
-    <div class="home-entry-card">
-      <div class="home-entry-copy">
-        <span class="panel-kicker">AI 备课工作台</span>
-        <h1>一句话描述你的课程需求</h1>
-      </div>
-
+    <div class="home-entry-shell">
       <label class="home-entry-input-card">
         <textarea
           v-model="prompt"
-          rows="7"
-          placeholder="例如：请帮我准备一节初二物理《压强》的 45 分钟课程，目标是让学生理解压强概念、影响因素，并设计一个简单实验和课堂互动，整体风格简洁清晰。"
+          rows="5"
+          placeholder="给 AI 发送消息，描述你想要生成的课程内容"
+          @keydown.enter.exact.prevent="submit"
           @keydown.meta.enter.prevent="submit"
           @keydown.ctrl.enter.prevent="submit"
         ></textarea>
-      </label>
 
-      <div class="home-entry-actions">
-        <button class="primary home-entry-button" type="button" :disabled="!canSubmit || isBusy" @click="submit">
-          {{ isBusy ? '正在启动…' : 'AI备课' }}
+        <button
+          class="home-entry-submit"
+          type="button"
+          :disabled="!canSubmit || isBusy"
+          @click="submit"
+          :aria-label="isBusy ? '正在启动' : '发送'"
+        >
+          <span v-if="isBusy">…</span>
+          <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h11" />
+            <path d="M13 6l6 6-6 6" />
+          </svg>
         </button>
-      </div>
+      </label>
     </div>
   </section>
 </template>
@@ -48,83 +52,70 @@ const submit = () => {
 
 <style scoped>
 .home-entry-page {
-  min-height: calc(100vh - 88px);
+  min-height: calc(100vh - 68px);
   display: grid;
   place-items: center;
 }
 
-.home-entry-card {
-  width: min(920px, 100%);
-  display: grid;
-  gap: 28px;
-  padding: clamp(28px, 4vw, 52px);
-  border-radius: 36px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  box-shadow: 0 36px 90px rgba(15, 23, 42, 0.1);
-  backdrop-filter: blur(28px);
-}
-
-.home-entry-copy {
-  display: grid;
-  gap: 16px;
-  text-align: center;
-  justify-items: center;
-}
-
-.home-entry-copy h1 {
-  margin: 0;
-  font-size: clamp(34px, 5vw, 60px);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
+.home-entry-shell {
+  width: min(860px, 100%);
 }
 
 .home-entry-input-card {
+  position: relative;
   display: block;
 }
 
 .home-entry-input-card textarea {
-  min-height: 240px;
-  padding: 24px 24px 96px;
-  border-radius: 28px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
-  font-size: 16px;
-  line-height: 1.85;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  min-height: 184px;
+  padding: 28px 88px 28px 28px;
+  border-radius: 32px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  font-size: 18px;
+  line-height: 1.8;
+  box-shadow:
+    0 24px 80px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
-.home-entry-actions {
-  display: flex;
-  justify-content: center;
+.home-entry-input-card textarea::placeholder {
+  color: #94a3b8;
 }
 
-.home-entry-button {
-  min-width: 188px;
-  min-height: 56px;
+.home-entry-submit {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
   border-radius: 999px;
-  font-size: 16px;
-  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.28);
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(37, 99, 235, 0.24);
+}
+
+.home-entry-submit svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
 
 @media (max-width: 720px) {
   .home-entry-page {
-    min-height: auto;
-    padding-top: 8vh;
-    align-items: start;
-  }
-
-  .home-entry-card {
-    gap: 22px;
+    min-height: calc(100vh - 40px);
   }
 
   .home-entry-input-card textarea {
-    min-height: 220px;
-    padding: 20px 18px 88px;
-  }
-
-  .home-entry-button {
-    width: 100%;
+    min-height: 168px;
+    padding: 22px 76px 22px 22px;
+    border-radius: 28px;
+    font-size: 16px;
   }
 }
 </style>
