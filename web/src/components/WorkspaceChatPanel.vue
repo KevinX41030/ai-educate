@@ -138,8 +138,8 @@ const handleDrop = async (event) => {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
   gap: 14px;
-  width: min(920px, 100%);
-  max-width: 920px;
+  width: min(980px, 100%);
+  max-width: 980px;
   min-height: 0;
   height: 100%;
   overflow: hidden;
@@ -164,7 +164,7 @@ const handleDrop = async (event) => {
 
 .workspace-message-bubble {
   display: grid;
-  max-width: min(84%, 860px);
+  max-width: min(86%, 900px);
   padding: 10px 12px;
   border-radius: 10px;
   background: transparent;
@@ -187,10 +187,10 @@ const handleDrop = async (event) => {
   margin: 0;
   white-space: pre-wrap;
   color: #172033;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   letter-spacing: 0;
-  line-height: 1.38;
+  line-height: 1.48;
 }
 
 .workspace-upload-card,
@@ -227,12 +227,12 @@ const handleDrop = async (event) => {
 .workspace-upload-card p {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
 .workspace-upload-card strong {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   line-height: 1.4;
 }
@@ -245,8 +245,8 @@ const handleDrop = async (event) => {
   border: none;
   box-shadow: none;
   background: transparent;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 15px;
+  line-height: 1.6;
   resize: none;
   overflow-y: auto;
 }
@@ -266,7 +266,7 @@ const handleDrop = async (event) => {
 
 .workspace-composer-hint {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .workspace-composer-footer .primary {
