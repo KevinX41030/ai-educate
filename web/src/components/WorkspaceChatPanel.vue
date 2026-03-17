@@ -7,7 +7,6 @@
         class="workspace-message-row"
         :class="message.role"
       >
-        <div class="workspace-message-avatar">{{ message.role === 'assistant' ? 'AI' : '我' }}</div>
         <div class="workspace-message-bubble">
           <p>{{ message.text }}</p>
         </div>
@@ -152,27 +151,11 @@ const handleDrop = async (event) => {
 }
 
 .workspace-message-row {
-  display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
+  display: flex;
 }
 
 .workspace-message-row.user {
-  grid-template-columns: minmax(0, 1fr) 36px;
-}
-
-.workspace-message-avatar {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: rgba(101, 138, 228, 0.16);
-  color: var(--primary-strong);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  justify-content: flex-end;
 }
 
 .workspace-message-bubble {
@@ -189,15 +172,7 @@ const handleDrop = async (event) => {
 }
 
 .workspace-message-row.user .workspace-message-bubble {
-  order: 1;
-  justify-self: end;
   background: rgba(161, 254, 239, 0.24);
-}
-
-.workspace-message-row.user .workspace-message-avatar {
-  order: 2;
-  background: var(--primary-strong);
-  color: #ffffff;
 }
 
 .workspace-message-row.user .workspace-message-bubble p {
