@@ -1,22 +1,28 @@
 <template>
   <section class="course-panel">
     <div class="course-overview-grid">
-      <article
+      <label
         v-for="item in overviewItems"
-        :key="item.label"
-        class="overview-card"
-        :class="{ featured: item.featured }"
+        :key="item.key"
+        class="overview-card course-field"
+        :class="{ featured: item.featured, wide: item.wide }"
       >
         <span>{{ item.label }}</span>
-        <strong>{{ item.value }}</strong>
-      </article>
-    </div>
-
-    <div v-if="missingFieldLabels.length" class="course-warning-card">
-      <span>待补全</span>
-      <div class="course-warning-tags">
-        <strong v-for="label in missingFieldLabels" :key="label">{{ label }}</strong>
-      </div>
+        <textarea
+          v-if="item.multiline"
+          :value="getFieldValue(item.key)"
+          :rows="item.rows || 3"
+          :placeholder="item.placeholder"
+          @input="updateField(item.key, $event.target.value)"
+        ></textarea>
+        <input
+          v-else
+          type="text"
+          :value="getFieldValue(item.key)"
+          :placeholder="item.placeholder"
+          @input="updateField(item.key, $event.target.value)"
+        />
+      </label>
     </div>
 
     <div class="course-summary-card">
@@ -58,10 +64,6 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  missingFieldLabels: {
-    type: Array,
-    default: () => []
-  },
   draft: {
     type: Object,
     default: null
@@ -77,15 +79,21 @@ const props = defineProps({
   onExport: {
     type: Function,
     default: null
+  },
+  onUpdateField: {
+    type: Function,
+    default: null
   }
 });
 
 const overviewItems = computed(() => [
-  { label: '课程主题', value: props.fields.subject || '待补充', featured: true },
-  { label: '年级 / 学段', value: props.fields.grade || '待补充' },
-  { label: '课堂时长', value: props.fields.duration || '待补充' },
-  { label: '教学风格', value: props.fields.style || '待补充' },
-  { label: '互动设计', value: props.fields.interactions || '待补充' }
+  { key: 'subject', label: '课程主题', placeholder: '输入课程主题', featured: true },
+  { key: 'grade', label: '年级 / 学段', placeholder: '如：五年级 / 初二' },
+  { key: 'duration', label: '课堂时长', placeholder: '如：40 分钟' },
+  { key: 'goals', label: '教学目标', placeholder: '输入本节课希望达成的目标', multiline: true, wide: true },
+  { key: 'keyPoints', label: '核心知识点', placeholder: '输入知识点，用逗号或换行分隔', multiline: true, wide: true },
+  { key: 'style', label: '教学风格', placeholder: '如：启发式、案例式、轻松一些' },
+  { key: 'interactions', label: '互动设计', placeholder: '如：分组讨论、随堂提问、小游戏' }
 ]);
 
 const summaryLines = computed(() =>
@@ -101,6 +109,18 @@ const handleReset = () => {
 
 const handleExportClick = () => {
   if (props.onExport) props.onExport();
+};
+
+const getFieldValue = (key) => {
+  const value = props.fields?.[key];
+  if (key === 'keyPoints') {
+    return Array.isArray(value) ? value.join('、') : `${value || ''}`;
+  }
+  return `${value || ''}`;
+};
+
+const updateField = (key, value) => {
+  if (props.onUpdateField) props.onUpdateField(key, value);
 };
 
 const formatSize = (size = 0) => {
@@ -125,10 +145,13 @@ const formatSize = (size = 0) => {
   grid-column: 1 / -1;
 }
 
+.course-field.wide {
+  grid-column: 1 / -1;
+}
+
 .overview-card,
 .course-summary-card,
-.course-files-card,
-.course-warning-card {
+.course-files-card {
   display: grid;
   gap: 8px;
   padding: 16px;
@@ -138,8 +161,7 @@ const formatSize = (size = 0) => {
 }
 
 .overview-card span,
-.course-section-title,
-.course-warning-card span {
+.course-section-title {
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
@@ -147,31 +169,31 @@ const formatSize = (size = 0) => {
   text-transform: uppercase;
 }
 
-.overview-card strong {
+.course-field input,
+.course-field textarea {
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 0;
   font-size: 14px;
-  font-weight: 600;
-  line-height: 1.45;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #172033;
 }
 
-.course-warning-card {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.16);
+.course-field textarea {
+  min-height: 70px;
 }
 
-.course-warning-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.course-field input::placeholder,
+.course-field textarea::placeholder {
+  color: #9aa6bb;
 }
 
-.course-warning-tags strong {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.8);
-  color: #b45309;
-  font-size: 11px;
+.course-field input:focus,
+.course-field textarea:focus {
+  border: none;
+  background: transparent;
 }
 
 .course-summary-card p,

@@ -5,11 +5,11 @@
         :fields="fields"
         :summary="summary"
         :files="files"
-        :missing-field-labels="missingFieldLabels"
         :draft="draft"
         :export-label="exportLabel"
         :on-reset="handleClear"
         :on-export="handleExport"
+        :on-update-field="handleFieldChange"
       />
     </aside>
 
@@ -37,13 +37,13 @@ const {
   files,
   handleClear,
   handleExport,
+  handleFieldChange,
   handleSend,
   handleUpload,
   initWorkspace,
   isAutoGenerating,
   isBusy,
   messages,
-  missingFieldLabels,
   summary
 } = useWorkspace();
 

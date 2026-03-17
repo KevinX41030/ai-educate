@@ -274,6 +274,26 @@ const handleExportModeChange = (mode) => {
   exportMode.value = mode;
 };
 
+const handleFieldChange = (key, value) => {
+  const nextFields = normalizeFields({
+    ...fields.value,
+    [key]: value
+  });
+
+  fields.value = nextFields;
+  summary.value = buildSummary(nextFields);
+
+  const nextMissingFields = buildMissingFields(nextFields);
+  intent.value = {
+    ...intent.value,
+    fields: nextFields,
+    missingFields: nextMissingFields,
+    ready: nextMissingFields.length === 0,
+    confirmed: nextMissingFields.length === 0 ? Boolean(intent.value?.confirmed) : false,
+    sceneStatus: sceneStatus.value
+  };
+};
+
 const handleSend = async (text, options = {}) => sendInternal(text, options);
 
 const handleUpload = async (selectedFiles) => {
@@ -373,6 +393,7 @@ export function useWorkspace() {
     initWorkspace,
     startFromPrompt,
     handleExportModeChange,
+    handleFieldChange,
     handleSend,
     handleUpload,
     handleClear,
