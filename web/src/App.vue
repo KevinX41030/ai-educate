@@ -1,5 +1,5 @@
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :class="{ 'app-shell--workspace': isWorkspaceRoute }">
     <main class="shell-main">
       <RouterView />
     </main>
@@ -7,11 +7,14 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
-import { RouterView } from 'vue-router';
+import { computed, onMounted } from 'vue';
+import { RouterView, useRoute } from 'vue-router';
 import { useWorkspace } from './composables/useWorkspace';
 
+const route = useRoute();
 const { initWorkspace } = useWorkspace();
+
+const isWorkspaceRoute = computed(() => route.name === 'workspace');
 
 onMounted(() => {
   initWorkspace();

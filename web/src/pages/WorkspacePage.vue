@@ -56,9 +56,9 @@ onMounted(() => {
 .workspace-page {
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
-  gap: 16px;
+  gap: 0;
   align-items: stretch;
-  min-height: calc(100vh - 68px);
+  min-height: 100vh;
 }
 
 .workspace-pane {
@@ -68,15 +68,21 @@ onMounted(() => {
 
 .workspace-chat-pane {
   min-height: 0;
-  height: calc(100vh - 68px);
+  height: 100vh;
   overflow: hidden;
+  padding: 20px 24px 20px 20px;
 }
 
 .workspace-info-pane {
   position: sticky;
-  top: 20px;
-  max-height: calc(100vh - 68px);
+  top: 0;
+  height: 100vh;
   overflow-y: auto;
+  max-height: 100vh;
+  padding: 24px 20px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
 }
 
 @media (max-width: 1380px) {
@@ -97,6 +103,15 @@ onMounted(() => {
     max-height: none;
     height: auto;
     overflow: visible;
+  }
+
+  .workspace-chat-pane {
+    padding: 16px;
+  }
+
+  .workspace-info-pane {
+    border-radius: 0;
+    border-left: 1px solid rgba(40, 49, 78, 0.08);
   }
 }
 </style>
