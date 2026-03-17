@@ -180,8 +180,8 @@ const handleDrop = async (event) => {
   max-width: min(84%, 860px);
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: transparent;
+  border: none;
 }
 
 .workspace-message-row.assistant .workspace-message-bubble {
@@ -191,7 +191,7 @@ const handleDrop = async (event) => {
 .workspace-message-row.user .workspace-message-bubble {
   order: 1;
   justify-self: end;
-  background: rgba(161, 254, 239, 0.42);
+  background: rgba(161, 254, 239, 0.24);
 }
 
 .workspace-message-row.user .workspace-message-avatar {
