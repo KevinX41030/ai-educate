@@ -217,8 +217,9 @@ const handleDrop = async (event) => {
 .workspace-upload-card,
 .workspace-composer-card {
   display: grid;
-  gap: 8px;
-  padding: 16px;
+  grid-template-rows: minmax(0, auto) auto;
+  gap: 10px;
+  padding: 14px 14px 12px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -249,13 +250,16 @@ const handleDrop = async (event) => {
 }
 
 .workspace-composer-card textarea {
-  min-height: 96px;
+  min-height: 120px;
+  max-height: 180px;
   padding: 0;
   border: none;
   box-shadow: none;
   background: transparent;
   font-size: 14px;
   line-height: 1.55;
+  resize: none;
+  overflow-y: auto;
 }
 
 .workspace-composer-card textarea:focus {
@@ -267,11 +271,17 @@ const handleDrop = async (event) => {
   justify-content: space-between;
   gap: 12px;
   align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .workspace-composer-hint {
   color: var(--muted);
   font-size: 11px;
+}
+
+.workspace-composer-footer .primary {
+  min-width: 112px;
 }
 
 @media (max-width: 720px) {
