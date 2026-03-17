@@ -13,7 +13,7 @@
       />
     </aside>
 
-    <section class="workspace-pane workspace-chat-pane shell-card">
+    <section class="workspace-chat-pane">
       <WorkspaceChatPanel
         :messages="messages"
         :busy="isBusy || isAutoGenerating"
