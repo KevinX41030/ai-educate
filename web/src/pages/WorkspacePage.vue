@@ -67,6 +67,8 @@ onMounted(() => {
 }
 
 .workspace-chat-pane {
+  display: flex;
+  justify-content: center;
   min-height: 0;
   height: 100vh;
   overflow: hidden;

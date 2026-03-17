@@ -183,6 +183,8 @@ const formatSize = (size = 0) => {
 
 .course-field textarea {
   min-height: 70px;
+  resize: none;
+  overflow-y: auto;
 }
 
 .course-field input::placeholder,

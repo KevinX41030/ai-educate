@@ -138,6 +138,8 @@ const handleDrop = async (event) => {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
   gap: 14px;
+  width: min(920px, 100%);
+  max-width: 920px;
   min-height: 0;
   height: 100%;
   overflow: hidden;
