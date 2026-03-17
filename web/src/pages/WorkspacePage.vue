@@ -57,7 +57,8 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+  min-height: calc(100vh - 68px);
 }
 
 .workspace-pane {
@@ -66,12 +67,16 @@ onMounted(() => {
 }
 
 .workspace-chat-pane {
-  min-height: calc(100vh - 40px);
+  min-height: 0;
+  height: calc(100vh - 68px);
+  overflow: hidden;
 }
 
 .workspace-info-pane {
   position: sticky;
   top: 20px;
+  max-height: calc(100vh - 68px);
+  overflow-y: auto;
 }
 
 @media (max-width: 1380px) {
@@ -83,10 +88,15 @@ onMounted(() => {
 @media (max-width: 1180px) {
   .workspace-page {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
 
+  .workspace-chat-pane,
   .workspace-info-pane {
     position: static;
+    max-height: none;
+    height: auto;
+    overflow: visible;
   }
 }
 </style>

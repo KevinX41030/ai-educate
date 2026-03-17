@@ -138,7 +138,9 @@ const handleDrop = async (event) => {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
   gap: 14px;
-  min-height: calc(100vh - 84px);
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .workspace-message-list {
