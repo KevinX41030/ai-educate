@@ -1,13 +1,12 @@
 <template>
   <section class="course-panel">
-    <div class="course-panel-head">
-      <span class="panel-kicker">当前课程</span>
-      <h2>{{ fields.subject || '等待输入课程主题' }}</h2>
-      <p>{{ hintText }}</p>
-    </div>
-
     <div class="course-overview-grid">
-      <article v-for="item in overviewItems" :key="item.label" class="overview-card">
+      <article
+        v-for="item in overviewItems"
+        :key="item.label"
+        class="overview-card"
+        :class="{ featured: item.featured }"
+      >
         <span>{{ item.label }}</span>
         <strong>{{ item.value }}</strong>
       </article>
@@ -82,6 +81,7 @@ const props = defineProps({
 });
 
 const overviewItems = computed(() => [
+  { label: '课程主题', value: props.fields.subject || '待补充', featured: true },
   { label: '年级 / 学段', value: props.fields.grade || '待补充' },
   { label: '课堂时长', value: props.fields.duration || '待补充' },
   { label: '教学风格', value: props.fields.style || '待补充' },
@@ -94,11 +94,6 @@ const summaryLines = computed(() =>
     .filter(Boolean)
     .slice(0, 4)
 );
-
-const hintText = computed(() => {
-  if (props.fields.goals) return props.fields.goals;
-  return '左侧持续同步课程关键信息，方便你随时确认当前备课上下文。';
-});
 
 const handleReset = () => {
   if (props.onReset) props.onReset();
@@ -120,40 +115,14 @@ const formatSize = (size = 0) => {
   gap: 16px;
 }
 
-.course-panel-head {
-  display: grid;
-  gap: 8px;
-}
-
-.course-panel-head :deep(.panel-kicker) {
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.course-panel-head h2 {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.course-panel-head p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
 .course-overview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.overview-card.featured {
+  grid-column: 1 / -1;
 }
 
 .overview-card,
