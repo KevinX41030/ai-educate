@@ -35,6 +35,8 @@ body {
   font-family: var(--font-sans);
   color: var(--ink);
   background: #f6fbfd;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body::before {

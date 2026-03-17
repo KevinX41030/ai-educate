@@ -55,14 +55,14 @@ onMounted(() => {
 <style scoped>
 .workspace-page {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
 }
 
 .workspace-pane {
-  padding: 22px;
-  border-radius: 16px;
+  padding: 20px;
+  border-radius: 14px;
 }
 
 .workspace-chat-pane {
@@ -76,7 +76,7 @@ onMounted(() => {
 
 @media (max-width: 1380px) {
   .workspace-page {
-    grid-template-columns: 292px minmax(0, 1fr);
+    grid-template-columns: 332px minmax(0, 1fr);
   }
 }
 

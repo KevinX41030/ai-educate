@@ -138,7 +138,7 @@ const handleDrop = async (event) => {
 .workspace-chat-panel {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
-  gap: 18px;
+  gap: 14px;
   min-height: calc(100vh - 84px);
 }
 
@@ -146,39 +146,40 @@ const handleDrop = async (event) => {
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding-right: 6px;
   align-content: start;
 }
 
 .workspace-message-row {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
   align-items: start;
 }
 
 .workspace-message-row.user {
-  grid-template-columns: minmax(0, 1fr) 42px;
+  grid-template-columns: minmax(0, 1fr) 36px;
 }
 
 .workspace-message-avatar {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(101, 138, 228, 0.16);
   color: var(--primary-strong);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .workspace-message-bubble {
   display: grid;
-  max-width: min(78%, 720px);
-  padding: 12px 14px;
-  border-radius: 12px;
+  max-width: min(84%, 860px);
+  padding: 10px 12px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.16);
 }
@@ -208,17 +209,17 @@ const handleDrop = async (event) => {
   white-space: pre-wrap;
   color: #172033;
   font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  line-height: 1.42;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.38;
 }
 
 .workspace-upload-card,
 .workspace-composer-card {
   display: grid;
-  gap: 10px;
-  padding: 18px;
-  border-radius: 14px;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.18);
 }
@@ -237,15 +238,24 @@ const handleDrop = async (event) => {
 .workspace-upload-card p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.7;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.workspace-upload-card strong {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .workspace-composer-card textarea {
-  min-height: 108px;
+  min-height: 96px;
   padding: 0;
   border: none;
   box-shadow: none;
   background: transparent;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .workspace-composer-card textarea:focus {
@@ -261,7 +271,7 @@ const handleDrop = async (event) => {
 
 .workspace-composer-hint {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 @media (max-width: 720px) {

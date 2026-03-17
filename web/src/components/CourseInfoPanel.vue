@@ -117,30 +117,43 @@ const formatSize = (size = 0) => {
 <style scoped>
 .course-panel {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .course-panel-head {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+}
+
+.course-panel-head :deep(.panel-kicker) {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .course-panel-head h2 {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.14;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .course-panel-head p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.75;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .course-overview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .overview-card,
@@ -148,9 +161,9 @@ const formatSize = (size = 0) => {
 .course-files-card,
 .course-warning-card {
   display: grid;
-  gap: 10px;
-  padding: 18px;
-  border-radius: 14px;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(148, 163, 184, 0.16);
 }
@@ -159,13 +172,16 @@ const formatSize = (size = 0) => {
 .course-section-title,
 .course-warning-card span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .overview-card strong {
-  line-height: 1.6;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .course-warning-card {
@@ -176,52 +192,54 @@ const formatSize = (size = 0) => {
 .course-warning-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .course-warning-tags strong {
   display: inline-flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.8);
   color: #b45309;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .course-summary-card p,
 .course-empty-text {
   margin: 0;
   color: var(--muted);
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .course-file-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .course-file-item {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
-  border-radius: 10px;
+  padding: 11px 12px;
+  border-radius: 8px;
   background: rgba(241, 245, 249, 0.9);
 }
 
 .course-file-item span,
 .course-file-item small {
-  line-height: 1.6;
+  line-height: 1.45;
 }
 
 .course-file-item small {
   color: var(--muted);
+  font-size: 12px;
 }
 
 .course-actions {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 @media (max-width: 720px) {
