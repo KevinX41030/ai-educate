@@ -94,22 +94,13 @@ const initialized = ref(false);
 const isBusy = ref(false);
 const isAutoGenerating = ref(false);
 const isEnhancingScene = ref(false);
-const isStreamingReply = ref(false);
 const sceneRefreshKey = ref('');
-let streamToken = 0;
-
-const wait = (delay) => new Promise((resolve) => window.setTimeout(resolve, delay));
 
 const createMessage = (role, text = '') => ({
   id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   role,
   text
 });
-
-const cancelStreaming = () => {
-  streamToken += 1;
-  isStreamingReply.value = false;
-};
 
 const syncSession = (id) => {
   if (!id) return;
@@ -123,42 +114,12 @@ const appendMessage = (role, text = '') => {
   return message;
 };
 
-const streamAssistantMessage = async (text) => {
-  const content = `${text || ''}`;
-  if (!content) return;
-
-  const token = ++streamToken;
-  const message = appendMessage('assistant', '');
-  const chars = Array.from(content);
-  const chunkSize = chars.length > 280 ? 4 : chars.length > 160 ? 3 : chars.length > 80 ? 2 : 1;
-
-  isStreamingReply.value = true;
-
-  try {
-    for (let cursor = 0; cursor < chars.length; cursor += chunkSize) {
-      if (token !== streamToken) return;
-
-      const nextChunk = chars.slice(cursor, cursor + chunkSize).join('');
-      message.text += nextChunk;
-
-      const lastChar = nextChunk.at(-1) || '';
-      const delay = /[，。！？；：,.!?;:\n]/.test(lastChar) ? 120 : chars.length > 280 ? 26 : 38;
-      await wait(delay);
-    }
-  } finally {
-    if (token === streamToken) {
-      isStreamingReply.value = false;
-    }
-  }
-};
-
 const ensureWelcomeMessage = () => {
   if (messages.value.length) return;
   appendMessage('assistant', '直接描述课程需求，我会一边和你对话，一边在右侧生成课件预览。');
 };
 
 const resetWorkspaceState = () => {
-  cancelStreaming();
   summary.value = '暂无';
   draft.value = null;
   scene.value = null;
@@ -206,7 +167,7 @@ const maybeEnhanceScene = async () => {
   }
 };
 
-const applyChatPayload = async (data) => {
+const applyChatPayload = (data) => {
   syncSession(data.sessionId);
 
   if (data.state) {
@@ -219,7 +180,7 @@ const applyChatPayload = async (data) => {
   if (data.scene) scene.value = data.scene;
   if (data.sceneStatus) sceneStatus.value = data.sceneStatus;
   if (Array.isArray(data.rag)) rag.value = data.rag;
-  if (data.reply) await streamAssistantMessage(data.reply);
+  if (data.reply) appendMessage('assistant', data.reply);
 
   if (draft.value && sceneStatus.value === 'stale') {
     void maybeEnhanceScene();
@@ -237,16 +198,14 @@ const sendInternal = async (text, options = {}) => {
 
   try {
     const data = await sendMessage({ sessionId: sessionId.value, text: trimmed });
-    isBusy.value = false;
-    await applyChatPayload(data);
+    applyChatPayload(data);
 
     if (autoGenerate && data.intent?.ready && !data.intent?.confirmed && !data.draft) {
       isAutoGenerating.value = true;
       appendMessage('assistant', '信息已经齐全，正在为你生成课件初稿…');
 
       const confirmData = await sendMessage({ sessionId: sessionId.value, text: '确认' });
-      isAutoGenerating.value = false;
-      await applyChatPayload(confirmData);
+      applyChatPayload(confirmData);
     }
 
     return data;
@@ -430,7 +389,6 @@ export function useWorkspace() {
     isBusy,
     isAutoGenerating,
     isEnhancingScene,
-    isStreamingReply,
     initWorkspace,
     startFromPrompt,
     handleFieldChange,

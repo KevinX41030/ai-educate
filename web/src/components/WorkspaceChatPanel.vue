@@ -44,7 +44,7 @@
 
       <div class="workspace-composer-footer">
         <span class="workspace-composer-hint">按 Enter 发送，Shift + Enter 换行</span>
-        <button class="primary" type="button" :disabled="locked || !canSubmit" @click="submit">
+        <button class="primary" type="button" :disabled="busy || !canSubmit" @click="submit">
           {{ busy ? '发送中…' : '发送给 AI' }}
         </button>
       </div>
@@ -61,10 +61,6 @@ const props = defineProps({
     default: () => []
   },
   busy: {
-    type: Boolean,
-    default: false
-  },
-  locked: {
     type: Boolean,
     default: false
   },
@@ -110,16 +106,9 @@ watch(
   }
 );
 
-watch(
-  () => props.messages[props.messages.length - 1]?.text,
-  () => {
-    void scrollToBottom();
-  }
-);
-
 const submit = async () => {
   const text = input.value.trim();
-  if (!text || props.locked) return;
+  if (!text || props.busy) return;
   input.value = '';
   await props.onSend(text, { autoGenerate: true });
 };
