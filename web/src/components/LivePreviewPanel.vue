@@ -3,7 +3,7 @@
     <div class="live-preview-head">
       <div>
         <span class="panel-kicker">实时预览</span>
-        <h2>{{ fields.subject || 'PPT 实时生成中' }}</h2>
+        <h2>{{ fields.subject || 'PPT 页面生成中' }}</h2>
         <p>{{ statusDescription }}</p>
       </div>
       <div class="live-preview-meta">
@@ -16,7 +16,7 @@
       <div class="preview-skeleton preview-skeleton-cover"></div>
       <div class="preview-skeleton preview-skeleton-line"></div>
       <div class="preview-skeleton preview-skeleton-line short"></div>
-      <p>输入需求后，这里会先出现课件骨架，再自动增强成更完整的版式预览。</p>
+      <p>点击左侧生成 PPT 后，这里会先出现页面结构，再持续同步完整页面内容。</p>
     </div>
 
     <template v-else>
@@ -90,9 +90,9 @@ const selectedSceneSlide = computed(() => sceneSlides.value[selectedSlideIndex.v
 const selectedFallbackSlide = computed(() => fallbackSlides.value[selectedSlideIndex.value] || null);
 
 const statusLabel = computed(() => {
-  if (props.sceneStatus === 'generating') return '正在更新';
-  if (props.sceneStatus === 'ready') return '已同步';
-  if (displaySlides.value.length) return '已生成骨架';
+  if (props.sceneStatus === 'generating') return '生成中';
+  if (props.sceneStatus === 'ready') return '已完成';
+  if (displaySlides.value.length) return '已生成';
   return '等待开始';
 });
 
@@ -103,16 +103,16 @@ const statusTone = computed(() => {
 });
 
 const statusDescription = computed(() => {
-  if (props.sceneStatus === 'generating') return '正在把基础大纲转换成更完整的页面版式。';
-  if (props.sceneStatus === 'ready') return '右侧已经是当前最新的页面内容，可以继续聊天修改。';
-  if (displaySlides.value.length) return '已经生成基础页面，AI 还会继续根据对话补全内容。';
-  return '当前还没有页面内容，先在中间输入完整课程需求。';
+  if (props.sceneStatus === 'generating') return '正在补全页面布局与内容结构。';
+  if (props.sceneStatus === 'ready') return '当前页面已经同步到最新结果，可以继续补充需求。';
+  if (displaySlides.value.length) return 'PPT 已经生成，当前展示的是最新页面结果。';
+  return '当前还没有页面内容，先从左侧发起一次 PPT 生成。';
 });
 
 const sceneStatusLabel = computed(() => {
-  if (props.sceneStatus === 'generating') return '增强版式生成中';
-  if (props.sceneStatus === 'ready') return '增强版式已就绪';
-  if (displaySlides.value.length) return '基础预览';
+  if (props.sceneStatus === 'generating') return '页面生成中';
+  if (props.sceneStatus === 'ready') return '页面已完成';
+  if (displaySlides.value.length) return '已生成页面';
   return '等待内容';
 });
 
@@ -184,13 +184,13 @@ const slideSummary = (slide) => {
 }
 
 .live-preview-status.active {
-  background: rgba(37, 99, 235, 0.12);
-  color: var(--primary-strong);
+  background: rgba(101, 138, 228, 0.12);
+  color: var(--primary);
 }
 
 .live-preview-status.success {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
+  background: rgba(161, 254, 239, 0.42);
+  color: var(--primary-strong);
 }
 
 .live-preview-empty,
@@ -198,9 +198,9 @@ const slideSummary = (slide) => {
   display: grid;
   gap: 14px;
   padding: 20px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(40, 49, 78, 0.08);
 }
 
 .live-preview-empty p {
@@ -210,8 +210,8 @@ const slideSummary = (slide) => {
 }
 
 .preview-skeleton {
-  border-radius: 12px;
-  background: linear-gradient(90deg, rgba(226, 232, 240, 0.8), rgba(241, 245, 249, 1), rgba(226, 232, 240, 0.8));
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(235, 236, 239, 0.9), rgba(244, 245, 247, 1), rgba(235, 236, 239, 0.9));
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
 }
@@ -242,15 +242,15 @@ const slideSummary = (slide) => {
   gap: 8px;
   padding: 16px;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(40, 49, 78, 0.08);
+  background: rgba(255, 255, 255, 0.86);
   text-align: left;
   box-shadow: none;
 }
 
 .preview-thumbnail.active {
-  border-color: rgba(37, 99, 235, 0.24);
-  background: rgba(239, 246, 255, 0.9);
+  border-color: rgba(101, 138, 228, 0.26);
+  background: rgba(161, 254, 239, 0.18);
 }
 
 .preview-thumbnail span,

@@ -123,7 +123,7 @@ const fallbackTitle = (type) => {
   flex-shrink: 0;
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(91, 108, 255, 0.12);
+  background: rgba(161, 254, 239, 0.42);
   color: var(--primary-strong);
   font-size: 12px;
   font-weight: 700;
@@ -133,24 +133,22 @@ const fallbackTitle = (type) => {
   display: grid;
   gap: 12px;
   padding: 20px;
-  border-radius: 26px;
-  background:
-    radial-gradient(circle at top right, rgba(91, 108, 255, 0.08), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 255, 0.96));
-  border: 1px solid rgba(91, 108, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(40, 49, 78, 0.08);
 }
 
 .scene-block {
-  border: 1px solid rgba(91, 108, 255, 0.1);
-  border-radius: 18px;
+  border: 1px solid rgba(40, 49, 78, 0.08);
+  border-radius: 10px;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(247, 247, 248, 0.92);
 }
 
 .scene-block-title {
   font-size: 12px;
   font-weight: 700;
-  color: var(--primary-strong);
+  color: var(--primary);
   margin-bottom: 8px;
 }
 
@@ -177,10 +175,10 @@ const fallbackTitle = (type) => {
 
 .scene-mini-card,
 .scene-column-card {
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 12px;
-  background: rgba(91, 108, 255, 0.06);
-  border: 1px solid rgba(91, 108, 255, 0.12);
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(40, 49, 78, 0.08);
   line-height: 1.7;
   font-size: 13px;
 }
@@ -207,7 +205,7 @@ const fallbackTitle = (type) => {
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  background: var(--primary);
   color: white;
   font-size: 12px;
   font-weight: 800;
@@ -218,7 +216,7 @@ const fallbackTitle = (type) => {
 }
 
 .block-title {
-  background: linear-gradient(135deg, rgba(91, 108, 255, 0.08), rgba(124, 77, 255, 0.08));
+  background: rgba(161, 254, 239, 0.18);
 }
 
 .block-callout,

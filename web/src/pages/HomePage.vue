@@ -32,21 +32,21 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useWorkspace } from '../composables/useWorkspace';
 
 const prompt = ref('');
 const router = useRouter();
-const { isBusy, startFromPrompt } = useWorkspace();
+const isBusy = ref(false);
 
 const canSubmit = computed(() => prompt.value.trim().length > 0);
 
-const submit = () => {
+const submit = async () => {
   const value = prompt.value.trim();
   if (!value || isBusy.value) return;
 
-  router.push('/workspace');
-  void startFromPrompt(value);
+  isBusy.value = true;
+  await router.push({ name: 'ppt-live', query: { prompt: value } });
   prompt.value = '';
+  isBusy.value = false;
 };
 </script>
 
