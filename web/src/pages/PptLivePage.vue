@@ -2,29 +2,9 @@
   <section class="ppt-live-page">
     <aside class="ppt-live-sidebar shell-card">
       <div class="ppt-live-intro">
-        <span class="panel-kicker">PPT 直出页</span>
-        <h1>直接生成 PPT</h1>
-        <p>输入完整课程需求后，右侧会直接显示 PPT 页面生成结果。这个页面先用于看整体交互效果。</p>
-      </div>
-
-      <label class="ppt-live-section">
-        <span class="ppt-live-label">课程需求</span>
-        <textarea
-          v-model="prompt"
-          rows="8"
-          placeholder="例如：帮我生成一份五年级《分数的意义》40 分钟数学课 PPT，需要生活导入、概念讲解、课堂练习、互动提问和结尾总结。"
-          @keydown.meta.enter.prevent="handleStart"
-          @keydown.ctrl.enter.prevent="handleStart"
-        ></textarea>
-      </label>
-
-      <div class="ppt-live-actions">
-        <button class="primary" type="button" :disabled="!canStart" @click="handleStart">
-          {{ draft ? '重新生成 PPT' : '生成 PPT' }}
-        </button>
-        <button class="ghost" type="button" :disabled="!draft" @click="handleExport">
-          导出 PPT
-        </button>
+        <span class="panel-kicker">生成页</span>
+        <h1>{{ draft ? 'PPT 已生成' : '正在生成 PPT' }}</h1>
+        <p>{{ pageDescription }}</p>
       </div>
 
       <div class="ppt-live-status-card">
@@ -46,7 +26,7 @@
       </div>
 
       <div v-if="recognizedFields.length" class="ppt-live-fields-card">
-        <span class="ppt-live-label">已识别课程信息</span>
+        <span class="ppt-live-label">课程信息</span>
         <div class="ppt-live-fields-list">
           <div v-for="item in recognizedFields" :key="item.label" class="ppt-live-field-item">
             <span>{{ item.label }}</span>
@@ -55,18 +35,25 @@
         </div>
       </div>
 
-      <label class="ppt-live-section ppt-live-section--followup">
-        <span class="ppt-live-label">继续补充</span>
+      <div class="ppt-live-actions">
+        <button class="ghost" type="button" @click="goBack">返回整理页</button>
+        <button class="primary" type="button" :disabled="!draft" @click="handleExport">
+          导出 PPT
+        </button>
+      </div>
+
+      <label v-if="draft" class="ppt-live-section">
+        <span class="ppt-live-label">继续调整</span>
         <textarea
           v-model="followup"
           rows="4"
-          placeholder="继续补充学生特点、课堂风格、重点页要怎么讲，PPT 会继续调整。"
+          placeholder="继续补充课堂风格、页面重点或要调整的内容。"
           @keydown.enter.exact.prevent="handleFollowup"
         ></textarea>
       </label>
 
-      <button class="secondary" type="button" :disabled="!canFollowup" @click="handleFollowup">
-        继续调整当前 PPT
+      <button v-if="draft" class="secondary" type="button" :disabled="!canFollowup" @click="handleFollowup">
+        调整当前 PPT
       </button>
 
       <div class="ppt-live-feed">
@@ -91,7 +78,7 @@
     <section class="ppt-live-stage shell-card">
       <div class="ppt-live-stage-head">
         <div>
-          <span class="panel-kicker">实时生成</span>
+          <span class="panel-kicker">实时预览</span>
           <h2>{{ stageTitle }}</h2>
         </div>
         <div class="ppt-live-stage-meta">
@@ -100,7 +87,13 @@
         </div>
       </div>
 
-      <LivePreviewPanel :draft="draft" :scene="scene" :scene-status="sceneStatus" :fields="fields" />
+      <div v-if="showEmptyState" class="ppt-live-empty">
+        <strong>请先在整理页完成需求整理，再点击“生成PPT”。</strong>
+        <p>生成页只负责展示 PPT 生成过程和最终预览，不负责整理课程需求。</p>
+        <button class="primary" type="button" @click="goBack">返回整理页</button>
+      </div>
+
+      <LivePreviewPanel v-else :draft="draft" :scene="scene" :scene-status="sceneStatus" :fields="fields" />
     </section>
   </section>
 </template>
@@ -113,51 +106,46 @@ import { useWorkspace } from '../composables/useWorkspace';
 
 const route = useRoute();
 const router = useRouter();
-
-const prompt = ref('');
 const followup = ref('');
-const lastAutoPrompt = ref('');
+const autostartHandled = ref(false);
 
 const {
   draft,
   fields,
   files,
+  handleConfirm,
   handleExport,
   handleSend,
+  initWorkspace,
   isAutoGenerating,
   isBusy,
   messages,
   scene,
   sceneStatus,
-  startFromPrompt,
   summary,
+  intent,
   workspacePhase
 } = useWorkspace();
 
-const normalizeQueryPrompt = (value) => {
-  if (Array.isArray(value)) return `${value[0] || ''}`;
-  return `${value || ''}`;
-};
+initWorkspace();
 
 const slideCount = computed(() => scene.value?.slides?.length || draft.value?.ppt?.length || 0);
-const canStart = computed(() => prompt.value.trim().length > 0 && !isBusy.value && !isAutoGenerating.value);
-const canFollowup = computed(
-  () => followup.value.trim().length > 0 && messages.value.length > 0 && !isBusy.value && !isAutoGenerating.value
-);
-const stageTitle = computed(() => {
-  if (fields.value.subject) return fields.value.subject;
-  if (prompt.value.trim()) return prompt.value.trim().slice(0, 28);
-  return 'PPT 页面生成中';
+const canFollowup = computed(() => followup.value.trim().length > 0 && !isBusy.value && !isAutoGenerating.value);
+const showEmptyState = computed(() => !draft.value && !intent.value?.ready && !isBusy.value && !isAutoGenerating.value);
+const stageTitle = computed(() => fields.value.subject || 'PPT 页面生成中');
+const pageDescription = computed(() => {
+  if (showEmptyState.value) return '请先返回整理页，把需求整理完整后再发起生成。';
+  if (draft.value) return '当前页面用于查看生成中的 PPT 页面，以及生成完成后的最终预览。';
+  return '正在根据整理页中的课程信息生成 PPT，请稍候。';
 });
 const stageStatusText = computed(() => {
-  if (isAutoGenerating.value) return '正在生成 PPT';
-  if (isBusy.value) return '正在整理需求';
+  if (isAutoGenerating.value || isBusy.value) return '正在生成 PPT';
   if (sceneStatus.value === 'generating') return '正在补全页面';
-  if (slideCount.value) return 'PPT 已生成';
+  if (draft.value) return 'PPT 已生成';
   return workspacePhase.value;
 });
 const summarySnippet = computed(() => {
-  if (!summary.value || summary.value === '暂无') return '先输入完整课程需求，系统会先识别课程信息，再直接生成 PPT 页面。';
+  if (!summary.value || summary.value === '暂无') return '生成前会在这里显示当前课程摘要。';
   return summary.value.split('\n').slice(0, 3).join(' · ');
 });
 const recentMessages = computed(() => messages.value.slice(-6));
@@ -176,31 +164,24 @@ const recognizedFields = computed(() => {
   return items.filter((item) => `${item.value || ''}`.trim());
 });
 
-const handleStart = async () => {
-  const text = prompt.value.trim();
-  if (!text || isBusy.value || isAutoGenerating.value) return;
-  await startFromPrompt(text);
-  if (normalizeQueryPrompt(route.query.prompt)) {
-    await router.replace({ name: 'ppt-live' });
-  }
-};
-
 const handleFollowup = async () => {
   const text = followup.value.trim();
-  if (!text || !messages.value.length || isBusy.value || isAutoGenerating.value) return;
+  if (!text || isBusy.value || isAutoGenerating.value) return;
   followup.value = '';
-  await handleSend(text, { autoGenerate: true });
+  await handleSend(text, { autoGenerate: false });
+};
+
+const goBack = async () => {
+  await router.push({ name: 'workspace' });
 };
 
 watch(
-  () => route.query.prompt,
-  (value) => {
-    const nextPrompt = normalizeQueryPrompt(value).trim();
-    if (!nextPrompt) return;
-    prompt.value = nextPrompt;
-    if (lastAutoPrompt.value === nextPrompt) return;
-    lastAutoPrompt.value = nextPrompt;
-    void handleStart();
+  () => [route.query.autostart, intent.value?.ready, Boolean(draft.value), isBusy.value],
+  async ([autostart, ready, hasDraft, busy]) => {
+    if (autostart !== '1' || autostartHandled.value || !ready || hasDraft || busy) return;
+    autostartHandled.value = true;
+    await handleConfirm();
+    await router.replace({ name: 'ppt-live' });
   },
   { immediate: true }
 );
@@ -251,7 +232,8 @@ watch(
 .ppt-live-section,
 .ppt-live-status-card,
 .ppt-live-fields-card,
-.ppt-live-feed {
+.ppt-live-feed,
+.ppt-live-empty {
   display: grid;
   gap: 10px;
   padding: 14px;
@@ -276,12 +258,8 @@ watch(
 
 .ppt-live-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
-}
-
-.ppt-live-status-card {
-  gap: 12px;
 }
 
 .ppt-live-status-row,
@@ -325,7 +303,8 @@ watch(
   background: rgba(247, 247, 248, 0.92);
 }
 
-.ppt-live-status-card p {
+.ppt-live-status-card p,
+.ppt-live-empty p {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
@@ -363,7 +342,8 @@ watch(
   font-weight: 700;
 }
 
-.ppt-live-feed-item p {
+.ppt-live-feed-item p,
+.ppt-live-empty strong {
   margin: 0;
   font-size: 14px;
   line-height: 1.55;

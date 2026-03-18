@@ -207,6 +207,37 @@ app.post('/api/chat', async (req, res) => {
   });
 });
 
+app.post('/api/session/fields', (req, res) => {
+  const { sessionId, fields = {} } = req.body || {};
+  const session = getSession(sessionId);
+  const nextFields = {
+    ...session.state.fields,
+    ...fields,
+    keyPoints: Array.isArray(fields.keyPoints)
+      ? fields.keyPoints.map((item) => `${item}`.trim()).filter(Boolean)
+      : `${fields.keyPoints ?? session.state.fields.keyPoints ?? ''}`
+          .split(/[，,、\n]/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+  };
+
+  session.state.fields = nextFields;
+  session.state.ready = Boolean(nextFields.subject && nextFields.grade && nextFields.duration && nextFields.goals && nextFields.keyPoints.length);
+  session.state.confirmed = false;
+  session.state.draft = null;
+  session.state.scene = null;
+  session.state.sceneStatus = 'idle';
+  session.state.sceneSource = '';
+  session.state.sceneUpdatedAt = '';
+  session.state.sceneVersion = 0;
+
+  res.json({
+    sessionId: session.id,
+    state: session.state,
+    intent: buildIntentPayload(session.state)
+  });
+});
+
 app.post('/api/upload', upload.array('files', 10), (req, res) => {
   const session = getSession(req.body.sessionId);
   const files = (req.files || []).map((file) => ({

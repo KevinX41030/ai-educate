@@ -5,6 +5,7 @@ import {
   getStatus,
   regeneratePptScene,
   sendMessage,
+  updateSessionFields,
   uploadFiles
 } from '../services/api';
 
@@ -215,6 +216,7 @@ const missingFieldLabels = computed(() =>
   (intent.value?.missingFields || []).map((field) => FIELD_LABELS[field] || field)
 );
 const exportLabel = computed(() => '导出PPT');
+const canGeneratePpt = computed(() => Boolean(intent.value?.ready));
 const lessonTitle = computed(() => fields.value.subject || '未命名课件');
 const keyPointPreview = computed(() => normalizedKeyPoints.value.slice(0, 3).join('、') || '待填写');
 const outlineSlides = computed(() => {
@@ -286,6 +288,21 @@ const handleFieldChange = (key, value) => {
     confirmed: nextMissingFields.length === 0 ? Boolean(intent.value?.confirmed) : false,
     sceneStatus: sceneStatus.value
   };
+};
+
+const syncFields = async () => {
+  const normalizedFields = normalizeFields(fields.value);
+  fields.value = normalizedFields;
+  summary.value = buildSummary(normalizedFields);
+
+  const data = await updateSessionFields({
+    sessionId: sessionId.value,
+    fields: normalizedFields
+  });
+
+  syncSession(data.sessionId);
+  applyStatePayload(data.state || {}, data.intent || null);
+  return data;
 };
 
 const handleSend = async (text, options = {}) => sendInternal(text, options);
@@ -375,6 +392,7 @@ export function useWorkspace() {
     normalizedKeyPoints,
     missingFieldLabels,
     exportLabel,
+    canGeneratePpt,
     lessonTitle,
     keyPointPreview,
     workspacePhase,
@@ -383,6 +401,7 @@ export function useWorkspace() {
     isEnhancingScene,
     initWorkspace,
     startFromPrompt,
+    syncFields,
     handleFieldChange,
     handleSend,
     handleUpload,

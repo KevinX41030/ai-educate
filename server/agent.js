@@ -496,7 +496,7 @@ function getNextQuestion(state) {
   }
   if (!state.fields.style) return FIELD_QUESTIONS.style;
   if (!state.fields.interactions) return FIELD_QUESTIONS.interactions;
-  return "需求已齐全，我将直接生成 PPT。";
+  return "需求已齐全，可以开始生成 PPT。";
 }
 
 async function handleMessage(state, text, messages = []) {
@@ -549,9 +549,13 @@ async function handleMessage(state, text, messages = []) {
 
   if (!state.ready) {
     state.ready = true;
+    return {
+      reply: `我已整理需求：\n${buildSummary(state)}\n\n信息已经齐全，请点击“生成 PPT”开始生成。`,
+      state
+    };
   }
 
-  if (!state.draft) {
+  if (!state.draft && (llmResult?.intent === "confirm" || isConfirm(text))) {
     const ragQuery = buildRagQuery(state);
     state.rag = searchKnowledge(ragQuery, 4);
     const llmDraft = await generateDraftWithLLM({ state, ragContext: state.rag });
@@ -561,7 +565,7 @@ async function handleMessage(state, text, messages = []) {
     state.confirmed = true;
 
     return {
-      reply: `我已整理需求并生成 PPT：\n${buildSummary(state)}\n\n可继续修改内容，或直接导出 PPT。`,
+      reply: `PPT 已开始生成并已同步预览。\n${buildSummary(state)}\n\n可继续修改内容，或直接导出 PPT。`,
       state,
       draft: state.draft,
       scene: state.scene
@@ -578,7 +582,9 @@ async function handleMessage(state, text, messages = []) {
   }
 
   return {
-    reply: "已记录你的补充。需要我继续调整 PPT，还是再补充细节？",
+    reply: state.draft
+      ? "已记录你的补充。需要我继续调整 PPT，还是再补充细节？"
+      : "已记录你的补充。信息齐全后，可点击“生成 PPT”进入生成页。",
     state
   };
 }

@@ -43,7 +43,7 @@
 
     <div class="course-actions">
       <button class="ghost" type="button" @click="handleReset">重新开始</button>
-      <button class="primary" type="button" :disabled="!draft" @click="handleExportClick">{{ exportLabel }}</button>
+      <button class="primary" type="button" :disabled="!canGenerate" @click="handleGenerateClick">{{ generateLabel }}</button>
     </div>
   </section>
 </template>
@@ -72,7 +72,19 @@ const props = defineProps({
     type: String,
     default: '导出PPT'
   },
+  canGenerate: {
+    type: Boolean,
+    default: false
+  },
+  generateLabel: {
+    type: String,
+    default: '生成PPT'
+  },
   onReset: {
+    type: Function,
+    default: null
+  },
+  onGenerate: {
     type: Function,
     default: null
   },
@@ -109,6 +121,10 @@ const handleReset = () => {
 
 const handleExportClick = () => {
   if (props.onExport) props.onExport();
+};
+
+const handleGenerateClick = () => {
+  if (props.onGenerate) props.onGenerate();
 };
 
 const getFieldValue = (key) => {

@@ -44,7 +44,7 @@ const submit = async () => {
   if (!value || isBusy.value) return;
 
   isBusy.value = true;
-  await router.push({ name: 'ppt-live', query: { prompt: value } });
+  await router.push({ name: 'workspace', query: { prompt: value } });
   prompt.value = '';
   isBusy.value = false;
 };

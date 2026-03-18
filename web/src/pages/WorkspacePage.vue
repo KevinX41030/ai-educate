@@ -7,8 +7,10 @@
         :files="files"
         :draft="draft"
         :export-label="exportLabel"
+        :can-generate="canGeneratePpt"
+        :generate-label="draft ? '查看PPT' : '生成PPT'"
         :on-reset="handleClear"
-        :on-export="handleExport"
+        :on-generate="handleGenerate"
         :on-update-field="handleFieldChange"
       />
     </aside>
@@ -25,18 +27,24 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import CourseInfoPanel from '../components/CourseInfoPanel.vue';
 import WorkspaceChatPanel from '../components/WorkspaceChatPanel.vue';
 import { useWorkspace } from '../composables/useWorkspace';
 
+const route = useRoute();
+const router = useRouter();
+let initialPromptHandled = false;
+
 const {
+  canGeneratePpt,
   draft,
   exportLabel,
   fields,
   files,
   handleClear,
-  handleExport,
+  handleConfirm,
   handleFieldChange,
   handleSend,
   handleUpload,
@@ -44,12 +52,35 @@ const {
   isAutoGenerating,
   isBusy,
   messages,
+  startFromPrompt,
+  syncFields,
   summary
 } = useWorkspace();
+
+const handleGenerate = async () => {
+  await syncFields();
+  if (draft.value) {
+    await router.push({ name: 'ppt-live' });
+    return;
+  }
+  await router.push({ name: 'ppt-live', query: { autostart: '1' } });
+};
 
 onMounted(() => {
   initWorkspace();
 });
+
+watch(
+  () => route.query.prompt,
+  async (value) => {
+    const prompt = `${Array.isArray(value) ? value[0] || '' : value || ''}`.trim();
+    if (!prompt || initialPromptHandled) return;
+    initialPromptHandled = true;
+    await startFromPrompt(prompt);
+    await router.replace({ name: 'workspace' });
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

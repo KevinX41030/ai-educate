@@ -21,6 +21,17 @@ export async function sendMessage({ sessionId, text }) {
   return response.json();
 }
 
+export async function updateSessionFields({ sessionId, fields }) {
+  const response = await fetch('/api/session/fields', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, fields })
+  });
+
+  if (!response.ok) throw new Error('session_fields_failed');
+  return response.json();
+}
+
 export async function uploadFiles({ sessionId, files }) {
   const formData = new FormData();
   files.forEach((file) => formData.append('files', file));
