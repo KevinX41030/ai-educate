@@ -11,6 +11,14 @@
           <p>{{ message.text }}</p>
         </div>
       </div>
+
+      <div v-if="busy" class="workspace-message-row assistant workspace-message-row--loading">
+        <div class="workspace-message-bubble workspace-message-bubble--loading" aria-label="AI 正在回复">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
     </div>
 
     <div
@@ -89,6 +97,13 @@ watch(
     void scrollToBottom();
   },
   { immediate: true }
+);
+
+watch(
+  () => props.busy,
+  () => {
+    void scrollToBottom();
+  }
 );
 
 const submit = async () => {
@@ -187,10 +202,33 @@ const handleDrop = async (event) => {
   margin: 0;
   white-space: pre-wrap;
   color: #172033;
-  font-size: 15px;
-  font-weight: 400;
+  font-size: 16px;
+  font-weight: 500;
   letter-spacing: 0;
-  line-height: 1.48;
+  line-height: 1.5;
+}
+
+.workspace-message-bubble--loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.workspace-message-bubble--loading span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(40, 49, 78, 0.4);
+  animation: workspaceTyping 1s ease-in-out infinite;
+}
+
+.workspace-message-bubble--loading span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.workspace-message-bubble--loading span:nth-child(3) {
+  animation-delay: 0.32s;
 }
 
 .workspace-upload-card,
@@ -271,6 +309,20 @@ const handleDrop = async (event) => {
 
 .workspace-composer-footer .primary {
   min-width: 112px;
+}
+
+@keyframes workspaceTyping {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
 }
 
 @media (max-width: 720px) {
