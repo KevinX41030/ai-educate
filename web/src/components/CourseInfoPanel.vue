@@ -70,7 +70,7 @@ const props = defineProps({
   },
   exportLabel: {
     type: String,
-    default: '导出可编辑版'
+    default: '导出PPT'
   },
   onReset: {
     type: Function,

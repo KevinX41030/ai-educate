@@ -15,23 +15,6 @@
       </div>
 
       <div class="preview-hero-actions">
-        <div class="mode-toggle">
-          <button
-            type="button"
-            :class="['mode-button', { active: exportMode === 'editable' }]"
-            @click="changeExportMode('editable')"
-          >
-            可编辑版
-          </button>
-          <button
-            type="button"
-            :class="['mode-button', { active: exportMode === 'hybrid' }]"
-            @click="changeExportMode('hybrid')"
-          >
-            混合版
-          </button>
-        </div>
-
         <div class="hero-tools">
           <button class="secondary" type="button" :disabled="!draft" @click="handleRegenerateScene">重新排版</button>
           <button class="primary" type="button" @click="handleExport">{{ exportLabel }}</button>
@@ -205,14 +188,6 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  exportMode: {
-    type: String,
-    default: 'editable'
-  },
-  onChangeExportMode: {
-    type: Function,
-    default: null
-  },
   onConfirm: {
     type: Function,
     default: null
@@ -223,7 +198,7 @@ const props = defineProps({
   },
   exportLabel: {
     type: String,
-    default: '导出课件'
+    default: '导出PPT'
   },
   onRegenerateScene: {
     type: Function,
@@ -299,7 +274,7 @@ const confirmTitle = computed(() => {
   return '信息已齐，可以确认生成课件';
 });
 const confirmDescription = computed(() => {
-  if (props.intent?.confirmed) return '如果还想微调页面结构，可以先重新排版，再选择导出模式。';
+  if (props.intent?.confirmed) return '如果还想微调页面结构，可以先重新排版，再导出 PPT。';
   if (missingFields.value.length) return '建议先补全关键字段，让页面结构、互动安排和教案内容更加稳定。';
   return '点击确认后，系统会基于当前信息生成更完整的课件草稿。';
 });
@@ -340,10 +315,6 @@ const slidePreviewText = (slide) => {
 
   if (slide?.bullets?.length) return slide.bullets[0].slice(0, 22);
   return '等待内容填充';
-};
-
-const changeExportMode = (mode) => {
-  if (props.onChangeExportMode) props.onChangeExportMode(mode);
 };
 
 const formatTime = (value) => {
@@ -427,26 +398,6 @@ const handleConfirm = () => {
 .preview-hero-actions {
   display: grid;
   gap: 12px;
-}
-
-.mode-toggle {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  padding: 6px;
-  border-radius: 18px;
-  background: rgba(91, 108, 255, 0.06);
-}
-
-.mode-button {
-  background: transparent;
-  color: var(--muted);
-  box-shadow: none;
-}
-
-.mode-button.active {
-  background: #ffffff;
-  color: var(--primary-strong);
 }
 
 .hero-tools {

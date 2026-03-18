@@ -46,11 +46,11 @@ export async function regeneratePptScene({ sessionId, draft, force = true }) {
   return response.json();
 }
 
-export async function exportPptx({ sessionId, draft, useAi = true, mode = 'editable', regenerateScene = false }) {
+export async function exportPptx({ sessionId, draft, useAi = true, regenerateScene = false }) {
   const response = await fetch('/api/export/pptx', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, draft, useAi, mode, regenerateScene })
+    body: JSON.stringify({ sessionId, draft, useAi, regenerateScene })
   });
   if (!response.ok) throw new Error('export_failed');
   return response;

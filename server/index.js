@@ -136,8 +136,7 @@ app.post('/api/export/pptx', async (req, res) => {
     draft,
     useAi = true,
     useTemplate = true,
-    regenerateScene = false,
-    mode = 'editable'
+    regenerateScene = false
   } = req.body || {};
   let exportDraft = draft;
   let ragContext = [];
@@ -166,9 +165,8 @@ app.post('/api/export/pptx', async (req, res) => {
     }
     const result = await exportPptx(exportDraft, 'lesson', {
       scene: exportScene,
-      useTemplate: mode === 'editable' ? useTemplate : false,
-      fields,
-      mode
+      useTemplate,
+      fields
     });
     if (!result) return res.status(400).json({ error: 'invalid_draft' });
     return res.download(result.filePath, result.fileName);

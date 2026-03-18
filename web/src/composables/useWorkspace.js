@@ -87,7 +87,6 @@ const summary = ref('暂无');
 const draft = ref(null);
 const scene = ref(null);
 const sceneStatus = ref('idle');
-const exportMode = ref('editable');
 const intent = ref(buildIntentPayload({ fields: emptyFields() }));
 const rag = ref([]);
 const fields = ref(emptyFields());
@@ -120,7 +119,6 @@ const resetWorkspaceState = () => {
   files.value = [];
   intent.value = buildIntentPayload({ fields: emptyFields() });
   rag.value = [];
-  exportMode.value = 'editable';
   fields.value = emptyFields();
   sessionId.value = '';
   sceneRefreshKey.value = '';
@@ -216,7 +214,7 @@ const normalizedKeyPoints = computed(() => normalizeList(fields.value.keyPoints)
 const missingFieldLabels = computed(() =>
   (intent.value?.missingFields || []).map((field) => FIELD_LABELS[field] || field)
 );
-const exportLabel = computed(() => exportMode.value === 'hybrid' ? '导出混合版' : '导出可编辑版');
+const exportLabel = computed(() => '导出PPT');
 const lessonTitle = computed(() => fields.value.subject || '未命名课件');
 const keyPointPreview = computed(() => normalizedKeyPoints.value.slice(0, 3).join('、') || '待填写');
 const outlineSlides = computed(() => {
@@ -268,10 +266,6 @@ const startFromPrompt = async (text) => {
   messages.value = [];
   resetWorkspaceState();
   return sendInternal(text, { appendUser: true, autoGenerate: true });
-};
-
-const handleExportModeChange = (mode) => {
-  exportMode.value = mode;
 };
 
 const handleFieldChange = (key, value) => {
@@ -340,13 +334,11 @@ const handleExport = async () => {
   }
 
   try {
-    const regenerateScene = exportMode.value === 'hybrid' && sceneStatus.value !== 'ready';
     const response = await exportPptx({
       sessionId: sessionId.value,
       draft: draft.value,
       useAi: true,
-      mode: exportMode.value,
-      regenerateScene
+      regenerateScene: false
     });
     const blob = await response.blob();
     const disposition = response.headers.get('Content-Disposition') || '';
@@ -360,7 +352,7 @@ const handleExport = async () => {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-    appendMessage('assistant', `${exportMode.value === 'hybrid' ? '混合版' : '可编辑版'} PPTX 已生成并下载。`);
+    appendMessage('assistant', 'PPTX 已生成并下载。');
   } catch (error) {
     appendMessage('assistant', '导出失败，请稍后重试。');
   }
@@ -376,7 +368,6 @@ export function useWorkspace() {
     draft,
     scene,
     sceneStatus,
-    exportMode,
     intent,
     rag,
     fields,
@@ -392,7 +383,6 @@ export function useWorkspace() {
     isEnhancingScene,
     initWorkspace,
     startFromPrompt,
-    handleExportModeChange,
     handleFieldChange,
     handleSend,
     handleUpload,

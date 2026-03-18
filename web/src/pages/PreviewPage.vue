@@ -16,8 +16,6 @@
         :rag="rag"
         :fields="fields"
         :files="files"
-        :export-mode="exportMode"
-        :on-change-export-mode="handleExportModeChange"
         :on-confirm="handleConfirm"
         :on-export="handleExport"
         :export-label="exportLabel"
@@ -43,12 +41,10 @@ import { useWorkspace } from '../composables/useWorkspace';
 const {
   draft,
   exportLabel,
-  exportMode,
   fields,
   files,
   handleConfirm,
   handleExport,
-  handleExportModeChange,
   handleRegenerateScene,
   intent,
   rag,
