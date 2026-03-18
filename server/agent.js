@@ -27,7 +27,7 @@ const FIELD_QUESTIONS = {
 };
 
 const SMALL_TALK_RESPONSES = {
-  greeting: "你好！我是教学智能体，可以帮你快速生成课件初稿。",
+  greeting: "你好！我是教学智能体，可以帮你快速生成 PPT。",
   presence: "我在的，随时可以开始。",
   identity: "我是多模态教学智能体，负责理解教学需求并生成课件草稿。",
   thanks: "不客气！需要我继续帮你完善课程吗？",
@@ -496,7 +496,7 @@ function getNextQuestion(state) {
   }
   if (!state.fields.style) return FIELD_QUESTIONS.style;
   if (!state.fields.interactions) return FIELD_QUESTIONS.interactions;
-  return "需求已齐全，可以开始生成初稿。确认后我将生成课件初稿。";
+  return "需求已齐全，我将直接生成 PPT。";
 }
 
 async function handleMessage(state, text, messages = []) {
@@ -549,24 +549,28 @@ async function handleMessage(state, text, messages = []) {
 
   if (!state.ready) {
     state.ready = true;
+  }
+
+  if (!state.draft) {
+    const ragQuery = buildRagQuery(state);
+    state.rag = searchKnowledge(ragQuery, 4);
+    const llmDraft = await generateDraftWithLLM({ state, ragContext: state.rag });
+    const normalized = normalizeDraft(llmDraft);
+    state.draft = normalized || generateDraft(state);
+    syncSceneFromDraft(state);
+    state.confirmed = true;
+
     return {
-      reply: `我已整理需求，请确认：\n${buildSummary(state)}\n\n回复“确认/生成”开始生成初稿。`,
-      state
+      reply: `我已整理需求并生成 PPT：\n${buildSummary(state)}\n\n可继续修改内容，或直接导出 PPT。`,
+      state,
+      draft: state.draft,
+      scene: state.scene
     };
   }
 
   if (llmResult?.intent === "confirm" || isConfirm(text)) {
-    if (!state.draft) {
-      const ragQuery = buildRagQuery(state);
-      state.rag = searchKnowledge(ragQuery, 4);
-      const llmDraft = await generateDraftWithLLM({ state, ragContext: state.rag });
-      const normalized = normalizeDraft(llmDraft);
-      state.draft = normalized || generateDraft(state);
-      syncSceneFromDraft(state);
-    }
-    state.confirmed = true;
     return {
-      reply: "初稿已生成，可在右侧预览。需要修改请直接描述。",
+      reply: "PPT 已生成，可继续修改或直接导出。",
       state,
       draft: state.draft,
       scene: state.scene
@@ -574,7 +578,7 @@ async function handleMessage(state, text, messages = []) {
   }
 
   return {
-    reply: "已记录你的补充。需要我继续生成初稿还是再补充细节？",
+    reply: "已记录你的补充。需要我继续调整 PPT，还是再补充细节？",
     state
   };
 }

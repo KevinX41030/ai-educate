@@ -328,7 +328,7 @@ const handleExport = () => {
     return;
   }
   if (!props.draft) {
-    window.alert('请先生成课件初稿，再导出。');
+    window.alert('请先生成 PPT，再导出。');
     return;
   }
   window.alert('导出功能为占位，后续将生成 .pptx/.docx 文件。');

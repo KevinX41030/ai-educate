@@ -245,6 +245,9 @@ if (fs.existsSync(WEB_DIST)) {
   });
 }
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`AI-educate server running on http://localhost:${PORT}`);
 });
+
+server.requestTimeout = 0;
+server.headersTimeout = 0;

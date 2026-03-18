@@ -116,7 +116,7 @@ const appendMessage = (role, text = '') => {
 
 const ensureWelcomeMessage = () => {
   if (messages.value.length) return;
-  appendMessage('assistant', '直接描述课程需求，我会一边和你对话，一边在右侧生成课件预览。');
+  appendMessage('assistant', '直接描述课程需求，我会帮你生成 PPT，并同步更新页面预览。');
 };
 
 const resetWorkspaceState = () => {
@@ -200,14 +200,6 @@ const sendInternal = async (text, options = {}) => {
     const data = await sendMessage({ sessionId: sessionId.value, text: trimmed });
     applyChatPayload(data);
 
-    if (autoGenerate && data.intent?.ready && !data.intent?.confirmed && !data.draft) {
-      isAutoGenerating.value = true;
-      appendMessage('assistant', '信息已经齐全，正在为你生成课件初稿…');
-
-      const confirmData = await sendMessage({ sessionId: sessionId.value, text: '确认' });
-      applyChatPayload(confirmData);
-    }
-
     return data;
   } catch (error) {
     appendMessage('assistant', '请求失败，请检查服务是否运行。');
@@ -230,10 +222,10 @@ const outlineSlides = computed(() => {
   return draft.value?.ppt ?? [];
 });
 const workspacePhase = computed(() => {
-  if (isAutoGenerating.value) return 'AI 正在生成初稿';
+  if (isAutoGenerating.value) return 'AI 正在生成 PPT';
   if (isBusy.value) return 'AI 正在整理需求';
   if (sceneStatus.value === 'generating') return 'AI 正在优化版式';
-  if (draft.value) return '课件已生成，可继续修改';
+  if (draft.value) return 'PPT 已生成，可继续修改';
   return '等待输入课程需求';
 });
 
@@ -318,12 +310,12 @@ const handleClear = () => {
 const handleFormSubmit = async (text) => handleSend(text, { autoGenerate: true });
 
 const handleConfirm = async () => {
-  await sendInternal('确认', { appendUser: true, autoGenerate: false });
+  await sendInternal('生成 PPT', { appendUser: false, autoGenerate: false });
 };
 
 const handleRegenerateScene = async () => {
   if (!draft.value || isEnhancingScene.value) {
-    if (!draft.value) appendMessage('assistant', '请先生成课件初稿，再重新排版。');
+    if (!draft.value) appendMessage('assistant', '请先生成 PPT，再重新排版。');
     return;
   }
 
@@ -337,7 +329,7 @@ const handleRegenerateScene = async () => {
 
 const handleExport = async () => {
   if (!draft.value) {
-    appendMessage('assistant', '请先生成课件初稿，再导出。');
+    appendMessage('assistant', '请先生成 PPT，再导出。');
     return;
   }
 
