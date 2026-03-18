@@ -195,7 +195,7 @@ const handleDrop = async (event) => {
 }
 
 .workspace-message-row.user .workspace-message-bubble p {
-  text-align: right;
+  text-align: left;
 }
 
 .workspace-message-bubble p {
