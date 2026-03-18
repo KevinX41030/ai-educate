@@ -1,9 +1,9 @@
 :root {
   color-scheme: light;
-  --bg: #f5fbfc;
-  --bg-soft: #eef6fb;
+  --bg: #f7f7f8;
+  --bg-soft: #f2f2f4;
   --surface: rgba(255, 255, 255, 0.84);
-  --surface-soft: #f8fafc;
+  --surface-soft: #fafafb;
   --surface-strong: #ffffff;
   --ink: #28314E;
   --muted: #66718d;
@@ -32,7 +32,7 @@ body {
   min-height: 100vh;
   font-family: var(--font-sans);
   color: var(--ink);
-  background: #f6fbfd;
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
