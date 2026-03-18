@@ -130,7 +130,7 @@ const streamAssistantMessage = async (text) => {
   const token = ++streamToken;
   const message = appendMessage('assistant', '');
   const chars = Array.from(content);
-  const chunkSize = chars.length > 280 ? 8 : chars.length > 160 ? 6 : chars.length > 80 ? 4 : 2;
+  const chunkSize = chars.length > 280 ? 4 : chars.length > 160 ? 3 : chars.length > 80 ? 2 : 1;
 
   isStreamingReply.value = true;
 
@@ -142,7 +142,7 @@ const streamAssistantMessage = async (text) => {
       message.text += nextChunk;
 
       const lastChar = nextChunk.at(-1) || '';
-      const delay = /[，。！？；：,.!?;:\n]/.test(lastChar) ? 70 : chars.length > 280 ? 10 : 18;
+      const delay = /[，。！？；：,.!?;:\n]/.test(lastChar) ? 120 : chars.length > 280 ? 26 : 38;
       await wait(delay);
     }
   } finally {
