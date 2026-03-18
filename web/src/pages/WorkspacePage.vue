@@ -17,6 +17,7 @@
       <WorkspaceChatPanel
         :messages="messages"
         :busy="isBusy || isAutoGenerating"
+        :locked="isBusy || isAutoGenerating || isStreamingReply"
         :on-send="handleSend"
         :on-upload="handleUpload"
       />
@@ -43,6 +44,7 @@ const {
   initWorkspace,
   isAutoGenerating,
   isBusy,
+  isStreamingReply,
   messages,
   summary
 } = useWorkspace();
