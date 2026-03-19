@@ -140,6 +140,7 @@ const autostartHandled = ref(false);
 
 const {
   draft,
+  ensureLocalScene,
   fields,
   files,
   handleConfirm,
@@ -149,6 +150,7 @@ const {
   initWorkspace,
   isAutoGenerating,
   isBusy,
+  mergeDraftWithScene,
   messages,
   scene,
   sceneStatus,
@@ -194,8 +196,13 @@ const recognizedFields = computed(() => {
 
 // --- Slide editing handlers ---
 
+const syncDraftFromScene = () => {
+  if (!draft.value || !scene.value?.slides?.length) return;
+  draft.value = mergeDraftWithScene(draft.value, scene.value);
+};
+
 const handleUpdateBlock = (data) => {
-  const slides = scene.value?.slides || draft.value?.ppt;
+  const slides = ensureLocalScene()?.slides;
   if (!slides || !slides[data.slideIndex]) return;
 
   const slide = slides[data.slideIndex];
@@ -213,10 +220,12 @@ const handleUpdateBlock = (data) => {
   if (block.type === 'title' && data.field === 'text') {
     slide.title = data.value;
   }
+
+  syncDraftFromScene();
 };
 
 const handleAddSlide = ({ after, type }) => {
-  const slides = scene.value?.slides || draft.value?.ppt;
+  const slides = ensureLocalScene()?.slides;
   if (!slides) return;
 
   const newSlide = {
@@ -233,16 +242,18 @@ const handleAddSlide = ({ after, type }) => {
   };
 
   slides.splice(after + 1, 0, newSlide);
+  syncDraftFromScene();
 };
 
 const handleDeleteSlide = (index) => {
-  const slides = scene.value?.slides || draft.value?.ppt;
+  const slides = ensureLocalScene()?.slides;
   if (!slides || slides.length <= 1) return;
   slides.splice(index, 1);
+  syncDraftFromScene();
 };
 
 const handleDuplicateSlide = (index) => {
-  const slides = scene.value?.slides || draft.value?.ppt;
+  const slides = ensureLocalScene()?.slides;
   if (!slides || !slides[index]) return;
 
   const source = slides[index];
@@ -253,6 +264,7 @@ const handleDuplicateSlide = (index) => {
     duplicate.blocks.forEach((b) => { b.id = `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`; });
   }
   slides.splice(index + 1, 0, duplicate);
+  syncDraftFromScene();
 };
 
 const handleRegenerateSlide = (index) => {

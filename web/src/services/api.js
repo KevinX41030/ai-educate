@@ -10,14 +10,25 @@ export async function getSessionSnapshot(sessionId) {
   return response.json();
 }
 
-export async function sendMessage({ sessionId, text }) {
+export async function sendMessage({ sessionId, text, draft = null, scene = null }) {
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, text })
+    body: JSON.stringify({ sessionId, text, draft, scene })
   });
 
   if (!response.ok) throw new Error('chat_failed');
+  return response.json();
+}
+
+export async function generatePpt({ sessionId, draft = null, scene = null }) {
+  const response = await fetch('/api/ppt/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, draft, scene })
+  });
+
+  if (!response.ok) throw new Error('ppt_generate_failed');
   return response.json();
 }
 
@@ -46,22 +57,22 @@ export async function uploadFiles({ sessionId, files }) {
   return response.json();
 }
 
-export async function regeneratePptScene({ sessionId, draft, force = true }) {
+export async function regeneratePptScene({ sessionId, draft, scene = null, force = true }) {
   const response = await fetch('/api/ppt/scene/regenerate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, draft, force })
+    body: JSON.stringify({ sessionId, draft, scene, force })
   });
 
   if (!response.ok) throw new Error('scene_regenerate_failed');
   return response.json();
 }
 
-export async function exportPptx({ sessionId, draft, useAi = true, regenerateScene = false }) {
+export async function exportPptx({ sessionId, draft, scene = null, useAi = true, regenerateScene = false }) {
   const response = await fetch('/api/export/pptx', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, draft, useAi, regenerateScene })
+    body: JSON.stringify({ sessionId, draft, scene, useAi, regenerateScene })
   });
   if (!response.ok) throw new Error('export_failed');
   return response;

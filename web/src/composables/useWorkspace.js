@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import {
   exportPptx,
+  generatePpt,
   getSessionSnapshot,
   getStatus,
   regeneratePptScene,
@@ -8,6 +9,7 @@ import {
   updateSessionFields,
   uploadFiles
 } from '../services/api';
+import { createSceneFromDraft, mergeDraftWithScene } from '../utils/pptScene';
 
 const REQUIRED_FIELDS = ['subject', 'grade', 'duration', 'goals', 'keyPoints'];
 
@@ -97,6 +99,16 @@ const isAutoGenerating = ref(false);
 const isEnhancingScene = ref(false);
 const sceneRefreshKey = ref('');
 
+const ensureLocalScene = () => {
+  if (scene.value?.slides?.length) return scene.value;
+  if (!draft.value) return null;
+  const fallbackScene = createSceneFromDraft(draft.value);
+  if (fallbackScene) {
+    scene.value = fallbackScene;
+  }
+  return scene.value;
+};
+
 const createMessage = (role, text = '') => ({
   id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   role,
@@ -140,6 +152,9 @@ const applyStatePayload = (state = {}, explicitIntent = null) => {
   summary.value = buildSummary(fields.value);
   draft.value = state.draft || null;
   scene.value = state.scene || null;
+  if (!scene.value && draft.value) {
+    scene.value = createSceneFromDraft(draft.value);
+  }
   sceneStatus.value = state.sceneStatus || 'idle';
   files.value = Array.isArray(state.uploadedFiles) ? state.uploadedFiles : files.value;
   rag.value = Array.isArray(state.rag) ? state.rag : [];
@@ -156,8 +171,14 @@ const maybeEnhanceScene = async () => {
   sceneRefreshKey.value = draftUpdatedAt || `${Date.now()}`;
 
   try {
-    const data = await regeneratePptScene({ sessionId: sessionId.value, draft: draft.value, force: true });
+    const data = await regeneratePptScene({
+      sessionId: sessionId.value,
+      draft: draft.value,
+      scene: ensureLocalScene(),
+      force: true
+    });
     syncSession(data.sessionId);
+    if (data.draft) draft.value = data.draft;
     if (data.scene) scene.value = data.scene;
     sceneStatus.value = 'ready';
   } catch (error) {
@@ -179,6 +200,9 @@ const applyChatPayload = (data) => {
 
   if (data.draft) draft.value = data.draft;
   if (data.scene) scene.value = data.scene;
+  if (!scene.value && draft.value) {
+    scene.value = createSceneFromDraft(draft.value);
+  }
   if (data.sceneStatus) sceneStatus.value = data.sceneStatus;
   if (Array.isArray(data.rag)) rag.value = data.rag;
   if (data.reply) appendMessage('assistant', data.reply);
@@ -198,7 +222,13 @@ const sendInternal = async (text, options = {}) => {
   isBusy.value = true;
 
   try {
-    const data = await sendMessage({ sessionId: sessionId.value, text: trimmed });
+    const syncedScene = draft.value ? ensureLocalScene() : null;
+    const data = await sendMessage({
+      sessionId: sessionId.value,
+      text: trimmed,
+      draft: draft.value,
+      scene: syncedScene
+    });
     applyChatPayload(data);
 
     return data;
@@ -327,7 +357,24 @@ const handleClear = () => {
 const handleFormSubmit = async (text) => handleSend(text, { autoGenerate: true });
 
 const handleConfirm = async () => {
-  await sendInternal('生成 PPT', { appendUser: false, autoGenerate: false });
+  if (isBusy.value || isAutoGenerating.value) return null;
+
+  isAutoGenerating.value = true;
+
+  try {
+    const data = await generatePpt({
+      sessionId: sessionId.value,
+      draft: draft.value,
+      scene: draft.value ? ensureLocalScene() : null
+    });
+    applyChatPayload(data);
+    return data;
+  } catch (error) {
+    appendMessage('assistant', '生成失败，请稍后重试。');
+    return null;
+  } finally {
+    isAutoGenerating.value = false;
+  }
 };
 
 const handleRegenerateScene = async () => {
@@ -354,6 +401,7 @@ const handleExport = async () => {
     const response = await exportPptx({
       sessionId: sessionId.value,
       draft: draft.value,
+      scene: ensureLocalScene(),
       useAi: true,
       regenerateScene: false
     });
@@ -409,6 +457,8 @@ export function useWorkspace() {
     handleFormSubmit,
     handleConfirm,
     handleRegenerateScene,
-    handleExport
+    handleExport,
+    ensureLocalScene,
+    mergeDraftWithScene
   };
 }

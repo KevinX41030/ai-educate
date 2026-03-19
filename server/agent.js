@@ -499,6 +499,52 @@ function getNextQuestion(state) {
   return "需求已齐全，可以开始生成 PPT。";
 }
 
+async function generatePresentation(state) {
+  const missingFields = getMissingFields(state);
+  if (missingFields.length) {
+    state.ready = false;
+    return {
+      error: 'missing_fields',
+      missingFields,
+      reply: getNextQuestion(state),
+      state,
+      draft: state.draft || null,
+      scene: state.scene || null
+    };
+  }
+
+  state.ready = true;
+
+  if (!state.draft) {
+    const ragQuery = buildRagQuery(state);
+    state.rag = searchKnowledge(ragQuery, 4);
+    const llmDraft = await generateDraftWithLLM({ state, ragContext: state.rag });
+    const normalized = normalizeDraft(llmDraft);
+    state.draft = normalized || generateDraft(state);
+    syncSceneFromDraft(state);
+    state.confirmed = true;
+
+    return {
+      reply: `PPT 已开始生成并已同步预览。\n${buildSummary(state)}\n\n可继续修改内容，或直接导出 PPT。`,
+      state,
+      draft: state.draft,
+      scene: state.scene
+    };
+  }
+
+  if (!state.scene) {
+    syncSceneFromDraft(state);
+  }
+  state.confirmed = true;
+
+  return {
+    reply: "PPT 已生成，可继续修改或直接导出。",
+    state,
+    draft: state.draft,
+    scene: state.scene
+  };
+}
+
 async function handleMessage(state, text, messages = []) {
   extractFieldsFromText(text, state);
   let llmResult = null;
@@ -555,30 +601,8 @@ async function handleMessage(state, text, messages = []) {
     };
   }
 
-  if (!state.draft && (llmResult?.intent === "confirm" || isConfirm(text))) {
-    const ragQuery = buildRagQuery(state);
-    state.rag = searchKnowledge(ragQuery, 4);
-    const llmDraft = await generateDraftWithLLM({ state, ragContext: state.rag });
-    const normalized = normalizeDraft(llmDraft);
-    state.draft = normalized || generateDraft(state);
-    syncSceneFromDraft(state);
-    state.confirmed = true;
-
-    return {
-      reply: `PPT 已开始生成并已同步预览。\n${buildSummary(state)}\n\n可继续修改内容，或直接导出 PPT。`,
-      state,
-      draft: state.draft,
-      scene: state.scene
-    };
-  }
-
   if (llmResult?.intent === "confirm" || isConfirm(text)) {
-    return {
-      reply: "PPT 已生成，可继续修改或直接导出。",
-      state,
-      draft: state.draft,
-      scene: state.scene
-    };
+    return generatePresentation(state);
   }
 
   return {
@@ -592,6 +616,7 @@ async function handleMessage(state, text, messages = []) {
 module.exports = {
   createInitialState,
   handleMessage,
+  generatePresentation,
   buildSummary,
   buildIntentPayload,
   getMissingFields

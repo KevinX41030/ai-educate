@@ -502,9 +502,45 @@ function sceneToPptSpec(scene, fallbackSlides = []) {
   };
 }
 
+function mergeSceneIntoDraft(draft, scene) {
+  if (!draft || !Array.isArray(draft.ppt) || draft.ppt.length === 0) return draft || null;
+
+  const normalizedScene = normalizeScene(scene, draft);
+  if (!normalizedScene) return draft;
+
+  const fallbackSlides = Array.isArray(draft.ppt) ? draft.ppt : [];
+  const spec = sceneToPptSpec(normalizedScene, fallbackSlides);
+  const ppt = Array.isArray(spec?.slides)
+    ? spec.slides.map((slide, index) => {
+        const fallbackSlide = fallbackSlides[index] || {};
+        return {
+          id: normalizedScene.slides[index]?.id || fallbackSlide.id || nanoid(),
+          title: slide.title || fallbackSlide.title || '内容',
+          type: VALID_ROLES.has(slide.type) ? slide.type : (fallbackSlide.type || 'content'),
+          bullets: Array.isArray(slide.bullets)
+            ? slide.bullets
+            : (Array.isArray(fallbackSlide.bullets) ? fallbackSlide.bullets : []),
+          notes: slide.notes || fallbackSlide.notes || ''
+        };
+      })
+    : fallbackSlides;
+
+  return {
+    ...draft,
+    designPreset: spec?.designPreset || draft.designPreset,
+    theme: normalizedScene.theme || draft.theme,
+    layoutHints: Array.isArray(normalizedScene.layoutHints) && normalizedScene.layoutHints.length
+      ? normalizedScene.layoutHints
+      : draft.layoutHints,
+    ppt,
+    updatedAt: new Date().toISOString()
+  };
+}
+
 module.exports = {
   buildPptSceneFromDraft,
   normalizeScene,
+  mergeSceneIntoDraft,
   sceneToPptSpec,
   inferVariant,
   resolveSceneDesignPreset

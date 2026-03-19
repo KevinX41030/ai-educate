@@ -4,11 +4,11 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const multer = require('multer');
 const { nanoid } = require('nanoid');
-const { createInitialState, handleMessage, buildIntentPayload } = require('./agent');
+const { createInitialState, handleMessage, generatePresentation, buildIntentPayload } = require('./agent');
 const { getStats, searchKnowledge, reloadKnowledgeBase } = require('./rag');
 const { isLLMConfigured, generatePptSceneWithLLM } = require('./llm');
 const { exportPptx } = require('./export/pptx');
-const { buildPptSceneFromDraft, normalizeScene } = require('./ppt/scene');
+const { buildPptSceneFromDraft, normalizeScene, mergeSceneIntoDraft } = require('./ppt/scene');
 
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -56,6 +56,36 @@ function applySceneToState(state, scene, source = 'draft', status = 'ready') {
   state.sceneVersion = (state.sceneVersion || 0) + (scene ? 1 : 0);
 }
 
+function syncClientPresentationState(state, draft, scene) {
+  if (!state) return { draft: null, scene: null };
+
+  let nextDraft = draft || state.draft || null;
+  if (!nextDraft) return { draft: null, scene: null };
+
+  if (scene) {
+    nextDraft = mergeSceneIntoDraft(nextDraft, scene) || nextDraft;
+    state.draft = nextDraft;
+
+    const normalizedScene = normalizeScene(scene, nextDraft);
+    if (normalizedScene) {
+      applySceneToState(state, normalizedScene, 'client', 'ready');
+      return { draft: nextDraft, scene: normalizedScene };
+    }
+  }
+
+  if (draft) {
+    state.draft = draft;
+    if (!state.scene) {
+      const fallbackScene = buildPptSceneFromDraft(draft);
+      if (fallbackScene) {
+        applySceneToState(state, fallbackScene, 'draft', isLLMConfigured() ? 'stale' : 'ready');
+      }
+    }
+  }
+
+  return { draft: state.draft, scene: state.scene || null };
+}
+
 async function buildScenePayload({ draft, ragContext = [], useAi = true }) {
   const fallbackScene = buildPptSceneFromDraft(draft);
   if (!fallbackScene) return { scene: null, source: 'draft' };
@@ -101,11 +131,18 @@ app.post('/api/rag/reload', (_, res) => {
 });
 
 app.post('/api/ppt/scene/regenerate', async (req, res) => {
-  const { sessionId, draft, force = true } = req.body || {};
+  const { sessionId, draft, scene, force = true } = req.body || {};
   const hasSession = sessionId && sessions.has(sessionId);
   const session = hasSession ? sessions.get(sessionId) : null;
-  const exportDraft = draft || session?.state?.draft;
+  let exportDraft = draft || session?.state?.draft;
   const ragContext = session?.state?.rag || [];
+
+  if (session) {
+    const synced = syncClientPresentationState(session.state, draft, scene);
+    exportDraft = synced.draft || exportDraft;
+  } else if (exportDraft && scene) {
+    exportDraft = mergeSceneIntoDraft(exportDraft, scene) || exportDraft;
+  }
 
   if (!exportDraft) {
     return res.status(400).json({ error: 'draft_required' });
@@ -121,6 +158,7 @@ app.post('/api/ppt/scene/regenerate', async (req, res) => {
     }
     return res.json({
       sessionId: session?.id || sessionId || '',
+      draft: session?.state?.draft || exportDraft,
       scene: result.scene,
       source: result.source,
       updatedAt: result.scene.updatedAt
@@ -130,10 +168,52 @@ app.post('/api/ppt/scene/regenerate', async (req, res) => {
   }
 });
 
+app.post('/api/ppt/generate', async (req, res) => {
+  const { sessionId, draft, scene } = req.body || {};
+  const session = getSession(sessionId);
+
+  syncClientPresentationState(session.state, draft, scene);
+
+  try {
+    const result = await generatePresentation(session.state);
+    if (result?.error === 'missing_fields') {
+      return res.status(400).json({
+        error: result.error,
+        missingFields: result.missingFields,
+        reply: result.reply,
+        state: result.state,
+        intent: buildIntentPayload(result.state),
+        draft: result.draft || null,
+        scene: result.scene || null,
+        sceneStatus: result.state?.sceneStatus || 'idle',
+        rag: result.state?.rag || []
+      });
+    }
+
+    if (result?.reply) {
+      session.messages.push({ role: 'assistant', text: result.reply, ts: Date.now() });
+    }
+
+    return res.json({
+      sessionId: session.id,
+      reply: result.reply,
+      state: result.state,
+      intent: buildIntentPayload(result.state),
+      draft: result.draft || null,
+      scene: result.scene || result.state?.scene || null,
+      sceneStatus: result.state?.sceneStatus || 'idle',
+      rag: result.state?.rag || []
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'ppt_generate_failed', message: String(error) });
+  }
+});
+
 app.post('/api/export/pptx', async (req, res) => {
   const {
     sessionId,
     draft,
+    scene,
     useAi = true,
     useTemplate = true,
     regenerateScene = false
@@ -142,7 +222,7 @@ app.post('/api/export/pptx', async (req, res) => {
   let ragContext = [];
   let fields = {};
   const session = sessionId && sessions.has(sessionId) ? sessions.get(sessionId) : null;
-  let exportScene = session?.state?.scene || (draft ? buildPptSceneFromDraft(draft) : null);
+  let exportScene = scene || session?.state?.scene || (draft ? buildPptSceneFromDraft(draft) : null);
   if (!exportDraft && session) {
     exportDraft = session.state.draft;
     ragContext = session.state.rag || [];
@@ -151,6 +231,16 @@ app.post('/api/export/pptx', async (req, res) => {
     ragContext = session.state.rag || [];
     fields = session.state.fields || {};
   }
+
+  if (session) {
+    const synced = syncClientPresentationState(session.state, exportDraft, scene);
+    exportDraft = synced.draft || exportDraft;
+    exportScene = synced.scene || exportScene;
+  } else if (exportDraft && scene) {
+    exportDraft = mergeSceneIntoDraft(exportDraft, scene) || exportDraft;
+    exportScene = normalizeScene(scene, exportDraft) || exportScene;
+  }
+
   if (!exportDraft) {
     return res.status(400).json({ error: 'draft_required' });
   }
@@ -176,8 +266,10 @@ app.post('/api/export/pptx', async (req, res) => {
 });
 
 app.post('/api/chat', async (req, res) => {
-  const { sessionId, text } = req.body || {};
+  const { sessionId, text, draft, scene } = req.body || {};
   const session = getSession(sessionId);
+
+  syncClientPresentationState(session.state, draft, scene);
 
   const trimmed = String(text || '').trim();
   if (!trimmed) {
