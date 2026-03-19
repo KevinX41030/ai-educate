@@ -172,8 +172,7 @@ async function extractIntentWithLLM({ state, messages, text }) {
         content: buildContext(state, messages, text)
       }
     ],
-    text: { format: { type: 'json_object' } },
-    max_output_tokens: 800
+    text: { format: { type: 'json_object' } }
   };
 
   let response;
@@ -252,8 +251,7 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
         content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
       }
     ],
-    text: { format: { type: 'json_object' } },
-    max_output_tokens: 1600
+    text: { format: { type: 'json_object' } }
   };
 
   let responsesFailure = null;
@@ -348,8 +346,7 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
         content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
       }
     ],
-    text: { format: { type: 'json_object' } },
-    max_output_tokens: 1800
+    text: { format: { type: 'json_object' } }
   };
 
   try {
@@ -429,8 +426,7 @@ async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
         content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
       }
     ],
-    text: { format: { type: 'json_object' } },
-    max_output_tokens: 2200
+    text: { format: { type: 'json_object' } }
   };
 
   try {
