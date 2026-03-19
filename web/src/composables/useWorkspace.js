@@ -364,6 +364,7 @@ const handleConfirm = async () => {
   try {
     const data = await generatePpt({
       sessionId: sessionId.value,
+      fields: fields.value,
       draft: draft.value,
       scene: draft.value ? ensureLocalScene() : null
     });

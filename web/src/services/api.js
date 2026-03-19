@@ -21,11 +21,18 @@ export async function sendMessage({ sessionId, text, draft = null, scene = null 
   return response.json();
 }
 
-export async function generatePpt({ sessionId, draft = null, scene = null }) {
+export async function generatePpt({ sessionId, fields = null, draft = null, scene = null }) {
+  const payload = {
+    sessionId,
+    ...(fields ? { fields } : {}),
+    ...(draft ? { draft } : {}),
+    ...(scene ? { scene } : {})
+  };
+
   const response = await fetch('/api/ppt/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, draft, scene })
+    body: JSON.stringify(payload)
   });
 
   if (!response.ok) throw new Error('ppt_generate_failed');

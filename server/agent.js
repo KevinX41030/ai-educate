@@ -619,5 +619,6 @@ module.exports = {
   generatePresentation,
   buildSummary,
   buildIntentPayload,
-  getMissingFields
+  getMissingFields,
+  mergeFields
 };

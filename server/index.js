@@ -4,7 +4,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const multer = require('multer');
 const { nanoid } = require('nanoid');
-const { createInitialState, handleMessage, generatePresentation, buildIntentPayload } = require('./agent');
+const { createInitialState, handleMessage, generatePresentation, buildIntentPayload, mergeFields } = require('./agent');
 const { getStats, searchKnowledge, reloadKnowledgeBase } = require('./rag');
 const { isLLMConfigured, generatePptSceneWithLLM } = require('./llm');
 const { exportPptx } = require('./export/pptx');
@@ -169,10 +169,11 @@ app.post('/api/ppt/scene/regenerate', async (req, res) => {
 });
 
 app.post('/api/ppt/generate', async (req, res) => {
-  const { sessionId, draft, scene } = req.body || {};
+  const { sessionId, draft, scene, fields } = req.body || {};
   const session = getSession(sessionId);
 
   syncClientPresentationState(session.state, draft, scene);
+  mergeFields(session.state, fields);
 
   try {
     const result = await generatePresentation(session.state);
