@@ -247,6 +247,8 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
     max_output_tokens: 1600
   };
 
+  let responsesFailure = null;
+
   try {
     const response = await callResponsesApi(payload);
     debugLog('responses_draft_raw', response);
@@ -254,9 +256,10 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
     debugLog('responses_draft_text', outputText);
     const parsed = safeJsonParse(outputText);
     if (parsed) return parsed;
+    responsesFailure = new Error('responses_draft_invalid_json');
   } catch (error) {
     debugLog('responses_draft_error', String(error));
-    // fallback to chat below
+    responsesFailure = error;
   }
 
   const chatPayload = {
@@ -269,11 +272,18 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
     response_format: { type: 'json_object' },
     temperature: 0.3
   };
-  const chatResponse = await callChatCompletionsApi(chatPayload);
-  debugLog('chat_draft_raw', chatResponse);
-  const chatText = extractChatText(chatResponse);
-  debugLog('chat_draft_text', chatText);
-  return safeJsonParse(chatText);
+  try {
+    const chatResponse = await callChatCompletionsApi(chatPayload);
+    debugLog('chat_draft_raw', chatResponse);
+    const chatText = extractChatText(chatResponse);
+    debugLog('chat_draft_text', chatText);
+    const parsed = safeJsonParse(chatText);
+    if (parsed) return parsed;
+    throw new Error('chat_draft_invalid_json');
+  } catch (error) {
+    debugLog('chat_draft_error', String(error));
+    throw new Error(`draft_generation_failed: responses=${String(responsesFailure)}; chat=${String(error)}`);
+  }
 }
 
 async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
