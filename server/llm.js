@@ -11,10 +11,17 @@ function shouldDebug() {
 
 function debugLog(label, payload) {
   if (!shouldDebug()) return;
-  const preview = typeof payload === 'string'
-    ? payload.slice(0, 800)
-    : JSON.stringify(payload).slice(0, 800);
-  console.log(`[LLM_DEBUG] ${label}: ${preview}`);
+  const content = typeof payload === 'string'
+    ? payload
+    : JSON.stringify(payload, null, 2);
+  console.log(`[LLM_DEBUG] ${label}:\n${content}`);
+}
+
+function logRequestBody(label, payload) {
+  const content = typeof payload === 'string'
+    ? payload
+    : JSON.stringify(payload, null, 2);
+  console.log(`[LLM_REQUEST] ${label}:\n${content}`);
 }
 
 function normalizeBaseUrl(url) {
@@ -60,6 +67,7 @@ async function callResponsesApi(payload) {
   if (!isLLMConfigured()) return null;
 
   const baseUrl = normalizeBaseUrl(process.env.OPENAI_BASE_URL);
+  logRequestBody('responses', payload);
   const response = await fetch(`${baseUrl}/responses`, {
     method: 'POST',
     headers: buildHeaders(),
@@ -94,6 +102,7 @@ function safeJsonParse(text) {
 async function callChatCompletionsApi(payload) {
   if (!isLLMConfigured()) return null;
   const baseUrl = normalizeBaseUrl(process.env.OPENAI_BASE_URL);
+  logRequestBody('chat_completions', payload);
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: buildHeaders(),
