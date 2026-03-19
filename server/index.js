@@ -86,23 +86,43 @@ function syncClientPresentationState(state, draft, scene) {
   return { draft: state.draft, scene: state.scene || null };
 }
 
-async function buildScenePayload({ draft, ragContext = [], useAi = true }) {
+async function buildScenePayload({ draft, ragContext = [], useAi = true, onModelDelta }) {
   const fallbackScene = buildPptSceneFromDraft(draft);
   if (!fallbackScene) return { scene: null, source: 'draft' };
 
   if (useAi) {
     try {
-      const rawScene = await generatePptSceneWithLLM({ draft, ragContext });
+      const rawScene = await generatePptSceneWithLLM({ draft, ragContext, onTextDelta: onModelDelta });
       const normalized = normalizeScene(rawScene, draft);
       if (normalized) {
         return { scene: normalized, source: 'llm' };
       }
     } catch (error) {
-      // fallback below
+      if (typeof onModelDelta === 'function') {
+        throw error;
+      }
     }
   }
 
   return { scene: fallbackScene, source: 'draft' };
+}
+
+function initSse(res) {
+  res.status(200);
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+}
+
+function writeSseEvent(res, event, data = {}) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+function endSse(res) {
+  writeSseEvent(res, 'done', { ok: true });
+  res.end();
 }
 
 app.get('/api/status', (_, res) => {
@@ -168,6 +188,56 @@ app.post('/api/ppt/scene/regenerate', async (req, res) => {
   }
 });
 
+app.post('/api/ppt/scene/regenerate/stream', async (req, res) => {
+  const { sessionId, draft, scene, force = true } = req.body || {};
+  const hasSession = sessionId && sessions.has(sessionId);
+  const session = hasSession ? sessions.get(sessionId) : null;
+  let exportDraft = draft || session?.state?.draft;
+  const ragContext = session?.state?.rag || [];
+
+  initSse(res);
+
+  if (session) {
+    const synced = syncClientPresentationState(session.state, draft, scene);
+    exportDraft = synced.draft || exportDraft;
+  } else if (exportDraft && scene) {
+    exportDraft = mergeSceneIntoDraft(exportDraft, scene) || exportDraft;
+  }
+
+  if (!exportDraft) {
+    writeSseEvent(res, 'error', { error: 'draft_required' });
+    return endSse(res);
+  }
+
+  try {
+    writeSseEvent(res, 'status', { text: '正在优化预览版式…' });
+    const result = await buildScenePayload({
+      draft: exportDraft,
+      ragContext,
+      useAi: force !== false,
+      onModelDelta: (delta) => writeSseEvent(res, 'model_delta', { delta })
+    });
+    if (!result.scene) {
+      writeSseEvent(res, 'error', { error: 'invalid_draft' });
+      return endSse(res);
+    }
+    if (session) {
+      applySceneToState(session.state, result.scene, result.source, 'ready');
+    }
+    writeSseEvent(res, 'result', {
+      sessionId: session?.id || sessionId || '',
+      draft: session?.state?.draft || exportDraft,
+      scene: result.scene,
+      source: result.source,
+      updatedAt: result.scene.updatedAt
+    });
+    return endSse(res);
+  } catch (error) {
+    writeSseEvent(res, 'error', { error: 'scene_regenerate_failed', message: String(error) });
+    return endSse(res);
+  }
+});
+
 app.post('/api/ppt/generate', async (req, res) => {
   const { sessionId, draft, scene, fields } = req.body || {};
   const session = getSession(sessionId);
@@ -207,6 +277,57 @@ app.post('/api/ppt/generate', async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ error: 'ppt_generate_failed', message: String(error) });
+  }
+});
+
+app.post('/api/ppt/generate/stream', async (req, res) => {
+  const { sessionId, draft, scene, fields } = req.body || {};
+  const session = getSession(sessionId);
+
+  initSse(res);
+
+  syncClientPresentationState(session.state, draft, scene);
+  mergeFields(session.state, fields);
+
+  try {
+    writeSseEvent(res, 'status', { text: '正在整理课程信息…' });
+    const result = await generatePresentation(session.state, {
+      onModelDelta: (delta) => writeSseEvent(res, 'model_delta', { delta })
+    });
+
+    if (result?.error === 'missing_fields') {
+      writeSseEvent(res, 'result', {
+        error: result.error,
+        missingFields: result.missingFields,
+        reply: result.reply,
+        state: result.state,
+        intent: buildIntentPayload(result.state),
+        draft: result.draft || null,
+        scene: result.scene || null,
+        sceneStatus: result.state?.sceneStatus || 'idle',
+        rag: result.state?.rag || []
+      });
+      return endSse(res);
+    }
+
+    if (result?.reply) {
+      session.messages.push({ role: 'assistant', text: result.reply, ts: Date.now() });
+    }
+
+    writeSseEvent(res, 'result', {
+      sessionId: session.id,
+      reply: result.reply,
+      state: result.state,
+      intent: buildIntentPayload(result.state),
+      draft: result.draft || null,
+      scene: result.scene || result.state?.scene || null,
+      sceneStatus: result.state?.sceneStatus || 'idle',
+      rag: result.state?.rag || []
+    });
+    return endSse(res);
+  } catch (error) {
+    writeSseEvent(res, 'error', { error: 'ppt_generate_failed', message: String(error) });
+    return endSse(res);
   }
 });
 
@@ -298,6 +419,48 @@ app.post('/api/chat', async (req, res) => {
     sceneStatus: result.state?.sceneStatus || 'idle',
     rag: result.state?.rag || []
   });
+});
+
+app.post('/api/chat/stream', async (req, res) => {
+  const { sessionId, text, draft, scene } = req.body || {};
+  const session = getSession(sessionId);
+
+  initSse(res);
+  syncClientPresentationState(session.state, draft, scene);
+
+  const trimmed = String(text || '').trim();
+  if (!trimmed) {
+    writeSseEvent(res, 'error', { error: 'text_required' });
+    return endSse(res);
+  }
+
+  session.messages.push({ role: 'user', text: trimmed, ts: Date.now() });
+
+  try {
+    writeSseEvent(res, 'status', { text: '正在理解你的课程需求…' });
+    const result = await handleMessage(session.state, trimmed, session.messages, {
+      onModelDelta: (delta) => writeSseEvent(res, 'model_delta', { delta })
+    });
+    session.messages.push({ role: 'assistant', text: result.reply, ts: Date.now() });
+    writeSseEvent(res, 'result', {
+      sessionId: session.id,
+      reply: result.reply,
+      state: result.state,
+      intent: buildIntentPayload(result.state),
+      draft: result.draft || null,
+      scene: result.scene || result.state?.scene || null,
+      sceneStatus: result.state?.sceneStatus || 'idle',
+      rag: result.state?.rag || []
+    });
+    return endSse(res);
+  } catch (error) {
+    writeSseEvent(res, 'error', {
+      error: 'chat_failed',
+      message: String(error),
+      fallbackReply: '模型服务暂不可用，请稍后重试。'
+    });
+    return endSse(res);
+  }
 });
 
 app.post('/api/session/fields', (req, res) => {

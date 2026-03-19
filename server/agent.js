@@ -34,6 +34,14 @@ const SMALL_TALK_RESPONSES = {
   bye: "好的，随时需要我再找我。"
 };
 
+function createInitialBrief() {
+  return {
+    rawInputs: [],
+    mergedPrompt: '',
+    updatedAt: ''
+  };
+}
+
 function createInitialState() {
   return {
     id: nanoid(),
@@ -47,6 +55,7 @@ function createInitialState() {
       interactions: ""
     },
     uploadedFiles: [],
+    brief: createInitialBrief(),
     ready: false,
     confirmed: false,
     draft: null,
@@ -58,6 +67,66 @@ function createInitialState() {
     lastEdit: "",
     rag: []
   };
+}
+
+function normalizeBriefText(text) {
+  return String(text || '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function buildFieldsPrompt(state) {
+  const { fields = {}, uploadedFiles = [] } = state || {};
+  const parts = [
+    fields.subject ? `主题：${fields.subject}` : '',
+    fields.grade ? `年级：${fields.grade}` : '',
+    fields.duration ? `时长：${fields.duration}` : '',
+    fields.goals ? `教学目标：${fields.goals}` : '',
+    Array.isArray(fields.keyPoints) && fields.keyPoints.length ? `核心知识点：${fields.keyPoints.join('；')}` : '',
+    fields.style ? `教学风格：${fields.style}` : '',
+    fields.interactions ? `互动设计：${fields.interactions}` : '',
+    uploadedFiles.length ? `参考资料：${uploadedFiles.map((file) => file.name).join('、')}` : ''
+  ].filter(Boolean);
+
+  return parts.join('\n');
+}
+
+function ensureBrief(state) {
+  if (!state.brief) state.brief = createInitialBrief();
+  const rawInputs = Array.isArray(state.brief.rawInputs) ? state.brief.rawInputs : [];
+  const userTranscript = rawInputs.length
+    ? rawInputs.map((item) => item.text).join('\n\n')
+    : '';
+  const fieldsPrompt = buildFieldsPrompt(state);
+  state.brief.rawInputs = rawInputs;
+  state.brief.mergedPrompt = [userTranscript, fieldsPrompt].filter(Boolean).join('\n\n');
+  state.brief.updatedAt = new Date().toISOString();
+  return state.brief;
+}
+
+function appendToBrief(state, text, source = 'user') {
+  const normalized = normalizeBriefText(text);
+  if (!normalized) return ensureBrief(state);
+  if (getSmallTalkIntent(normalized) || isConfirm(normalized)) return ensureBrief(state);
+
+  if (!state.brief) state.brief = createInitialBrief();
+  if (!Array.isArray(state.brief.rawInputs)) state.brief.rawInputs = [];
+  const last = state.brief.rawInputs[state.brief.rawInputs.length - 1];
+  if (last?.text !== normalized) {
+    state.brief.rawInputs.push({
+      id: nanoid(),
+      source,
+      text: normalized,
+      ts: Date.now()
+    });
+    state.brief.rawInputs = state.brief.rawInputs.slice(-20);
+  }
+
+  return ensureBrief(state);
 }
 
 function syncSceneFromDraft(state) {
@@ -263,6 +332,7 @@ function mergeFields(state, fields) {
       state.fields[key] = value.trim();
     }
   }
+  ensureBrief(state);
 }
 
 function buildSummary(state) {
@@ -276,6 +346,63 @@ function buildSummary(state) {
     `教学风格：${fields.style || "未填写"}`,
     `互动设计：${fields.interactions || "未填写"}`
   ].join("\n");
+}
+
+function buildCollectedFieldLines(state) {
+  const { fields } = state;
+  const lines = [];
+  if (fields.subject) lines.push(`- 主题/章节：${fields.subject}`);
+  if (fields.grade) lines.push(`- 年级/学段：${fields.grade}`);
+  if (fields.duration) lines.push(`- 课堂时长：${fields.duration}`);
+  if (fields.goals) lines.push(`- 教学目标：${fields.goals}`);
+  if (fields.keyPoints.length) lines.push(`- 核心知识点：${fields.keyPoints.join('、')}`);
+  if (fields.style) lines.push(`- 教学风格：${fields.style}`);
+  if (fields.interactions) lines.push(`- 互动设计：${fields.interactions}`);
+  return lines;
+}
+
+function buildMissingFieldsReply(state) {
+  const missingFields = getMissingFields(state);
+  if (!missingFields.length) {
+    return '核心信息已经齐全，可以直接点击“生成 PPT”。如果你愿意，我也可以继续帮你补课堂风格、互动形式或练习设计。';
+  }
+
+  const collectedLines = buildCollectedFieldLines(state);
+  const missingLines = missingFields.map((field) => `- ${FIELD_LABELS[field]}：${FIELD_QUESTIONS[field]}`);
+  const optionalLines = [];
+  if (!state.fields.style) optionalLines.push(`- ${FIELD_LABELS.style}：${FIELD_QUESTIONS.style}`);
+  if (!state.fields.interactions) optionalLines.push(`- ${FIELD_LABELS.interactions}：${FIELD_QUESTIONS.interactions}`);
+
+  const intro = collectedLines.length
+    ? `我先帮你整理到这些信息：\n${collectedLines.join('\n')}`
+    : '你可以直接把课程需求整段发给我，我会自动拆成主题、目标、知识点和课堂结构。';
+
+  if (missingFields.length === 1) {
+    return [
+      intro,
+      `还差最后一个关键信息：\n${missingLines[0]}`,
+      optionalLines.length
+        ? `如果你愿意，也可以顺手补这两类可选信息：\n${optionalLines.join('\n')}`
+        : '你可以直接补一句话，我会继续替你整理。'
+    ].filter(Boolean).join('\n\n');
+  }
+
+  return [
+    intro,
+    `为了直接进入生成，还差这几项：\n${missingLines.join('\n')}`,
+    optionalLines.length
+      ? `可选补充（会让成稿更贴近你的预期）：\n${optionalLines.join('\n')}`
+      : '你可以一次性补成一段自然语言，我来继续拆字段。'
+  ].filter(Boolean).join('\n\n');
+}
+
+function buildReadyReply(state) {
+  return [
+    `我已经把需求整理好了：\n${buildSummary(state)}`,
+    (!state.fields.style || !state.fields.interactions)
+      ? '如果你想让成稿更像你心里的课堂，还可以继续补充教学风格、互动形式、案例偏好；不补也没关系，已经可以直接生成。'
+      : '信息已经足够完整，可以直接点击“生成 PPT”；如果你还想加实验、案例或练习，我也能继续细化。'
+  ].join('\n\n');
 }
 
 function buildRagQuery(state) {
@@ -326,8 +453,16 @@ function getSmallTalkIntent(text) {
 
 function buildSmallTalkReply(intent, state, missingField) {
   const base = SMALL_TALK_RESPONSES[intent] || "我在的，可以继续说明你的需求。";
+  if (intent === 'greeting' || intent === 'presence' || intent === 'identity') {
+    if (missingField) {
+      return `${base}\n\n${buildMissingFieldsReply(state)}`;
+    }
+    if (!state.draft) {
+      return `${base}\n\n${buildReadyReply(state)}`;
+    }
+  }
   if (missingField && intent !== "thanks" && intent !== "bye") {
-    return `${base}\n\n${getNextQuestion(state)}`;
+    return `${base}\n\n${buildMissingFieldsReply(state)}`;
   }
   return base;
 }
@@ -349,7 +484,8 @@ function generateDraft(state) {
     id: nanoid(),
     title: fields.subject || "封面",
     type: "cover",
-    bullets: [fields.grade, fields.duration].filter(Boolean)
+    bullets: [fields.grade, fields.duration].filter(Boolean),
+    notes: state.brief?.mergedPrompt || fields.goals || ''
   });
 
   slides.push({
@@ -368,7 +504,13 @@ function generateDraft(state) {
         "核心概念与定义",
         "示例/案例",
         "常见误区与澄清"
-      ]
+      ],
+      example: fields.interactions || `结合“${point}”设计生活化案例说明。`,
+      question: `围绕“${point}”设计一个追问，检查学生是否真正理解。`,
+      visual: `为“${point}”补充示意图/流程图/结构图。`,
+      notes: fields.goals || '',
+      teachingGoal: fields.goals || '',
+      commonMistakes: ["只记结论，不理解条件与因果", "混淆条件、原料、产物"]
     });
   });
 
@@ -399,6 +541,7 @@ function generateDraft(state) {
 
   return {
     designPreset,
+    brief: state.brief || null,
     ppt: slides,
     lessonPlan,
     interactionIdea,
@@ -414,7 +557,16 @@ function normalizeDraft(raw) {
     id: nanoid(),
     title: slide.title || "未命名",
     type: slide.type || "content",
-    bullets: Array.isArray(slide.bullets) ? slide.bullets : []
+    bullets: Array.isArray(slide.bullets) ? slide.bullets : [],
+    example: typeof slide.example === 'string' ? slide.example : '',
+    question: typeof slide.question === 'string' ? slide.question : '',
+    visual: typeof slide.visual === 'string' ? slide.visual : '',
+    notes: typeof slide.notes === 'string' ? slide.notes : '',
+    teachingGoal: typeof slide.teachingGoal === 'string' ? slide.teachingGoal : '',
+    speakerNotes: typeof slide.speakerNotes === 'string' ? slide.speakerNotes : '',
+    commonMistakes: Array.isArray(slide.commonMistakes)
+      ? slide.commonMistakes.map((item) => `${item}`.trim()).filter(Boolean)
+      : []
   }));
 
   const lessonPlan = raw.lessonPlan || {};
@@ -432,6 +584,13 @@ function normalizeDraft(raw) {
 
   return {
     designPreset,
+    brief: raw.brief && typeof raw.brief === 'object'
+      ? {
+          rawInputs: Array.isArray(raw.brief.rawInputs) ? raw.brief.rawInputs : [],
+          mergedPrompt: typeof raw.brief.mergedPrompt === 'string' ? raw.brief.mergedPrompt : '',
+          updatedAt: typeof raw.brief.updatedAt === 'string' ? raw.brief.updatedAt : ''
+        }
+      : null,
     ppt,
     lessonPlan: {
       goals: lessonPlan.goals || "",
@@ -499,14 +658,15 @@ function getNextQuestion(state) {
   return "需求已齐全，可以开始生成 PPT。";
 }
 
-async function generatePresentation(state) {
+async function generatePresentation(state, options = {}) {
+  ensureBrief(state);
   const missingFields = getMissingFields(state);
   if (missingFields.length) {
     state.ready = false;
     return {
       error: 'missing_fields',
       missingFields,
-      reply: getNextQuestion(state),
+      reply: buildMissingFieldsReply(state),
       state,
       draft: state.draft || null,
       scene: state.scene || null
@@ -518,9 +678,16 @@ async function generatePresentation(state) {
   if (!state.draft) {
     const ragQuery = buildRagQuery(state);
     state.rag = searchKnowledge(ragQuery, 4);
-    const llmDraft = await generateDraftWithLLM({ state, ragContext: state.rag });
+    const llmDraft = await generateDraftWithLLM({
+      state,
+      ragContext: state.rag,
+      onTextDelta: options.onModelDelta
+    });
     const normalized = normalizeDraft(llmDraft);
     state.draft = normalized || generateDraft(state);
+    if (state.draft && !state.draft.brief) {
+      state.draft.brief = state.brief || null;
+    }
     syncSceneFromDraft(state);
     state.confirmed = true;
 
@@ -545,12 +712,18 @@ async function generatePresentation(state) {
   };
 }
 
-async function handleMessage(state, text, messages = []) {
+async function handleMessage(state, text, messages = [], options = {}) {
+  appendToBrief(state, text, 'user');
   extractFieldsFromText(text, state);
   let llmResult = null;
   try {
     const contextMessages = messages.length ? messages.slice(0, -1) : messages;
-    llmResult = await extractIntentWithLLM({ state, messages: contextMessages, text });
+    llmResult = await extractIntentWithLLM({
+      state,
+      messages: contextMessages,
+      text,
+      onTextDelta: options.onModelDelta
+    });
   } catch (error) {
     llmResult = null;
   }
@@ -588,7 +761,7 @@ async function handleMessage(state, text, messages = []) {
   if (missingField) {
     state.ready = false;
     return {
-      reply: getNextQuestion(state),
+      reply: buildMissingFieldsReply(state),
       state
     };
   }
@@ -596,7 +769,7 @@ async function handleMessage(state, text, messages = []) {
   if (!state.ready) {
     state.ready = true;
     return {
-      reply: `我已整理需求：\n${buildSummary(state)}\n\n信息已经齐全，请点击“生成 PPT”开始生成。`,
+      reply: buildReadyReply(state),
       state
     };
   }

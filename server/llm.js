@@ -82,6 +82,93 @@ async function callResponsesApi(payload) {
   return response.json();
 }
 
+async function callResponsesApiStream(payload, { onTextDelta, onEvent } = {}) {
+  if (!isLLMConfigured()) return null;
+
+  const baseUrl = normalizeBaseUrl(process.env.OPENAI_BASE_URL);
+  const streamPayload = { ...payload, stream: true };
+  logRequestBody('responses_stream', streamPayload);
+  const response = await fetch(`${baseUrl}/responses`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify(streamPayload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`openai_error_${response.status}: ${errorText}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('openai_stream_reader_unavailable');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let outputText = '';
+
+  const consumeChunk = (chunk) => {
+    if (!chunk.trim()) return;
+
+    let event = 'message';
+    const dataLines = [];
+    chunk.split('\n').forEach((line) => {
+      if (line.startsWith('event:')) {
+        event = line.slice(6).trim();
+        return;
+      }
+      if (line.startsWith('data:')) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+    });
+
+    if (!dataLines.length) return;
+    const raw = dataLines.join('\n');
+    if (!raw || raw === '[DONE]') return;
+
+    const payloadData = safeJsonParse(raw) || { type: event, raw };
+    onEvent?.({ event, data: payloadData });
+
+    if (payloadData?.type === 'response.output_text.delta' && typeof payloadData.delta === 'string') {
+      outputText += payloadData.delta;
+      onTextDelta?.(payloadData.delta, outputText);
+      return;
+    }
+
+    if ((payloadData?.type === 'response.completed' || event === 'response.completed') && payloadData?.response) {
+      const completedText = extractOutputText(payloadData.response);
+      if (completedText && !outputText) {
+        outputText = completedText;
+      }
+      return;
+    }
+
+    if (payloadData?.type === 'error' || event === 'error') {
+      throw new Error(payloadData?.message || payloadData?.error?.message || raw);
+    }
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+
+    let boundary = buffer.indexOf('\n\n');
+    while (boundary >= 0) {
+      const chunk = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+      consumeChunk(chunk);
+      boundary = buffer.indexOf('\n\n');
+    }
+
+    if (done) break;
+  }
+
+  if (buffer.trim()) {
+    consumeChunk(buffer);
+  }
+
+  return { outputText };
+}
+
 function safeJsonParse(text) {
   if (!text) return null;
   try {
@@ -147,7 +234,20 @@ function buildContext(state, messages, text) {
   ].filter(Boolean).join('\n');
 }
 
-async function extractIntentWithLLM({ state, messages, text }) {
+function buildBriefPayload(brief) {
+  if (!brief || typeof brief !== 'object') return null;
+  return {
+    mergedPrompt: typeof brief.mergedPrompt === 'string' ? brief.mergedPrompt : '',
+    rawInputs: Array.isArray(brief.rawInputs)
+      ? brief.rawInputs.map((item) => ({
+          source: item?.source || 'user',
+          text: typeof item?.text === 'string' ? item.text : ''
+        })).filter((item) => item.text)
+      : []
+  };
+}
+
+async function extractIntentWithLLM({ state, messages, text, onTextDelta }) {
   if (!isLLMConfigured()) return null;
 
   const payload = {
@@ -175,9 +275,16 @@ async function extractIntentWithLLM({ state, messages, text }) {
     text: { format: { type: 'json_object' } }
   };
 
-  let response;
   try {
-    response = await callResponsesApi(payload);
+    if (typeof onTextDelta === 'function') {
+      const streamed = await callResponsesApiStream(payload, { onTextDelta });
+      debugLog('responses_text_stream', streamed?.outputText || '');
+      const parsed = safeJsonParse(streamed?.outputText || '');
+      if (parsed) return parsed;
+      throw new Error('responses_intent_invalid_json');
+    }
+
+    const response = await callResponsesApi(payload);
     debugLog('responses_raw', response);
     const outputText = extractOutputText(response);
     debugLog('responses_text', outputText);
@@ -185,7 +292,9 @@ async function extractIntentWithLLM({ state, messages, text }) {
     if (parsed) return parsed;
   } catch (error) {
     debugLog('responses_error', String(error));
-    response = null;
+    if (typeof onTextDelta === 'function') {
+      throw error;
+    }
   }
 
   const chatPayload = {
@@ -205,10 +314,11 @@ async function extractIntentWithLLM({ state, messages, text }) {
   return safeJsonParse(chatText);
 }
 
-async function generateDraftWithLLM({ state, ragContext = [] }) {
+async function generateDraftWithLLM({ state, ragContext = [], onTextDelta }) {
   if (!isLLMConfigured()) return null;
 
   const fields = state.fields || {};
+  const brief = buildBriefPayload(state.brief);
   const knowledge = Array.isArray(ragContext) && ragContext.length
     ? ragContext.map((item, idx) => `(${idx + 1}) [${item.source}] ${item.content}`).join('\n')
     : '';
@@ -221,14 +331,30 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
           '你是教学课件生成助手。请根据给定教学意图生成课件草稿。' +
           '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
           '"designPreset": "corporate"|"editorial"|"classroom",' +
-          '"ppt": [{"title": string, "type": "cover"|"toc"|"content"|"summary", "bullets": string[]}],' +
+          '"brief": {"mergedPrompt": string, "rawInputs": [{"source": string, "text": string}]},' +
+          '"ppt": [{' +
+          '"title": string,' +
+          '"type": "cover"|"toc"|"content"|"summary",' +
+          '"bullets": string[],' +
+          '"example": string,' +
+          '"question": string,' +
+          '"visual": string,' +
+          '"notes": string,' +
+          '"teachingGoal": string,' +
+          '"speakerNotes": string,' +
+          '"commonMistakes": string[]' +
+          '}],' +
           '"lessonPlan": {"goals": string, "process": string[], "methods": string, "activities": string, "homework": string},' +
           '"interactionIdea": {"title": string, "description": string},' +
           '"theme": {"primary": string, "accent": string, "background": string, "text": string, "font": string},' +
           '"layoutHints": string[]' +
           '}。' +
+          'brief 是用户的原始长文本与补充说明，优先保留其中的关键信息，不要过度压缩。' +
+          '如果 brief 中包含案例、实验、误区、讨论任务、步骤说明，请拆分到不同 content 页，不要把长内容压成少量 bullets。' +
           'PPT 至少包含封面、目录、总结页。内容页每个知识点至少 2 页：概念/原理页 + 应用/案例/易错点页。' +
           '每页 3-5 条 bullets，使用完整短句，保证信息量充足。' +
+          'content 页尽量补充 example/question/visual/notes/commonMistakes，不要全部留空。' +
+          '如果用户给了较长的教学流程、实验原理或活动设计，优先写进 lessonPlan.process、activities、speakerNotes，并在相关 slides 中保留。' +
           'lessonPlan.process 至少 5 个步骤，activities/homework 要具体可执行。' +
           'designPreset 用法：理科/严谨/清爽用 corporate，人文/极简/高级感用 editorial，低龄/互动/趣味课堂用 classroom。' +
           'theme 要和 designPreset 保持一致，不要所有课都给企业蓝。' +
@@ -243,7 +369,8 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
           goals: fields.goals,
           keyPoints: fields.keyPoints,
           style: fields.style,
-          interactions: fields.interactions
+          interactions: fields.interactions,
+          brief
         })
       },
       {
@@ -257,6 +384,14 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
   let responsesFailure = null;
 
   try {
+    if (typeof onTextDelta === 'function') {
+      const streamed = await callResponsesApiStream(payload, { onTextDelta });
+      debugLog('responses_draft_text_stream', streamed?.outputText || '');
+      const parsed = safeJsonParse(streamed?.outputText || '');
+      if (parsed) return parsed;
+      throw new Error('responses_draft_invalid_json');
+    }
+
     const response = await callResponsesApi(payload);
     debugLog('responses_draft_raw', response);
     const outputText = extractOutputText(response);
@@ -266,6 +401,9 @@ async function generateDraftWithLLM({ state, ragContext = [] }) {
     responsesFailure = new Error('responses_draft_invalid_json');
   } catch (error) {
     debugLog('responses_draft_error', String(error));
+    if (typeof onTextDelta === 'function') {
+      throw error;
+    }
     responsesFailure = error;
   }
 
@@ -373,10 +511,11 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
   return safeJsonParse(chatText);
 }
 
-async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
+async function generatePptSceneWithLLM({ draft, ragContext = [], onTextDelta }) {
   if (!isLLMConfigured()) return null;
   if (!draft || !Array.isArray(draft.ppt)) return null;
 
+  const brief = buildBriefPayload(draft.brief);
   const knowledge = Array.isArray(ragContext) && ragContext.length
     ? ragContext.map((item, idx) => `(${idx + 1}) [${item.source}] ${item.content}`).join('\n')
     : '';
@@ -405,6 +544,8 @@ async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
           '}]' +
           '}]' +
           '}。' +
+          'draft slides 里如果存在 example/question/visual/notes/commonMistakes，请尽量体现在对应 block 中。' +
+          '优先把 example 或易错提醒放进 callout，把课堂追问放进 question。' +
           '封面至少包含 title/subtitle；目录页包含 bullets；总结页优先使用 summaryCards。' +
           '内容页不要都做成一个大 bullets 框。概念页优先用 factCards，流程页优先用 steps，案例页优先用 columns，活动页优先用 taskCards。' +
           'designPreset 只能从 corporate、editorial、classroom 中选择，并与主题风格一致。' +
@@ -417,6 +558,7 @@ async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
           slides: draft.ppt,
           lessonPlan: draft.lessonPlan || null,
           interactionIdea: draft.interactionIdea || null,
+          brief,
           theme: draft.theme || null,
           layoutHints: draft.layoutHints || null
         })
@@ -430,6 +572,14 @@ async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
   };
 
   try {
+    if (typeof onTextDelta === 'function') {
+      const streamed = await callResponsesApiStream(payload, { onTextDelta });
+      debugLog('responses_scene_text_stream', streamed?.outputText || '');
+      const parsed = safeJsonParse(streamed?.outputText || '');
+      if (parsed) return parsed;
+      throw new Error('responses_scene_invalid_json');
+    }
+
     const response = await callResponsesApi(payload);
     debugLog('responses_scene_raw', response);
     const outputText = extractOutputText(response);
@@ -438,6 +588,9 @@ async function generatePptSceneWithLLM({ draft, ragContext = [] }) {
     if (parsed) return parsed;
   } catch (error) {
     debugLog('responses_scene_error', String(error));
+    if (typeof onTextDelta === 'function') {
+      throw error;
+    }
   }
 
   const chatPayload = {

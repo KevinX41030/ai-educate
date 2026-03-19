@@ -236,6 +236,50 @@ function buildTaskItems(bullets = [], draft) {
   return items.slice(0, 4);
 }
 
+function joinTextParts(parts = []) {
+  return parts
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .join('；');
+}
+
+function buildCalloutTitle(slide, fallback = '课堂提示') {
+  if (Array.isArray(slide?.commonMistakes) && slide.commonMistakes.length) return '易错提醒';
+  if (slide?.example) return '案例提示';
+  if (slide?.visual) return '视觉提示';
+  return fallback;
+}
+
+function buildCalloutText(slide, fallbackTexts = []) {
+  const commonMistakes = Array.isArray(slide?.commonMistakes)
+    ? slide.commonMistakes.slice(0, 3).map((item) => `易错：${item}`)
+    : [];
+
+  return joinTextParts([
+    slide?.example,
+    slide?.notes,
+    slide?.visual ? `视觉提示：${slide.visual}` : '',
+    ...commonMistakes,
+    ...fallbackTexts
+  ]);
+}
+
+function buildQuestionText(slide, fallbackTexts = []) {
+  return joinTextParts([
+    slide?.question,
+    ...fallbackTexts
+  ]);
+}
+
+function buildSceneNotes(slide, draft) {
+  return joinTextParts([
+    slide?.speakerNotes,
+    slide?.notes,
+    slide?.teachingGoal,
+    draft?.lessonPlan?.goals
+  ]);
+}
+
 function buildBlocksForSlide(slide, draft, designPreset) {
   const role = VALID_ROLES.has(slide?.type) ? slide.type : 'content';
   const variant = role === 'content' ? inferVariant(slide) : role;
@@ -249,10 +293,11 @@ function buildBlocksForSlide(slide, draft, designPreset) {
     if (subtitle) {
       blocks.push(createBlock('subtitle', { text: subtitle }, resolveBoxPreset(designPreset, role, 'subtitle')));
     }
-    if (draft?.lessonPlan?.goals) {
+    const coverCallout = buildCalloutText(slide, [slide?.teachingGoal, draft?.lessonPlan?.goals]);
+    if (coverCallout) {
       blocks.push(createBlock('callout', {
-        title: '教学目标',
-        text: draft.lessonPlan.goals
+        title: buildCalloutTitle(slide, '教学目标'),
+        text: coverCallout
       }, resolveBoxPreset(designPreset, role, 'callout')));
     }
     return { blocks, variant };
@@ -279,14 +324,18 @@ function buildBlocksForSlide(slide, draft, designPreset) {
       title: '核心认识',
       items: buildConceptItems(bullets, draft)
     }, getVariantBox(variant, 'factCards', resolveBoxPreset(designPreset, role, 'bullets'))));
-    blocks.push(createBlock('callout', {
-      title: '课堂提示',
-      text: bullets[1] || bullets[0] || draft?.lessonPlan?.goals || '补充教学案例或误区提醒。'
-    }, getVariantBox(variant, 'callout', resolveBoxPreset(designPreset, role, 'callout'))));
-    if (draft?.interactionIdea?.title) {
+    const calloutText = buildCalloutText(slide, [bullets[1], bullets[0], draft?.lessonPlan?.goals, '补充教学案例或误区提醒。']);
+    if (calloutText) {
+      blocks.push(createBlock('callout', {
+        title: buildCalloutTitle(slide),
+        text: calloutText
+      }, getVariantBox(variant, 'callout', resolveBoxPreset(designPreset, role, 'callout'))));
+    }
+    const questionText = buildQuestionText(slide, [draft?.interactionIdea?.title ? `互动建议：${draft.interactionIdea.title}` : '']);
+    if (questionText) {
       blocks.push(createBlock('question', {
         title: '互动提问',
-        text: `互动建议：${draft.interactionIdea.title}`
+        text: questionText
       }, getVariantBox(variant, 'question', resolveBoxPreset(designPreset, role, 'question'))));
     }
     return { blocks, variant };
@@ -297,10 +346,13 @@ function buildBlocksForSlide(slide, draft, designPreset) {
       title: '学习步骤',
       items: buildProcessItems(bullets, draft)
     }, getVariantBox(variant, 'steps', resolveBoxPreset(designPreset, role, 'bullets'))));
-    blocks.push(createBlock('callout', {
-      title: '关键提醒',
-      text: bullets.slice(0, 3).join('；') || '抓住每一步的输入、变化与结果。'
-    }, getVariantBox(variant, 'callout', resolveBoxPreset(designPreset, role, 'callout'))));
+    const calloutText = buildCalloutText(slide, [bullets.slice(0, 3).join('；'), '抓住每一步的输入、变化与结果。']);
+    if (calloutText) {
+      blocks.push(createBlock('callout', {
+        title: buildCalloutTitle(slide, '关键提醒'),
+        text: calloutText
+      }, getVariantBox(variant, 'callout', resolveBoxPreset(designPreset, role, 'callout'))));
+    }
     return { blocks, variant };
   }
 
@@ -309,10 +361,13 @@ function buildBlocksForSlide(slide, draft, designPreset) {
       title: '案例拆解',
       items: buildCaseItems(bullets, draft)
     }, getVariantBox(variant, 'columns', resolveBoxPreset(designPreset, role, 'bullets'))));
-    blocks.push(createBlock('callout', {
-      title: '迁移提示',
-      text: draft?.interactionIdea?.description || bullets[2] || '把案例结论迁移到新的问题情境。'
-    }, getVariantBox(variant, 'callout', resolveBoxPreset(designPreset, role, 'callout'))));
+    const calloutText = buildCalloutText(slide, [draft?.interactionIdea?.description, bullets[2], '把案例结论迁移到新的问题情境。']);
+    if (calloutText) {
+      blocks.push(createBlock('callout', {
+        title: buildCalloutTitle(slide, '迁移提示'),
+        text: calloutText
+      }, getVariantBox(variant, 'callout', resolveBoxPreset(designPreset, role, 'callout'))));
+    }
     return { blocks, variant };
   }
 
@@ -321,18 +376,31 @@ function buildBlocksForSlide(slide, draft, designPreset) {
       title: '课堂任务板',
       items: buildTaskItems(bullets, draft)
     }, getVariantBox(variant, 'taskCards', resolveBoxPreset(designPreset, role, 'bullets'))));
-    blocks.push(createBlock('question', {
-      title: '互动挑战',
-      text: draft?.interactionIdea?.description || draft?.interactionIdea?.title || '设计一个和同伴合作完成的小任务。'
-    }, getVariantBox(variant, 'question', resolveBoxPreset(designPreset, role, 'question'))));
+    const questionText = buildQuestionText(slide, [draft?.interactionIdea?.description, draft?.interactionIdea?.title, '设计一个和同伴合作完成的小任务。']);
+    if (questionText) {
+      blocks.push(createBlock('question', {
+        title: '互动挑战',
+        text: questionText
+      }, getVariantBox(variant, 'question', resolveBoxPreset(designPreset, role, 'question'))));
+    }
     return { blocks, variant };
   }
 
   blocks.push(createBlock('bullets', { items: bullets }, resolveBoxPreset(designPreset, role, 'bullets')));
-  blocks.push(createBlock('callout', {
-    title: '课堂提示',
-    text: bullets[1] || bullets[0] || '补充教学案例或误区提醒。'
-  }, resolveBoxPreset(designPreset, role, 'callout')));
+  const calloutText = buildCalloutText(slide, [bullets[1], bullets[0], '补充教学案例或误区提醒。']);
+  if (calloutText) {
+    blocks.push(createBlock('callout', {
+      title: buildCalloutTitle(slide),
+      text: calloutText
+    }, resolveBoxPreset(designPreset, role, 'callout')));
+  }
+  const questionText = buildQuestionText(slide, []);
+  if (questionText) {
+    blocks.push(createBlock('question', {
+      title: '互动提问',
+      text: questionText
+    }, resolveBoxPreset(designPreset, role, 'question')));
+  }
 
   return { blocks, variant };
 }
@@ -364,7 +432,7 @@ function buildPptSceneFromDraft(draft) {
       variant,
       background: { type: 'solid', color: theme.background },
       blocks,
-      notes: slide?.notes || ''
+      notes: buildSceneNotes(slide, draft)
     };
   });
 
@@ -492,10 +560,13 @@ function sceneToPptSpec(scene, fallbackSlides = []) {
         title: slide.title || getTitleFromBlocks(slide.blocks, fallbackSlide?.title || '内容'),
         type: VALID_ROLES.has(slide.role) ? slide.role : (fallbackSlide?.type || 'content'),
         bullets: extractBullets(slide, fallbackSlide),
-        example: calloutBlock?.text || '',
-        question: questionBlock?.text || '',
-        visual: '',
+        example: calloutBlock?.text || fallbackSlide?.example || '',
+        question: questionBlock?.text || fallbackSlide?.question || '',
+        visual: fallbackSlide?.visual || '',
         notes: slide.notes || '',
+        teachingGoal: fallbackSlide?.teachingGoal || '',
+        speakerNotes: fallbackSlide?.speakerNotes || '',
+        commonMistakes: Array.isArray(fallbackSlide?.commonMistakes) ? fallbackSlide.commonMistakes : [],
         layout: slide.variant || ''
       };
     })
@@ -520,7 +591,15 @@ function mergeSceneIntoDraft(draft, scene) {
           bullets: Array.isArray(slide.bullets)
             ? slide.bullets
             : (Array.isArray(fallbackSlide.bullets) ? fallbackSlide.bullets : []),
-          notes: slide.notes || fallbackSlide.notes || ''
+          example: slide.example || fallbackSlide.example || '',
+          question: slide.question || fallbackSlide.question || '',
+          visual: slide.visual || fallbackSlide.visual || '',
+          notes: slide.notes || fallbackSlide.notes || '',
+          teachingGoal: slide.teachingGoal || fallbackSlide.teachingGoal || '',
+          speakerNotes: slide.speakerNotes || fallbackSlide.speakerNotes || '',
+          commonMistakes: Array.isArray(slide.commonMistakes) && slide.commonMistakes.length
+            ? slide.commonMistakes
+            : (Array.isArray(fallbackSlide.commonMistakes) ? fallbackSlide.commonMistakes : [])
         };
       })
     : fallbackSlides;
@@ -528,6 +607,7 @@ function mergeSceneIntoDraft(draft, scene) {
   return {
     ...draft,
     designPreset: spec?.designPreset || draft.designPreset,
+    brief: draft.brief || null,
     theme: normalizedScene.theme || draft.theme,
     layoutHints: Array.isArray(normalizedScene.layoutHints) && normalizedScene.layoutHints.length
       ? normalizedScene.layoutHints

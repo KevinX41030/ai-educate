@@ -1,11 +1,11 @@
 import { computed, ref } from 'vue';
 import {
   exportPptx,
-  generatePpt,
   getSessionSnapshot,
   getStatus,
-  regeneratePptScene,
-  sendMessage,
+  streamGeneratePpt,
+  streamMessage,
+  streamRegeneratePptScene,
   updateSessionFields,
   uploadFiles
 } from '../services/api';
@@ -127,6 +127,14 @@ const appendMessage = (role, text = '') => {
   return message;
 };
 
+const updateMessageText = (messageId, text = '') => {
+  const message = messages.value.find((item) => item.id === messageId);
+  if (message) {
+    message.text = text;
+  }
+  return message;
+};
+
 const ensureWelcomeMessage = () => {
   if (messages.value.length) return;
   appendMessage('assistant', '直接描述课程需求，我会帮你生成 PPT，并同步更新页面预览。');
@@ -171,12 +179,21 @@ const maybeEnhanceScene = async () => {
   sceneRefreshKey.value = draftUpdatedAt || `${Date.now()}`;
 
   try {
-    const data = await regeneratePptScene({
+    let finalData = null;
+    await streamRegeneratePptScene({
       sessionId: sessionId.value,
       draft: draft.value,
       scene: ensureLocalScene(),
-      force: true
+      force: true,
+      onEvent: ({ event, data }) => {
+        if (event === 'result') {
+          finalData = data;
+        }
+      }
     });
+
+    const data = finalData;
+    if (!data) throw new Error('scene_regenerate_failed');
     syncSession(data.sessionId);
     if (data.draft) draft.value = data.draft;
     if (data.scene) scene.value = data.scene;
@@ -189,7 +206,8 @@ const maybeEnhanceScene = async () => {
   }
 };
 
-const applyChatPayload = (data) => {
+const applyChatPayload = (data, options = {}) => {
+  const { assistantMessageId = '' } = options;
   syncSession(data.sessionId);
 
   if (data.state) {
@@ -205,7 +223,13 @@ const applyChatPayload = (data) => {
   }
   if (data.sceneStatus) sceneStatus.value = data.sceneStatus;
   if (Array.isArray(data.rag)) rag.value = data.rag;
-  if (data.reply) appendMessage('assistant', data.reply);
+  if (data.reply) {
+    if (assistantMessageId) {
+      updateMessageText(assistantMessageId, data.reply);
+    } else {
+      appendMessage('assistant', data.reply);
+    }
+  }
 
   if (draft.value && sceneStatus.value === 'stale') {
     void maybeEnhanceScene();
@@ -220,20 +244,41 @@ const sendInternal = async (text, options = {}) => {
 
   if (appendUser) appendMessage('user', trimmed);
   isBusy.value = true;
+  let assistantMessage = null;
 
   try {
     const syncedScene = draft.value ? ensureLocalScene() : null;
-    const data = await sendMessage({
+    assistantMessage = appendMessage('assistant', '正在理解你的课程需求…');
+    let finalData = null;
+
+    await streamMessage({
       sessionId: sessionId.value,
       text: trimmed,
       draft: draft.value,
-      scene: syncedScene
+      scene: syncedScene,
+      onEvent: ({ event, data }) => {
+        if (event === 'status') {
+          updateMessageText(assistantMessage.id, data?.text || '正在理解你的课程需求…');
+          return;
+        }
+        if (event === 'error') {
+          updateMessageText(assistantMessage.id, data?.fallbackReply || data?.message || '请求失败，请检查服务是否运行。');
+          return;
+        }
+        if (event === 'result') {
+          finalData = data;
+          applyChatPayload(data, { assistantMessageId: assistantMessage.id });
+        }
+      }
     });
-    applyChatPayload(data);
 
-    return data;
+    return finalData;
   } catch (error) {
-    appendMessage('assistant', '请求失败，请检查服务是否运行。');
+    if (assistantMessage) {
+      updateMessageText(assistantMessage.id, '请求失败，请检查服务是否运行。');
+    } else {
+      appendMessage('assistant', '请求失败，请检查服务是否运行。');
+    }
     return null;
   } finally {
     isBusy.value = false;
@@ -360,18 +405,40 @@ const handleConfirm = async () => {
   if (isBusy.value || isAutoGenerating.value) return null;
 
   isAutoGenerating.value = true;
+  let assistantMessage = null;
 
   try {
-    const data = await generatePpt({
+    assistantMessage = appendMessage('assistant', '正在生成 PPT…');
+    let finalData = null;
+
+    await streamGeneratePpt({
       sessionId: sessionId.value,
       fields: fields.value,
       draft: draft.value,
-      scene: draft.value ? ensureLocalScene() : null
+      scene: draft.value ? ensureLocalScene() : null,
+      onEvent: ({ event, data }) => {
+        if (event === 'status') {
+          updateMessageText(assistantMessage.id, data?.text || '正在生成 PPT…');
+          return;
+        }
+        if (event === 'error') {
+          updateMessageText(assistantMessage.id, data?.message || '生成失败，请稍后重试。');
+          return;
+        }
+        if (event === 'result') {
+          finalData = data;
+          applyChatPayload(data, { assistantMessageId: assistantMessage.id });
+        }
+      }
     });
-    applyChatPayload(data);
-    return data;
+
+    return finalData;
   } catch (error) {
-    appendMessage('assistant', '生成失败，请稍后重试。');
+    if (assistantMessage) {
+      updateMessageText(assistantMessage.id, '生成失败，请稍后重试。');
+    } else {
+      appendMessage('assistant', '生成失败，请稍后重试。');
+    }
     return null;
   } finally {
     isAutoGenerating.value = false;

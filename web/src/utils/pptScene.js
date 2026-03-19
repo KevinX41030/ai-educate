@@ -34,6 +34,31 @@ const inferVariant = (slide) => {
 
 const findBlock = (blocks, type) => (Array.isArray(blocks) ? blocks : []).find((block) => block?.type === type) || null;
 
+const joinTextParts = (parts = []) => parts.map((item) => `${item || ''}`.trim()).filter(Boolean).join('；');
+
+const buildCalloutTitle = (slide, fallback = '课堂提示') => {
+  if (Array.isArray(slide?.commonMistakes) && slide.commonMistakes.length) return '易错提醒';
+  if (slide?.example) return '案例提示';
+  if (slide?.visual) return '视觉提示';
+  return fallback;
+};
+
+const buildCalloutText = (slide, fallbackTexts = []) => {
+  const mistakes = Array.isArray(slide?.commonMistakes)
+    ? slide.commonMistakes.slice(0, 3).map((item) => `易错：${item}`)
+    : [];
+
+  return joinTextParts([
+    slide?.example,
+    slide?.notes,
+    slide?.visual ? `视觉提示：${slide.visual}` : '',
+    ...mistakes,
+    ...fallbackTexts
+  ]);
+};
+
+const buildQuestionText = (slide, fallbackTexts = []) => joinTextParts([slide?.question, ...fallbackTexts]);
+
 const extractBullets = (slide, fallbackSlide = {}) => {
   const blockTypes = ['bullets', 'factCards', 'steps', 'columns', 'taskCards', 'summaryCards'];
   for (const type of blockTypes) {
@@ -92,10 +117,45 @@ export function createSceneFromDraft(draft) {
           items: bullets
         }));
       } else {
-        blocks.push(createBlock('bullets', {
-          id: `${slide?.id || `slide-${index}`}-bullets`,
+        const variant = inferVariant(slide);
+        const primaryType = {
+          concept: 'factCards',
+          process: 'steps',
+          case: 'columns',
+          activity: 'taskCards'
+        }[variant] || 'bullets';
+
+        blocks.push(createBlock(primaryType, {
+          id: `${slide?.id || `slide-${index}`}-${primaryType}`,
+          title: primaryType === 'factCards'
+            ? '核心认识'
+            : primaryType === 'steps'
+              ? '学习步骤'
+              : primaryType === 'columns'
+                ? '案例拆解'
+                : primaryType === 'taskCards'
+                  ? '课堂任务板'
+                  : '',
           items: bullets.length ? bullets : ['待补充内容']
         }));
+
+        const calloutText = buildCalloutText(slide, [bullets[1], bullets[0]]);
+        if (calloutText) {
+          blocks.push(createBlock('callout', {
+            id: `${slide?.id || `slide-${index}`}-callout`,
+            title: buildCalloutTitle(slide),
+            text: calloutText
+          }));
+        }
+
+        const questionText = buildQuestionText(slide, []);
+        if (questionText) {
+          blocks.push(createBlock('question', {
+            id: `${slide?.id || `slide-${index}`}-question`,
+            title: '互动提问',
+            text: questionText
+          }));
+        }
       }
 
       return {
@@ -105,7 +165,7 @@ export function createSceneFromDraft(draft) {
         variant: role === 'content' ? inferVariant(slide) : role,
         background: { type: 'solid', color: theme.background },
         blocks,
-        notes: slide?.notes || ''
+        notes: joinTextParts([slide?.speakerNotes, slide?.notes, slide?.teachingGoal])
       };
     }),
     updatedAt: draft.updatedAt || new Date().toISOString()
@@ -119,18 +179,27 @@ export function mergeDraftWithScene(draft, scene) {
   const ppt = scene.slides.map((slide, index) => {
     const fallbackSlide = fallbackSlides[index] || {};
     const titleBlock = findBlock(slide.blocks, 'title');
+    const calloutBlock = findBlock(slide.blocks, 'callout');
+    const questionBlock = findBlock(slide.blocks, 'question');
     return {
       id: slide?.id || fallbackSlide.id || uid('slide'),
       title: slide?.title || titleBlock?.text || fallbackSlide.title || '内容',
       type: VALID_ROLES.has(slide?.role) ? slide.role : (fallbackSlide.type || 'content'),
       bullets: extractBullets(slide, fallbackSlide),
-      notes: slide?.notes || fallbackSlide.notes || ''
+      example: calloutBlock?.text || fallbackSlide.example || '',
+      question: questionBlock?.text || fallbackSlide.question || '',
+      visual: fallbackSlide.visual || '',
+      notes: slide?.notes || fallbackSlide.notes || '',
+      teachingGoal: fallbackSlide.teachingGoal || '',
+      speakerNotes: fallbackSlide.speakerNotes || '',
+      commonMistakes: Array.isArray(fallbackSlide.commonMistakes) ? fallbackSlide.commonMistakes : []
     };
   });
 
   return {
     ...draft,
     designPreset: scene.designPreset || draft.designPreset || 'corporate',
+    brief: draft.brief || null,
     theme: {
       ...(draft.theme || {}),
       ...(scene.theme || {})
