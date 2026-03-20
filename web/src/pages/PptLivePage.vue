@@ -1,102 +1,120 @@
 <template>
-  <section class="ppt-live-page" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
-    <!-- Collapsed mini sidebar -->
-    <aside v-if="sidebarCollapsed" class="ppt-live-minibar">
-      <button class="minibar-btn" title="展开侧边栏" @click="sidebarCollapsed = false">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="minibar-divider"></div>
-      <button class="minibar-btn" title="返回整理页" @click="goBack">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 14l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button class="minibar-btn" title="重新排版" :disabled="!draft" @click="handleRegenerateScene">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15 9a6 6 0 11-1.5-3.96" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M15 3v3.5h-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button class="minibar-btn" title="导出 PPT" @click="handleExport">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v9M5.5 8.5L9 12l3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 14h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </button>
-      <div class="minibar-spacer"></div>
-      <div class="minibar-page-count">{{ slideCount }}</div>
-    </aside>
-
-    <!-- Full sidebar -->
-    <aside v-else class="ppt-live-sidebar shell-card">
-      <div class="sidebar-head-row">
-        <span class="panel-kicker">生成页</span>
-        <button class="sidebar-collapse-btn" title="收起侧边栏" @click="sidebarCollapsed = true">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <section class="ppt-live-page" :style="pageGridStyle">
+    <!-- Sidebar wrapper with drag handle -->
+    <aside
+      class="ppt-live-sidebar-wrap"
+      :class="{ 'is-collapsed': isCollapsed, 'is-dragging': isDragging }"
+      :style="{ width: sidebarWidth + 'px' }"
+    >
+      <!-- Collapsed mini sidebar -->
+      <div v-if="isCollapsed" class="ppt-live-minibar">
+        <button class="minibar-btn" title="展开侧边栏" @click="expandSidebar">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-      </div>
-      <div class="ppt-live-intro">
-        <h1>{{ draft ? 'PPT 已生成' : '正在生成 PPT' }}</h1>
-        <p>{{ pageDescription }}</p>
-      </div>
-
-      <div class="ppt-live-status-card">
-        <div class="ppt-live-status-row">
-          <span>当前状态</span>
-          <strong>{{ stageStatusText }}</strong>
-        </div>
-        <div class="ppt-live-status-grid">
-          <div>
-            <span>页面数量</span>
-            <strong>{{ slideCount }} 页</strong>
-          </div>
-          <div>
-            <span>资料数量</span>
-            <strong>{{ files.length }} 份</strong>
-          </div>
-        </div>
-        <p>{{ summarySnippet }}</p>
-      </div>
-
-      <div v-if="recognizedFields.length" class="ppt-live-fields-card">
-        <span class="ppt-live-label">课程信息</span>
-        <div class="ppt-live-fields-list">
-          <div v-for="item in recognizedFields" :key="item.label" class="ppt-live-field-item">
-            <span>{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </div>
-        </div>
-      </div>
-
-      <div class="ppt-live-actions">
-        <button class="ghost" type="button" @click="goBack">返回整理页</button>
-        <button class="secondary" type="button" :disabled="!draft" @click="handleRegenerateScene">
-          重新排版
+        <div class="minibar-divider"></div>
+        <button class="minibar-btn" title="重新排版" :disabled="!draft" @click="handleRegenerateScene">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15 9a6 6 0 11-1.5-3.96" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M15 3v3.5h-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+        <button class="minibar-btn" title="导出 PPT" @click="handleExport">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v9M5.5 8.5L9 12l3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 14h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div class="minibar-spacer"></div>
+        <div class="minibar-page-count">{{ slideCount }}</div>
       </div>
 
-      <label v-if="draft" class="ppt-live-section">
-        <span class="ppt-live-label">继续调整</span>
-        <textarea
-          v-model="followup"
-          rows="4"
-          placeholder="继续补充课堂风格、页面重点或要调整的内容。"
-          @keydown.enter.exact.prevent="handleFollowup"
-        ></textarea>
-      </label>
-
-      <button v-if="draft" class="secondary" type="button" :disabled="!canFollowup" @click="handleFollowup">
-        调整当前 PPT
-      </button>
-
-      <div class="ppt-live-feed">
-        <div class="ppt-live-feed-head">
-          <span class="ppt-live-label">处理记录</span>
-          <strong>{{ recentMessages.length }} 条</strong>
+      <!-- Full sidebar content -->
+      <div v-else class="ppt-live-sidebar shell-card">
+        <div class="sidebar-head-row">
+          <span class="panel-kicker">生成页</span>
+          <button class="sidebar-collapse-btn" title="收起侧边栏" @click="collapseSidebar">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
-        <div class="ppt-live-feed-list">
-          <article
-            v-for="(message, index) in recentMessages"
-            :key="message.id || `${message.role}-${index}`"
-            class="ppt-live-feed-item"
-            :class="message.role"
-          >
-            <span>{{ message.role === 'user' ? '你' : 'AI' }}</span>
-            <p>{{ message.text }}</p>
-          </article>
+        <div class="ppt-live-intro">
+          <h1>{{ draft ? 'PPT 已生成' : '正在生成 PPT' }}</h1>
+          <p>{{ pageDescription }}</p>
         </div>
+
+        <div class="ppt-live-status-card">
+          <div class="ppt-live-status-row">
+            <span>当前状态</span>
+            <strong>{{ stageStatusText }}</strong>
+          </div>
+          <div class="ppt-live-status-grid">
+            <div>
+              <span>页面数量</span>
+              <strong>{{ slideCount }} 页</strong>
+            </div>
+            <div>
+              <span>资料数量</span>
+              <strong>{{ files.length }} 份</strong>
+            </div>
+          </div>
+          <p>{{ summarySnippet }}</p>
+        </div>
+
+        <div v-if="recognizedFields.length" class="ppt-live-fields-card">
+          <span class="ppt-live-label">课程信息</span>
+          <div class="ppt-live-fields-list">
+            <div
+              v-for="item in recognizedFields"
+              :key="item.label"
+              class="ppt-live-field-item"
+              :class="{ 'field-full': isLongField(item) }"
+            >
+              <span>{{ item.label }}</span>
+              <strong :title="item.value">{{ item.value }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="ppt-live-actions">
+          <button class="ghost" type="button" @click="goBack">返回整理页</button>
+          <button class="secondary" type="button" :disabled="!draft" @click="handleRegenerateScene">
+            重新排版
+          </button>
+        </div>
+
+        <label v-if="draft" class="ppt-live-section">
+          <span class="ppt-live-label">继续调整</span>
+          <textarea
+            v-model="followup"
+            rows="4"
+            placeholder="继续补充课堂风格、页面重点或要调整的内容。"
+            @keydown.enter.exact.prevent="handleFollowup"
+          ></textarea>
+        </label>
+
+        <button v-if="draft" class="secondary" type="button" :disabled="!canFollowup" @click="handleFollowup">
+          调整当前 PPT
+        </button>
+
+        <div class="ppt-live-feed">
+          <div class="ppt-live-feed-head">
+            <span class="ppt-live-label">处理记录</span>
+            <strong>{{ recentMessages.length }} 条</strong>
+          </div>
+          <div class="ppt-live-feed-list">
+            <article
+              v-for="(message, index) in recentMessages"
+              :key="message.id || `${message.role}-${index}`"
+              class="ppt-live-feed-item"
+              :class="message.role"
+            >
+              <span>{{ message.role === 'user' ? '你' : 'AI' }}</span>
+              <p>{{ message.text }}</p>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drag handle -->
+      <div
+        class="sidebar-drag-handle"
+        @mousedown.prevent="startDrag"
+        @dblclick="toggleSidebar"
+      >
+        <div class="drag-handle-line"></div>
       </div>
     </aside>
 
@@ -135,8 +153,51 @@ const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const route = useRoute();
 const router = useRouter();
 const followup = ref('');
-const sidebarCollapsed = ref(false);
 const autostartHandled = ref(false);
+
+// --- Draggable sidebar ---
+const DEFAULT_WIDTH = 340;
+const MIN_WIDTH = 56;
+const COLLAPSE_THRESHOLD = 120;
+const MAX_WIDTH = 500;
+
+const sidebarWidth = ref(DEFAULT_WIDTH);
+const isDragging = ref(false);
+const isCollapsed = computed(() => sidebarWidth.value <= COLLAPSE_THRESHOLD);
+
+const pageGridStyle = computed(() => ({
+  gridTemplateColumns: `${sidebarWidth.value}px minmax(0, 1fr)`
+}));
+
+const expandSidebar = () => { sidebarWidth.value = DEFAULT_WIDTH; };
+const collapseSidebar = () => { sidebarWidth.value = MIN_WIDTH; };
+const toggleSidebar = () => {
+  sidebarWidth.value = isCollapsed.value ? DEFAULT_WIDTH : MIN_WIDTH;
+};
+
+const startDrag = (e) => {
+  isDragging.value = true;
+  const startX = e.clientX;
+  const startW = sidebarWidth.value;
+
+  const onMove = (ev) => {
+    const dx = ev.clientX - startX;
+    let newW = startW + dx;
+    if (newW < COLLAPSE_THRESHOLD) newW = MIN_WIDTH;
+    else if (newW < 200) newW = 200;
+    else if (newW > MAX_WIDTH) newW = MAX_WIDTH;
+    sidebarWidth.value = newW;
+  };
+
+  const onUp = () => {
+    isDragging.value = false;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+};
 
 const {
   draft,
@@ -193,6 +254,11 @@ const recognizedFields = computed(() => {
   ];
   return items.filter((item) => `${item.value || ''}`.trim());
 });
+
+const isLongField = (item) => {
+  const val = `${item.value || ''}`;
+  return val.length > 20 || item.label === '目标' || item.label === '知识点';
+};
 
 // --- Slide editing handlers ---
 
@@ -298,20 +364,58 @@ watch(
 <style scoped>
 .ppt-live-page {
   display: grid;
-  grid-template-columns: 340px minmax(0, 1fr);
   gap: 0;
   min-height: 100vh;
 }
 
-.ppt-live-page.sidebar-collapsed {
-  grid-template-columns: 56px minmax(0, 1fr);
+/* Sidebar wrapper */
+.ppt-live-sidebar-wrap {
+  position: relative;
+  display: flex;
+  min-width: 56px;
+  max-width: 500px;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Collapsed mini sidebar */
+.ppt-live-sidebar-wrap.is-dragging {
+  transition: none;
+  user-select: none;
+}
+
+/* Drag handle */
+.sidebar-drag-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-drag-handle:hover .drag-handle-line,
+.is-dragging .drag-handle-line {
+  opacity: 1;
+  width: 3px;
+  background: #658AE4;
+}
+
+.drag-handle-line {
+  width: 2px;
+  height: 40px;
+  border-radius: 4px;
+  background: #c4cad8;
+  opacity: 0;
+  transition: opacity 0.2s, width 0.2s, background 0.2s;
+}
 .ppt-live-minibar {
   position: sticky;
   top: 0;
   height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -504,6 +608,28 @@ watch(
   padding: 10px 12px;
   border-radius: 10px;
   background: rgba(247, 247, 248, 0.92);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ppt-live-field-item strong {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.5;
+  max-height: 4.5em;
+  overflow-y: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.ppt-live-field-item.field-full {
+  grid-column: 1 / -1;
+}
+
+.ppt-live-field-item.field-full strong {
+  max-height: 6em;
+  -webkit-line-clamp: 4;
 }
 
 .ppt-live-status-card p,

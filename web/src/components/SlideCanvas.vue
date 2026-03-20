@@ -206,30 +206,62 @@ const deleteSlide = (index) => {
 .sc-btn-export {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  background: #658AE4;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #658AE4 0%, #4F6BD9 50%, #7C5CE7 100%);
   color: white;
   font-size: 13px;
   font-weight: 700;
   border: none;
   cursor: pointer;
-  transition: background 0.2s;
+  box-shadow: 0 2px 12px rgba(101, 138, 228, 0.35);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.02em;
+}
+
+.sc-btn-export::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.sc-btn-export:hover::before {
+  left: 100%;
 }
 
 .sc-btn-export:hover {
-  background: #4a72d4;
-  transform: none;
+  background: linear-gradient(135deg, #5279d8 0%, #4562cc 50%, #6B4FD4 100%);
+  box-shadow: 0 4px 20px rgba(101, 138, 228, 0.5);
+  transform: translateY(-1px);
+}
+
+.sc-btn-export:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(101, 138, 228, 0.3);
 }
 
 .sc-btn-export:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.sc-btn-export:disabled::before {
+  display: none;
 }
 
 .sc-btn-export svg {
   flex-shrink: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
 }
 
 /* Empty state */
