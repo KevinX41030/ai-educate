@@ -23,11 +23,11 @@
 
     <div v-if="showGenerateCta" class="workspace-generate-cta">
       <div class="workspace-generate-cta__content">
-        <strong>课程信息已经齐全，可以直接生成 PPT</strong>
-        <p>这里不需要再等 AI 口头确认，点击后会直接进入生成页开始生成。</p>
+        <strong>{{ ctaTitle }}</strong>
+        <p>{{ ctaReason }}</p>
       </div>
       <button class="primary" type="button" :disabled="busy" @click="handleGenerate">
-        {{ busy ? '生成中…' : '立即生成 PPT' }}
+        {{ busy ? '生成中…' : ctaLabel }}
       </button>
     </div>
 
@@ -78,6 +78,14 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  ctaLabel: {
+    type: String,
+    default: '立即生成 PPT'
+  },
+  ctaReason: {
+    type: String,
+    default: '课程信息已经足够完整，可以直接开始生成。'
+  },
   hasDraft: {
     type: Boolean,
     default: false
@@ -104,6 +112,12 @@ const isDragging = ref(false);
 
 const canSubmit = computed(() => input.value.trim().length > 0);
 const showGenerateCta = computed(() => props.canGenerate && !props.hasDraft);
+const ctaTitle = computed(() => {
+  if (props.ctaLabel && props.ctaLabel !== '立即生成 PPT') {
+    return props.ctaLabel;
+  }
+  return 'AI 判断当前信息已经足够，可以直接生成 PPT';
+});
 
 const scrollToBottom = async () => {
   await nextTick();

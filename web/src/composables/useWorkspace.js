@@ -58,12 +58,22 @@ const buildMissingFields = (currentFields) =>
 
 const buildIntentPayload = (state = {}) => {
   const nextFields = normalizeFields(state.fields);
+  const missingFields = buildMissingFields(nextFields);
+  const ready = Boolean(state.ready) || missingFields.length === 0;
+  const nextAction = state.nextAction || (ready ? 'ready_to_generate' : 'ask_more');
+  const showGenerateCTA = typeof state.showGenerateCTA === 'boolean'
+    ? state.showGenerateCTA
+    : nextAction === 'ready_to_generate';
   return {
     fields: nextFields,
-    missingFields: buildMissingFields(nextFields),
-    ready: Boolean(state.ready),
+    missingFields,
+    ready,
     confirmed: Boolean(state.confirmed),
-    sceneStatus: state.sceneStatus || 'idle'
+    sceneStatus: state.sceneStatus || 'idle',
+    nextAction,
+    showGenerateCTA,
+    ctaLabel: state.ctaLabel || '立即生成 PPT',
+    ctaReason: state.ctaReason || (ready ? '课程信息已经足够完整，可以直接开始生成。' : '')
   };
 };
 
@@ -306,7 +316,14 @@ const missingFieldLabels = computed(() =>
   (intent.value?.missingFields || []).map((field) => FIELD_LABELS[field] || field)
 );
 const exportLabel = computed(() => '导出PPT');
-const canGeneratePpt = computed(() => Boolean(intent.value?.ready));
+const canGeneratePpt = computed(() => {
+  if (typeof intent.value?.showGenerateCTA === 'boolean') {
+    return intent.value.showGenerateCTA;
+  }
+  return Boolean(intent.value?.ready);
+});
+const generateCtaLabel = computed(() => intent.value?.ctaLabel || '立即生成 PPT');
+const generateCtaReason = computed(() => intent.value?.ctaReason || '课程信息已经足够完整，可以直接开始生成。');
 const lessonTitle = computed(() => fields.value.subject || '未命名课件');
 const keyPointPreview = computed(() => normalizedKeyPoints.value.slice(0, 3).join('、') || '待填写');
 const outlineSlides = computed(() => {
@@ -370,14 +387,14 @@ const handleFieldChange = (key, value) => {
   summary.value = buildSummary(nextFields);
 
   const nextMissingFields = buildMissingFields(nextFields);
-  intent.value = {
+  intent.value = buildIntentPayload({
     ...intent.value,
     fields: nextFields,
     missingFields: nextMissingFields,
     ready: nextMissingFields.length === 0,
     confirmed: nextMissingFields.length === 0 ? Boolean(intent.value?.confirmed) : false,
     sceneStatus: sceneStatus.value
-  };
+  });
 };
 
 const syncFields = async () => {
@@ -524,6 +541,8 @@ export function useWorkspace() {
     missingFieldLabels,
     exportLabel,
     canGeneratePpt,
+    generateCtaLabel,
+    generateCtaReason,
     lessonTitle,
     keyPointPreview,
     workspacePhase,

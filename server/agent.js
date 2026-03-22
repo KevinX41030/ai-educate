@@ -34,6 +34,18 @@ const SMALL_TALK_RESPONSES = {
   bye: "好的，随时需要我再找我。"
 };
 
+const VALID_NEXT_ACTIONS = new Set(['ask_more', 'ready_to_generate', 'edit_existing']);
+
+function createInitialAiDecision() {
+  return {
+    nextAction: 'ask_more',
+    showGenerateCTA: false,
+    ctaLabel: '',
+    ctaReason: '',
+    updatedAt: ''
+  };
+}
+
 function createInitialBrief() {
   return {
     rawInputs: [],
@@ -56,6 +68,7 @@ function createInitialState() {
     },
     uploadedFiles: [],
     brief: createInitialBrief(),
+    aiDecision: createInitialAiDecision(),
     ready: false,
     confirmed: false,
     draft: null,
@@ -422,13 +435,94 @@ function getMissingFields(state) {
   });
 }
 
+function buildFallbackAiDecision(state) {
+  if (state?.draft) {
+    return {
+      nextAction: 'edit_existing',
+      showGenerateCTA: false,
+      ctaLabel: '查看 PPT',
+      ctaReason: '当前草稿已生成，可以继续调整或查看页面。'
+    };
+  }
+
+  const missingFields = getMissingFields(state);
+  if (missingFields.length === 0) {
+    return {
+      nextAction: 'ready_to_generate',
+      showGenerateCTA: true,
+      ctaLabel: '立即生成 PPT',
+      ctaReason: '课程信息已经足够完整，可以直接开始生成。'
+    };
+  }
+
+  return {
+    nextAction: 'ask_more',
+    showGenerateCTA: false,
+    ctaLabel: '立即生成 PPT',
+    ctaReason: ''
+  };
+}
+
+function resolveAiDecision(state) {
+  const fallback = buildFallbackAiDecision(state);
+  const stored = state?.aiDecision && typeof state.aiDecision === 'object' ? state.aiDecision : {};
+  const hasStoredDecision = typeof stored.updatedAt === 'string' && Boolean(stored.updatedAt);
+  const nextAction = hasStoredDecision && VALID_NEXT_ACTIONS.has(stored.nextAction) ? stored.nextAction : fallback.nextAction;
+  const showGenerateCTA = hasStoredDecision && typeof stored.showGenerateCTA === 'boolean'
+    ? stored.showGenerateCTA
+    : fallback.showGenerateCTA;
+  return {
+    nextAction,
+    showGenerateCTA: nextAction === 'edit_existing' ? false : showGenerateCTA,
+    ctaLabel: hasStoredDecision && typeof stored.ctaLabel === 'string' && stored.ctaLabel.trim()
+      ? stored.ctaLabel.trim()
+      : fallback.ctaLabel,
+    ctaReason: hasStoredDecision && typeof stored.ctaReason === 'string' && stored.ctaReason.trim()
+      ? stored.ctaReason.trim()
+      : fallback.ctaReason,
+    updatedAt: hasStoredDecision ? stored.updatedAt : ''
+  };
+}
+
+function applyAiDecision(state, decision = null) {
+  const fallback = buildFallbackAiDecision(state);
+  const raw = decision && typeof decision === 'object' ? decision : {};
+  const nextAction = VALID_NEXT_ACTIONS.has(raw.nextAction) ? raw.nextAction : fallback.nextAction;
+
+  state.aiDecision = {
+    nextAction,
+    showGenerateCTA: nextAction === 'edit_existing'
+      ? false
+      : (typeof raw.showGenerateCTA === 'boolean' ? raw.showGenerateCTA : fallback.showGenerateCTA),
+    ctaLabel: typeof raw.ctaLabel === 'string' && raw.ctaLabel.trim()
+      ? raw.ctaLabel.trim()
+      : fallback.ctaLabel,
+    ctaReason: typeof raw.ctaReason === 'string' && raw.ctaReason.trim()
+      ? raw.ctaReason.trim()
+      : fallback.ctaReason,
+    updatedAt: new Date().toISOString()
+  };
+
+  return state.aiDecision;
+}
+
+function canGenerateFromState(state) {
+  const decision = resolveAiDecision(state);
+  return decision.nextAction === 'ready_to_generate' || getMissingFields(state).length === 0;
+}
+
 function buildIntentPayload(state) {
+  const decision = resolveAiDecision(state);
   return {
     fields: state.fields,
     missingFields: getMissingFields(state),
-    ready: state.ready,
+    ready: canGenerateFromState(state),
     confirmed: state.confirmed,
-    sceneStatus: state.sceneStatus || 'idle'
+    sceneStatus: state.sceneStatus || 'idle',
+    nextAction: decision.nextAction,
+    showGenerateCTA: decision.showGenerateCTA,
+    ctaLabel: decision.ctaLabel,
+    ctaReason: decision.ctaReason
   };
 }
 
@@ -661,8 +755,9 @@ function getNextQuestion(state) {
 async function generatePresentation(state, options = {}) {
   ensureBrief(state);
   const missingFields = getMissingFields(state);
-  if (missingFields.length) {
+  if (!canGenerateFromState(state) && missingFields.length) {
     state.ready = false;
+    applyAiDecision(state, null);
     return {
       error: 'missing_fields',
       missingFields,
@@ -688,6 +783,7 @@ async function generatePresentation(state, options = {}) {
     if (state.draft && !state.draft.brief) {
       state.draft.brief = state.brief || null;
     }
+    applyAiDecision(state, { nextAction: 'edit_existing', showGenerateCTA: false });
     syncSceneFromDraft(state);
     state.confirmed = true;
 
@@ -702,6 +798,7 @@ async function generatePresentation(state, options = {}) {
   if (!state.scene) {
     syncSceneFromDraft(state);
   }
+  applyAiDecision(state, { nextAction: 'edit_existing', showGenerateCTA: false });
   state.confirmed = true;
 
   return {
@@ -732,6 +829,8 @@ async function handleMessage(state, text, messages = [], options = {}) {
     mergeFields(state, llmResult.fields);
   }
 
+  applyAiDecision(state, llmResult);
+
   const assistantReply = typeof llmResult?.assistantReply === 'string'
     ? llmResult.assistantReply.trim()
     : '';
@@ -751,6 +850,7 @@ async function handleMessage(state, text, messages = [], options = {}) {
 
   const missingFields = getMissingFields(state);
   const missingField = missingFields[0];
+  const canGenerate = canGenerateFromState(state);
 
   const smallTalkIntent = getSmallTalkIntent(text);
   if (smallTalkIntent) {
@@ -762,7 +862,7 @@ async function handleMessage(state, text, messages = [], options = {}) {
     };
   }
 
-  if (missingField) {
+  if (missingField && !canGenerate) {
     state.ready = false;
     return {
       reply: assistantReply || buildMissingFieldsReply(state),
@@ -771,7 +871,7 @@ async function handleMessage(state, text, messages = [], options = {}) {
   }
 
   if (!state.ready) {
-    state.ready = true;
+    state.ready = canGenerate;
     return {
       reply: assistantReply || buildReadyReply(state),
       state

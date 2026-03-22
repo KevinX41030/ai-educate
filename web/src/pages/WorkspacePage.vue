@@ -20,6 +20,8 @@
         :messages="messages"
         :busy="isBusy || isAutoGenerating"
         :can-generate="canGeneratePpt"
+        :cta-label="generateCtaLabel"
+        :cta-reason="generateCtaReason"
         :has-draft="Boolean(draft)"
         :on-send="handleSend"
         :on-generate="handleGenerate"
@@ -46,6 +48,8 @@ const {
   exportLabel,
   fields,
   files,
+  generateCtaLabel,
+  generateCtaReason,
   handleClear,
   handleConfirm,
   handleFieldChange,

@@ -265,13 +265,20 @@ async function extractIntentWithLLM({ state, messages, text, onTextDelta }) {
           '"fields": {"subject": string|null, "grade": string|null, "duration": string|null, "goals": string|null, "keyPoints": string[]|null, "style": string|null, "interactions": string|null},' +
           '"intent": "provide_info"|"confirm"|"edit"|"other",' +
           '"edit": string|null,' +
-          '"assistantReply": string|null' +
+          '"assistantReply": string|null,' +
+          '"nextAction": "ask_more"|"ready_to_generate"|"edit_existing"|null,' +
+          '"showGenerateCTA": boolean|null,' +
+          '"ctaLabel": string|null,' +
+          '"ctaReason": string|null' +
           '}。' +
           'assistantReply 必须是直接对用户说的话，语气自然、主动、有帮助，避免机械列清单。' +
           '如果信息还不完整：先概括你已经理解到的重点，再只追问 1-2 个最关键的问题；不要一次把所有缺失字段都像表单一样抛给用户。' +
           '如果用户给了大段描述：优先表示你理解了什么，并主动给出下一步建议，例如“我可以先按这个方向起草，再和你一起细调”。' +
           '如果用户是在闲聊/试探：正常回应，同时轻柔地把话题带回教学需求。' +
-          '如果你判断信息已经足够开始生成：assistantReply 要明确告诉用户“已经可以开始生成”，但语气不要生硬。' +
+          '如果你判断信息已经足够开始生成第一版 PPT：nextAction=ready_to_generate，showGenerateCTA=true，ctaLabel/ctaReason 要给出简短明确的按钮文案和触发理由。' +
+          '如果还需要继续补充：nextAction=ask_more，showGenerateCTA=false。' +
+          '如果当前已经有草稿，且用户是在调整现有内容：nextAction=edit_existing，showGenerateCTA=false。' +
+          '是否 ready_to_generate 由你根据整段对话和用户原始需求判断，不要求表单字段必须全部填满。' +
           '允许合理归纳与推断（例如“给初二讲光合作用”→ subject=光合作用, grade=初二）。' +
           '如果无法判断则返回 null，不要编造。' +
           '当用户只是问候/闲聊且没有课程信息时，intent=other。' +
