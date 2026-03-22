@@ -732,6 +732,10 @@ async function handleMessage(state, text, messages = [], options = {}) {
     mergeFields(state, llmResult.fields);
   }
 
+  const assistantReply = typeof llmResult?.assistantReply === 'string'
+    ? llmResult.assistantReply.trim()
+    : '';
+
   const editInstruction = llmResult?.edit || text;
   if (state.draft && (llmResult?.intent === "edit" || isEdit(text))) {
     state.draft = applyEdit(state.draft, editInstruction);
@@ -751,7 +755,7 @@ async function handleMessage(state, text, messages = [], options = {}) {
   const smallTalkIntent = getSmallTalkIntent(text);
   if (smallTalkIntent) {
     return {
-      reply: buildSmallTalkReply(smallTalkIntent, state, missingField),
+      reply: assistantReply || buildSmallTalkReply(smallTalkIntent, state, missingField),
       state,
       draft: state.draft || null,
       scene: state.scene || null
@@ -761,7 +765,7 @@ async function handleMessage(state, text, messages = [], options = {}) {
   if (missingField) {
     state.ready = false;
     return {
-      reply: buildMissingFieldsReply(state),
+      reply: assistantReply || buildMissingFieldsReply(state),
       state
     };
   }
@@ -769,7 +773,7 @@ async function handleMessage(state, text, messages = [], options = {}) {
   if (!state.ready) {
     state.ready = true;
     return {
-      reply: buildReadyReply(state),
+      reply: assistantReply || buildReadyReply(state),
       state
     };
   }
@@ -779,9 +783,9 @@ async function handleMessage(state, text, messages = [], options = {}) {
   }
 
   return {
-    reply: state.draft
+    reply: assistantReply || (state.draft
       ? "已记录你的补充。需要我继续调整 PPT，还是再补充细节？"
-      : "已记录你的补充。信息齐全后，可点击“生成 PPT”进入生成页。",
+      : "已记录你的补充。信息齐全后，可点击“生成 PPT”进入生成页。"),
     state
   };
 }

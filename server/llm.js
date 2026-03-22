@@ -219,6 +219,8 @@ function buildContext(state, messages, text) {
 
   const fields = state?.fields || {};
   const keyPoints = Array.isArray(fields.keyPoints) ? fields.keyPoints.join('、') : '';
+  const brief = buildBriefPayload(state?.brief);
+  const briefText = brief?.mergedPrompt || '';
 
   return [
     `当前已知信息：`,
@@ -229,6 +231,7 @@ function buildContext(state, messages, text) {
     `核心知识点：${keyPoints || '未填写'}`,
     `教学风格：${fields.style || '未填写'}`,
     `互动设计：${fields.interactions || '未填写'}`,
+    briefText ? `\n用户原始需求摘录：\n${briefText}` : '',
     history ? `\n对话历史：\n${history}` : '',
     `\n用户最新输入：${text}`
   ].filter(Boolean).join('\n');
@@ -256,12 +259,19 @@ async function extractIntentWithLLM({ state, messages, text, onTextDelta }) {
       {
         role: 'system',
         content:
-          '你是教学智能体的需求分析助手。请根据用户输入更新教学意图字段，并判断用户意图。' +
+          '你是一个会自由对话的教学智能助手，不是填表机器人。你的职责是：一边自然交流，一边逐步整理教学需求。' +
+          '请根据用户输入更新教学意图字段，并给出一段自然、有人味、能继续推进对话的中文回复。' +
           '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
           '"fields": {"subject": string|null, "grade": string|null, "duration": string|null, "goals": string|null, "keyPoints": string[]|null, "style": string|null, "interactions": string|null},' +
           '"intent": "provide_info"|"confirm"|"edit"|"other",' +
-          '"edit": string|null' +
+          '"edit": string|null,' +
+          '"assistantReply": string|null' +
           '}。' +
+          'assistantReply 必须是直接对用户说的话，语气自然、主动、有帮助，避免机械列清单。' +
+          '如果信息还不完整：先概括你已经理解到的重点，再只追问 1-2 个最关键的问题；不要一次把所有缺失字段都像表单一样抛给用户。' +
+          '如果用户给了大段描述：优先表示你理解了什么，并主动给出下一步建议，例如“我可以先按这个方向起草，再和你一起细调”。' +
+          '如果用户是在闲聊/试探：正常回应，同时轻柔地把话题带回教学需求。' +
+          '如果你判断信息已经足够开始生成：assistantReply 要明确告诉用户“已经可以开始生成”，但语气不要生硬。' +
           '允许合理归纳与推断（例如“给初二讲光合作用”→ subject=光合作用, grade=初二）。' +
           '如果无法判断则返回 null，不要编造。' +
           '当用户只是问候/闲聊且没有课程信息时，intent=other。' +
