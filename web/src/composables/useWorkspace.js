@@ -250,6 +250,8 @@ const sendInternal = async (text, options = {}) => {
     const syncedScene = draft.value ? ensureLocalScene() : null;
     assistantMessage = appendMessage('assistant', '正在理解你的课程需求…');
     let finalData = null;
+    let streamedReply = '';
+    let hasReplyDelta = false;
 
     await streamMessage({
       sessionId: sessionId.value,
@@ -257,12 +259,25 @@ const sendInternal = async (text, options = {}) => {
       draft: draft.value,
       scene: syncedScene,
       onEvent: ({ event, data }) => {
+        if (event === 'ping' || event === 'model_delta') {
+          return;
+        }
         if (event === 'status') {
-          updateMessageText(assistantMessage.id, data?.text || '正在理解你的课程需求…');
+          if (!hasReplyDelta) {
+            updateMessageText(assistantMessage.id, data?.text || '正在理解你的课程需求…');
+          }
+          return;
+        }
+        if (event === 'reply_delta') {
+          hasReplyDelta = true;
+          streamedReply += data?.delta || '';
+          updateMessageText(assistantMessage.id, streamedReply || '正在理解你的课程需求…');
           return;
         }
         if (event === 'error') {
-          updateMessageText(assistantMessage.id, data?.fallbackReply || data?.message || '请求失败，请检查服务是否运行。');
+          if (!hasReplyDelta) {
+            updateMessageText(assistantMessage.id, data?.fallbackReply || data?.message || '请求失败，请检查服务是否运行。');
+          }
           return;
         }
         if (event === 'result') {

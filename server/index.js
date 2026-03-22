@@ -113,6 +113,16 @@ function initSse(res) {
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders?.();
+
+  const heartbeat = setInterval(() => {
+    if (!res.writableEnded) {
+      writeSseEvent(res, 'ping', { ts: Date.now() });
+    }
+  }, 15000);
+
+  const cleanup = () => clearInterval(heartbeat);
+  res.on('close', cleanup);
+  return cleanup;
 }
 
 function writeSseEvent(res, event, data = {}) {
@@ -120,9 +130,98 @@ function writeSseEvent(res, event, data = {}) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
-function endSse(res) {
-  writeSseEvent(res, 'done', { ok: true });
-  res.end();
+function endSse(res, cleanup) {
+  cleanup?.();
+  if (!res.writableEnded) {
+    writeSseEvent(res, 'done', { ok: true });
+    res.end();
+  }
+}
+
+function extractPartialJsonStringField(text, fieldName) {
+  const fieldToken = `"${fieldName}"`;
+  const fieldIndex = text.indexOf(fieldToken);
+  if (fieldIndex < 0) return null;
+
+  let index = fieldIndex + fieldToken.length;
+  while (index < text.length && /\s/.test(text[index])) index += 1;
+  if (text[index] !== ':') return null;
+
+  index += 1;
+  while (index < text.length && /\s/.test(text[index])) index += 1;
+  if (text[index] !== '"') return null;
+
+  index += 1;
+  let decoded = '';
+  let escaped = false;
+
+  for (; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (escaped) {
+      if (char === 'u') {
+        const hex = text.slice(index + 1, index + 5);
+        if (!/^[0-9a-fA-F]{4}$/.test(hex)) break;
+        decoded += String.fromCharCode(Number.parseInt(hex, 16));
+        index += 4;
+      } else {
+        const ESCAPE_MAP = {
+          '"': '"',
+          '\\': '\\',
+          '/': '/',
+          b: '\b',
+          f: '\f',
+          n: '\n',
+          r: '\r',
+          t: '\t'
+        };
+        decoded += ESCAPE_MAP[char] ?? char;
+      }
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      return decoded;
+    }
+
+    decoded += char;
+  }
+
+  return decoded;
+}
+
+function createJsonFieldDeltaTracker(fieldName, onDelta) {
+  let rawText = '';
+  let emittedText = '';
+
+  return (delta) => {
+    rawText += String(delta || '');
+    const currentText = extractPartialJsonStringField(rawText, fieldName);
+    if (typeof currentText !== 'string') return;
+    if (!currentText.startsWith(emittedText)) {
+      let prefixLength = 0;
+      const maxPrefix = Math.min(currentText.length, emittedText.length);
+      while (prefixLength < maxPrefix && currentText[prefixLength] === emittedText[prefixLength]) {
+        prefixLength += 1;
+      }
+      const nextDelta = currentText.slice(prefixLength);
+      emittedText = currentText;
+      if (nextDelta) {
+        onDelta?.(nextDelta, currentText);
+      }
+      return;
+    }
+    const nextDelta = currentText.slice(emittedText.length);
+    if (!nextDelta) return;
+    emittedText = currentText;
+    onDelta?.(nextDelta, currentText);
+  };
 }
 
 app.get('/api/status', (_, res) => {
@@ -195,7 +294,7 @@ app.post('/api/ppt/scene/regenerate/stream', async (req, res) => {
   let exportDraft = draft || session?.state?.draft;
   const ragContext = session?.state?.rag || [];
 
-  initSse(res);
+  const cleanupSse = initSse(res);
 
   if (session) {
     const synced = syncClientPresentationState(session.state, draft, scene);
@@ -206,7 +305,7 @@ app.post('/api/ppt/scene/regenerate/stream', async (req, res) => {
 
   if (!exportDraft) {
     writeSseEvent(res, 'error', { error: 'draft_required' });
-    return endSse(res);
+    return endSse(res, cleanupSse);
   }
 
   try {
@@ -219,7 +318,7 @@ app.post('/api/ppt/scene/regenerate/stream', async (req, res) => {
     });
     if (!result.scene) {
       writeSseEvent(res, 'error', { error: 'invalid_draft' });
-      return endSse(res);
+      return endSse(res, cleanupSse);
     }
     if (session) {
       applySceneToState(session.state, result.scene, result.source, 'ready');
@@ -231,10 +330,10 @@ app.post('/api/ppt/scene/regenerate/stream', async (req, res) => {
       source: result.source,
       updatedAt: result.scene.updatedAt
     });
-    return endSse(res);
+    return endSse(res, cleanupSse);
   } catch (error) {
     writeSseEvent(res, 'error', { error: 'scene_regenerate_failed', message: String(error) });
-    return endSse(res);
+    return endSse(res, cleanupSse);
   }
 });
 
@@ -284,7 +383,7 @@ app.post('/api/ppt/generate/stream', async (req, res) => {
   const { sessionId, draft, scene, fields } = req.body || {};
   const session = getSession(sessionId);
 
-  initSse(res);
+  const cleanupSse = initSse(res);
 
   syncClientPresentationState(session.state, draft, scene);
   mergeFields(session.state, fields);
@@ -307,7 +406,7 @@ app.post('/api/ppt/generate/stream', async (req, res) => {
         sceneStatus: result.state?.sceneStatus || 'idle',
         rag: result.state?.rag || []
       });
-      return endSse(res);
+      return endSse(res, cleanupSse);
     }
 
     if (result?.reply) {
@@ -324,10 +423,10 @@ app.post('/api/ppt/generate/stream', async (req, res) => {
       sceneStatus: result.state?.sceneStatus || 'idle',
       rag: result.state?.rag || []
     });
-    return endSse(res);
+    return endSse(res, cleanupSse);
   } catch (error) {
     writeSseEvent(res, 'error', { error: 'ppt_generate_failed', message: String(error) });
-    return endSse(res);
+    return endSse(res, cleanupSse);
   }
 });
 
@@ -425,21 +524,27 @@ app.post('/api/chat/stream', async (req, res) => {
   const { sessionId, text, draft, scene } = req.body || {};
   const session = getSession(sessionId);
 
-  initSse(res);
+  const cleanupSse = initSse(res);
   syncClientPresentationState(session.state, draft, scene);
 
   const trimmed = String(text || '').trim();
   if (!trimmed) {
     writeSseEvent(res, 'error', { error: 'text_required' });
-    return endSse(res);
+    return endSse(res, cleanupSse);
   }
 
   session.messages.push({ role: 'user', text: trimmed, ts: Date.now() });
+  const trackReplyDelta = createJsonFieldDeltaTracker('assistantReply', (delta) => {
+    writeSseEvent(res, 'reply_delta', { delta });
+  });
 
   try {
     writeSseEvent(res, 'status', { text: '正在理解你的课程需求…' });
     const result = await handleMessage(session.state, trimmed, session.messages, {
-      onModelDelta: (delta) => writeSseEvent(res, 'model_delta', { delta })
+      onModelDelta: (delta) => {
+        trackReplyDelta(delta);
+        writeSseEvent(res, 'model_delta', { delta });
+      }
     });
     session.messages.push({ role: 'assistant', text: result.reply, ts: Date.now() });
     writeSseEvent(res, 'result', {
@@ -452,14 +557,14 @@ app.post('/api/chat/stream', async (req, res) => {
       sceneStatus: result.state?.sceneStatus || 'idle',
       rag: result.state?.rag || []
     });
-    return endSse(res);
+    return endSse(res, cleanupSse);
   } catch (error) {
     writeSseEvent(res, 'error', {
       error: 'chat_failed',
       message: String(error),
       fallbackReply: '模型服务暂不可用，请稍后重试。'
     });
-    return endSse(res);
+    return endSse(res, cleanupSse);
   }
 });
 
