@@ -19,7 +19,10 @@
       <WorkspaceChatPanel
         :messages="messages"
         :busy="isBusy || isAutoGenerating"
+        :can-generate="canGeneratePpt"
+        :has-draft="Boolean(draft)"
         :on-send="handleSend"
+        :on-generate="handleGenerate"
         :on-upload="handleUpload"
       />
     </section>

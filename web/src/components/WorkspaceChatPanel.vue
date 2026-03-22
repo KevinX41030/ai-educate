@@ -21,6 +21,16 @@
       </div>
     </div>
 
+    <div v-if="showGenerateCta" class="workspace-generate-cta">
+      <div class="workspace-generate-cta__content">
+        <strong>课程信息已经齐全，可以直接生成 PPT</strong>
+        <p>这里不需要再等 AI 口头确认，点击后会直接进入生成页开始生成。</p>
+      </div>
+      <button class="primary" type="button" :disabled="busy" @click="handleGenerate">
+        {{ busy ? '生成中…' : '立即生成 PPT' }}
+      </button>
+    </div>
+
     <div
       class="workspace-upload-card"
       :class="{ dragging: isDragging }"
@@ -64,7 +74,19 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  canGenerate: {
+    type: Boolean,
+    default: false
+  },
+  hasDraft: {
+    type: Boolean,
+    default: false
+  },
   onSend: {
+    type: Function,
+    required: true
+  },
+  onGenerate: {
     type: Function,
     required: true
   },
@@ -81,6 +103,7 @@ const uploading = ref(false);
 const isDragging = ref(false);
 
 const canSubmit = computed(() => input.value.trim().length > 0);
+const showGenerateCta = computed(() => props.canGenerate && !props.hasDraft);
 
 const scrollToBottom = async () => {
   await nextTick();
@@ -111,6 +134,11 @@ const submit = async () => {
   if (!text || props.busy) return;
   input.value = '';
   await props.onSend(text, { autoGenerate: true });
+};
+
+const handleGenerate = async () => {
+  if (props.busy || !showGenerateCta.value) return;
+  await props.onGenerate();
 };
 
 const triggerFilePicker = () => {
@@ -232,11 +260,40 @@ const handleDrop = async (event) => {
 }
 
 .workspace-upload-card,
+.workspace-generate-cta,
 .workspace-composer-card {
   display: grid;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.workspace-generate-cta {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(90, 79, 255, 0.08), rgba(72, 187, 255, 0.14));
+  border-color: rgba(90, 79, 255, 0.18);
+}
+
+.workspace-generate-cta__content {
+  display: grid;
+  gap: 4px;
+}
+
+.workspace-generate-cta__content strong {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #172033;
+}
+
+.workspace-generate-cta__content p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .workspace-composer-card {
@@ -341,6 +398,10 @@ const handleDrop = async (event) => {
 
   .workspace-message-bubble {
     max-width: 100%;
+  }
+
+  .workspace-generate-cta {
+    grid-template-columns: 1fr;
   }
 }
 </style>
