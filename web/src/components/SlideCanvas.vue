@@ -8,7 +8,7 @@
       </div>
       <div class="sc-header-right">
         <span class="sc-page-count">{{ displaySlides.length }} 页</span>
-        <button class="sc-btn-export" type="button" :disabled="!displaySlides.length" @click="$emit('export')">
+        <button class="sc-btn-export" type="button" :disabled="!displaySlides.length || !canExport" @click="$emit('export')">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M4.5 7L8 10.5 11.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12.5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           导出 PPT
         </button>
@@ -74,6 +74,7 @@ const props = defineProps({
   draft: { type: Object, default: null },
   scene: { type: Object, default: null },
   sceneStatus: { type: String, default: 'idle' },
+  canExport: { type: Boolean, default: true },
   fields: { type: Object, default: () => ({}) }
 });
 
@@ -101,6 +102,7 @@ const theme = computed(() => {
 });
 
 const statusLabel = computed(() => {
+  if (props.sceneStatus === 'drafting') return '逐页生成中';
   if (props.sceneStatus === 'generating') return '生成中';
   if (props.sceneStatus === 'ready') return '已完成';
   if (displaySlides.value.length) return '已生成';
@@ -108,6 +110,7 @@ const statusLabel = computed(() => {
 });
 
 const statusTone = computed(() => {
+  if (props.sceneStatus === 'drafting') return 'active';
   if (props.sceneStatus === 'generating') return 'active';
   if (props.sceneStatus === 'ready') return 'success';
   return 'idle';

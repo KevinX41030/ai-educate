@@ -16,8 +16,8 @@
 
       <div class="preview-hero-actions">
         <div class="hero-tools">
-          <button class="secondary" type="button" :disabled="!draft" @click="handleRegenerateScene">重新排版</button>
-          <button class="primary" type="button" @click="handleExport">{{ exportLabel }}</button>
+          <button class="secondary" type="button" :disabled="!draft || !canExport" @click="handleRegenerateScene">重新排版</button>
+          <button class="primary" type="button" :disabled="!canExport" @click="handleExport">{{ exportLabel }}</button>
         </div>
       </div>
     </div>
@@ -164,6 +164,10 @@ const props = defineProps({
     type: Object,
     default: null
   },
+  canExport: {
+    type: Boolean,
+    default: true
+  },
   scene: {
     type: Object,
     default: null
@@ -279,6 +283,7 @@ const confirmDescription = computed(() => {
   return '点击确认后，系统会基于当前信息生成更完整的课件草稿。';
 });
 const sceneStatusText = computed(() => {
+  if (props.sceneStatus === 'drafting') return `正在逐页生成预览，已完成 ${displaySlides.value.length} 页`;
   if (props.sceneStatus === 'stale') return '当前是基础草稿，可点击“重新排版”生成增强版式';
   if (props.sceneStatus === 'generating') return '正在生成增强版式';
   if (props.sceneStatus === 'ready') return '增强版式已就绪';

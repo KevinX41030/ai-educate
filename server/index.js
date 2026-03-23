@@ -9,6 +9,7 @@ const { getStats, searchKnowledge, reloadKnowledgeBase } = require('./rag');
 const { isLLMConfigured, generatePptSceneWithLLM } = require('./llm');
 const { exportPptx } = require('./export/pptx');
 const { buildPptSceneFromDraft, normalizeScene, mergeSceneIntoDraft } = require('./ppt/scene');
+const { inferDesignPreset, mergeThemeWithPreset, getDesignPresetHints } = require('./ppt/design');
 
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -286,6 +287,184 @@ function createJsonFieldDeltaTracker(fieldName, onDelta) {
   };
 }
 
+function safeJsonParseSnippet(text) {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return null;
+  }
+}
+
+function extractCompletedJsonArrayItems(text, fieldName) {
+  const raw = String(text || '');
+  const fieldToken = `"${fieldName}"`;
+  const fieldIndex = raw.indexOf(fieldToken);
+  if (fieldIndex < 0) return [];
+
+  let index = fieldIndex + fieldToken.length;
+  while (index < raw.length && /\s/.test(raw[index])) index += 1;
+  if (raw[index] !== ':') return [];
+
+  index += 1;
+  while (index < raw.length && /\s/.test(raw[index])) index += 1;
+  if (raw[index] !== '[') return [];
+
+  const items = [];
+  let itemStart = -1;
+  let objectDepth = 0;
+  let arrayDepth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (index += 1; index < raw.length; index += 1) {
+    const char = raw[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (inString) {
+      if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (itemStart < 0) {
+      if (/\s|,/.test(char)) continue;
+      if (char === ']') break;
+      if (char === '{') {
+        itemStart = index;
+        objectDepth = 1;
+        arrayDepth = 0;
+      }
+      continue;
+    }
+
+    if (char === '{') {
+      objectDepth += 1;
+      continue;
+    }
+
+    if (char === '}') {
+      objectDepth -= 1;
+      if (objectDepth === 0 && arrayDepth === 0) {
+        items.push(raw.slice(itemStart, index + 1));
+        itemStart = -1;
+      }
+      continue;
+    }
+
+    if (char === '[') {
+      arrayDepth += 1;
+      continue;
+    }
+
+    if (char === ']' && arrayDepth > 0) {
+      arrayDepth -= 1;
+    }
+  }
+
+  return items;
+}
+
+function normalizePreviewList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => `${item || ''}`.trim()).filter(Boolean);
+}
+
+function normalizePreviewSlide(slide, index, previousSlide = null) {
+  const validTypes = new Set(['cover', 'toc', 'content', 'summary']);
+  return {
+    id: previousSlide?.id || nanoid(),
+    title: typeof slide?.title === 'string' && slide.title.trim() ? slide.title.trim() : `第 ${index + 1} 页`,
+    type: validTypes.has(slide?.type) ? slide.type : 'content',
+    bullets: normalizePreviewList(slide?.bullets),
+    example: typeof slide?.example === 'string' ? slide.example : '',
+    question: typeof slide?.question === 'string' ? slide.question : '',
+    visual: typeof slide?.visual === 'string' ? slide.visual : '',
+    notes: typeof slide?.notes === 'string' ? slide.notes : '',
+    teachingGoal: typeof slide?.teachingGoal === 'string' ? slide.teachingGoal : '',
+    speakerNotes: typeof slide?.speakerNotes === 'string' ? slide.speakerNotes : '',
+    commonMistakes: normalizePreviewList(slide?.commonMistakes)
+  };
+}
+
+function buildStreamingPreviewDraft(state, rawSlides = [], previousDraft = null, designPresetHint = '') {
+  if (!rawSlides.length) return null;
+
+  const fields = state?.fields || {};
+  const designPreset = inferDesignPreset({
+    designPreset: designPresetHint,
+    style: fields.style,
+    subject: fields.subject,
+    grade: fields.grade,
+    interactions: fields.interactions
+  });
+
+  const ppt = rawSlides.map((slide, index) => normalizePreviewSlide(slide, index, previousDraft?.ppt?.[index]));
+
+  return {
+    designPreset,
+    brief: state?.brief || null,
+    ppt,
+    lessonPlan: previousDraft?.lessonPlan || {
+      goals: fields.goals || '',
+      process: [],
+      methods: fields.style || '',
+      activities: fields.interactions || '',
+      homework: ''
+    },
+    interactionIdea: previousDraft?.interactionIdea || {
+      title: '',
+      description: fields.interactions || ''
+    },
+    theme: mergeThemeWithPreset(previousDraft?.theme || {}, designPreset),
+    layoutHints: Array.isArray(previousDraft?.layoutHints) && previousDraft.layoutHints.length
+      ? previousDraft.layoutHints
+      : getDesignPresetHints(designPreset),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function createDraftPreviewTracker(state, onPreview) {
+  let emittedCount = 0;
+  let previousDraft = null;
+
+  return (_, rawText = '') => {
+    const partialText = String(rawText || '');
+    if (!partialText) return;
+
+    const rawSlides = extractCompletedJsonArrayItems(partialText, 'ppt')
+      .map((item) => safeJsonParseSnippet(item))
+      .filter(Boolean);
+
+    if (!rawSlides.length || rawSlides.length <= emittedCount) return;
+
+    const designPresetHint = extractPartialJsonStringField(partialText, 'designPreset') || previousDraft?.designPreset || '';
+    const draft = buildStreamingPreviewDraft(state, rawSlides, previousDraft, designPresetHint);
+    if (!draft) return;
+
+    previousDraft = draft;
+    emittedCount = draft.ppt.length;
+
+    onPreview?.({
+      draft,
+      scene: buildPptSceneFromDraft(draft),
+      sceneStatus: 'drafting',
+      slideCount: draft.ppt.length
+    });
+  };
+}
+
 app.get('/api/status', (_, res) => {
   res.json({
     ok: true,
@@ -454,11 +633,20 @@ app.post('/api/ppt/generate/stream', async (req, res) => {
 
   syncClientPresentationState(session.state, draft, scene);
   mergeFields(session.state, fields);
+  const trackDraftPreview = createDraftPreviewTracker(session.state, (payload) => {
+    writeSseEvent(res, 'draft_preview', {
+      sessionId: session.id,
+      ...payload
+    });
+  });
 
   try {
     writeSseEvent(res, 'status', { text: '正在整理课程信息…' });
     const result = await generatePresentation(session.state, {
-      onModelDelta: (delta) => writeSseEvent(res, 'model_delta', { delta })
+      onModelDelta: (delta, fullText) => {
+        trackDraftPreview(delta, fullText);
+        writeSseEvent(res, 'model_delta', { delta });
+      }
     });
 
     if (result?.error === 'missing_fields') {

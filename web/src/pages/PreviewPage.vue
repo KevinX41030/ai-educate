@@ -9,13 +9,14 @@
 
       <PreviewPanel
         :summary="summary"
-        :draft="draft"
-        :scene="scene"
-        :scene-status="sceneStatus"
+        :draft="displayDraft"
+        :scene="displayScene"
+        :scene-status="displaySceneStatus"
         :intent="intent"
         :rag="rag"
         :fields="fields"
         :files="files"
+        :can-export="Boolean(draft)"
         :on-confirm="handleConfirm"
         :on-export="handleExport"
         :export-label="exportLabel"
@@ -39,6 +40,9 @@ import WorkspaceSidebar from '../components/WorkspaceSidebar.vue';
 import { useWorkspace } from '../composables/useWorkspace';
 
 const {
+  displayDraft,
+  displayScene,
+  displaySceneStatus,
   draft,
   exportLabel,
   fields,

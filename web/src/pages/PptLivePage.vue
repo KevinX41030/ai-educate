@@ -127,9 +127,10 @@
 
       <SlideCanvas
         v-else
-        :draft="draft"
-        :scene="scene"
-        :scene-status="sceneStatus"
+        :draft="displayDraft"
+        :scene="displayScene"
+        :scene-status="displaySceneStatus"
+        :can-export="Boolean(draft)"
         :fields="fields"
         @update-block="handleUpdateBlock"
         @add-slide="handleAddSlide"
@@ -201,6 +202,9 @@ const startDrag = (e) => {
 
 const {
   draft,
+  displayDraft,
+  displayScene,
+  displaySceneStatus,
   ensureLocalScene,
   fields,
   files,
@@ -222,16 +226,19 @@ const {
 
 initWorkspace();
 
-const slideCount = computed(() => scene.value?.slides?.length || draft.value?.ppt?.length || 0);
+const slideCount = computed(() => displayScene.value?.slides?.length || displayDraft.value?.ppt?.length || 0);
 const canFollowup = computed(() => followup.value.trim().length > 0 && !isBusy.value && !isAutoGenerating.value);
-const showEmptyState = computed(() => !draft.value && !intent.value?.ready && !isBusy.value && !isAutoGenerating.value);
+const showEmptyState = computed(() => !displayDraft.value && !intent.value?.ready && !isBusy.value && !isAutoGenerating.value);
 const pageDescription = computed(() => {
   if (showEmptyState.value) return '请先返回整理页，把需求整理完整后再发起生成。';
+  if (isAutoGenerating.value && displayDraft.value) return '右侧画布会随着生成进度逐页更新预览。';
   if (draft.value) return '右侧画布中的每个页面都可以直接点击编辑。';
   return '正在根据整理页中的课程信息生成 PPT，请稍候。';
 });
 const stageStatusText = computed(() => {
+  if (isAutoGenerating.value && displayDraft.value?.ppt?.length) return '正在逐页生成';
   if (isAutoGenerating.value || isBusy.value) return '正在生成 PPT';
+  if (displaySceneStatus.value === 'drafting') return '正在逐页生成';
   if (sceneStatus.value === 'generating') return '正在补全页面';
   if (draft.value) return 'PPT 已生成';
   return workspacePhase.value;
