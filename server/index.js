@@ -667,7 +667,7 @@ app.post('/api/ppt/generate', async (req, res) => {
 });
 
 app.post('/api/ppt/slide/enhance', async (req, res) => {
-  const { sessionId, draft, scene, slideIndex } = req.body || {};
+  const { sessionId, draft, scene, slideIndex, instruction = '' } = req.body || {};
   const session = getSession(sessionId);
   const index = Number(slideIndex);
 
@@ -682,7 +682,8 @@ app.post('/api/ppt/slide/enhance', async (req, res) => {
     const rawSlide = await generateSingleSlideWithLLM({
       draft: exportDraft,
       slideIndex: index,
-      ragContext: session.state.rag || []
+      ragContext: session.state.rag || [],
+      instruction: typeof instruction === 'string' ? instruction.trim() : ''
     });
 
     if (!rawSlide || typeof rawSlide !== 'object') {

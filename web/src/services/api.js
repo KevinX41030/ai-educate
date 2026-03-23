@@ -174,11 +174,11 @@ export async function streamRegeneratePptScene({ sessionId, draft, scene = null,
   await readSseResponse(response, onEvent);
 }
 
-export async function enhancePptSlide({ sessionId, draft, scene = null, slideIndex }) {
+export async function enhancePptSlide({ sessionId, draft, scene = null, slideIndex, instruction = '' }) {
   const response = await fetch('/api/ppt/slide/enhance', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, draft, scene, slideIndex })
+    body: JSON.stringify({ sessionId, draft, scene, slideIndex, instruction })
   });
 
   const data = await response.json().catch(() => ({}));

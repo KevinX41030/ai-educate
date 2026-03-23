@@ -536,22 +536,26 @@ const handleRegenerateScene = async () => {
   }
 };
 
-const handleEnhanceSlide = async (slideIndex) => {
+const handleEnhanceSlide = async (slideIndex, instruction = '') => {
   if (!draft.value || slideIndex < 0 || slideMutation.value.index >= 0) return null;
 
   slideMutation.value = { index: slideIndex, action: 'enhance' };
-  const assistantMessage = appendMessage('assistant', `正在优化第 ${slideIndex + 1} 页…`);
+  const actionText = instruction ? `正在按你的要求修改第 ${slideIndex + 1} 页…` : `正在优化第 ${slideIndex + 1} 页…`;
+  const assistantMessage = appendMessage('assistant', actionText);
 
   try {
     const data = await enhancePptSlide({
       sessionId: sessionId.value,
       draft: draft.value,
       scene: scene.value,
-      slideIndex
+      slideIndex,
+      instruction
     });
     syncSession(data.sessionId);
     applyStatePayload(data.state || {}, data.intent || null);
-    updateMessageText(assistantMessage.id, `已完成第 ${slideIndex + 1} 页优化。`);
+    updateMessageText(assistantMessage.id, instruction
+      ? `已按你的要求完成第 ${slideIndex + 1} 页修改。`
+      : `已完成第 ${slideIndex + 1} 页优化。`);
     return data;
   } catch (error) {
     updateMessageText(assistantMessage.id, String(error?.message || '单页优化失败，请稍后重试。'));

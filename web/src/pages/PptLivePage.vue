@@ -140,6 +140,48 @@
         @ai-enhance-slide="handleAiEnhanceSlide"
         @export="handleExport"
       />
+
+      <div v-if="slideAiDialog.visible" class="slide-ai-dialog-mask" @click="closeSlideAiDialog">
+        <div class="slide-ai-dialog shell-card" @click.stop>
+          <div class="slide-ai-dialog-head">
+            <div>
+              <span class="panel-kicker">单页 AI 修改</span>
+              <h3>第 {{ slideAiDialog.index + 1 }} 页：{{ activeSlideTitle }}</h3>
+            </div>
+            <button class="slide-ai-close" type="button" @click="closeSlideAiDialog">✕</button>
+          </div>
+
+          <div class="slide-ai-dialog-body">
+            <p class="slide-ai-helper">
+              告诉 AI 这一页你想怎么改，我会只针对当前页做一次修改，不影响其他页面。
+            </p>
+
+            <div class="slide-ai-suggestions">
+              <button type="button" @click="applySuggestion('把这一页改得更像公开课展示，层次更清楚。')">更像公开课</button>
+              <button type="button" @click="applySuggestion('把这一页改成案例型页面，减少堆砌 bullet。')">改成案例型</button>
+              <button type="button" @click="applySuggestion('给这一页补一个更自然的课堂提问和一个易错提醒。')">补提问和易错点</button>
+            </div>
+
+            <label class="slide-ai-input">
+              <span>本次修改要求</span>
+              <textarea
+                v-model="slideAiDialog.instruction"
+                rows="5"
+                placeholder="例如：这一页不要太满，改成左侧核心概念 + 右侧案例提示；语气更像老师上课会说的话。"
+                @keydown.enter.meta.prevent="submitSlideAiDialog"
+                @keydown.enter.ctrl.prevent="submitSlideAiDialog"
+              ></textarea>
+            </label>
+          </div>
+
+          <div class="slide-ai-dialog-actions">
+            <button class="ghost" type="button" @click="closeSlideAiDialog">取消</button>
+            <button class="primary" type="button" :disabled="!canSubmitSlideAiDialog" @click="submitSlideAiDialog">
+              {{ slideMutation.index === slideAiDialog.index ? '修改中…' : '执行本次单页修改' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
   </section>
 </template>
@@ -157,6 +199,7 @@ const route = useRoute();
 const router = useRouter();
 const followup = ref('');
 const autostartHandled = ref(false);
+const slideAiDialog = ref({ visible: false, index: -1, instruction: '' });
 
 // --- Draggable sidebar ---
 const DEFAULT_WIDTH = 340;
@@ -270,6 +313,17 @@ const recognizedFields = computed(() => {
   ];
   return items.filter((item) => `${item.value || ''}`.trim());
 });
+const activeSlideForDialog = computed(() => {
+  const slides = displayScene.value?.slides?.length ? displayScene.value.slides : (displayDraft.value?.ppt || []);
+  return slides[slideAiDialog.value.index] || null;
+});
+const activeSlideTitle = computed(() => activeSlideForDialog.value?.title || '未命名页面');
+const canSubmitSlideAiDialog = computed(() => {
+  if (slideAiDialog.value.index < 0) return false;
+  if (!slideAiDialog.value.instruction.trim()) return false;
+  if (slideMutation.value.index >= 0) return false;
+  return true;
+});
 
 const isLongField = (item) => {
   const val = `${item.value || ''}`;
@@ -377,9 +431,41 @@ const handleRegenerateSlide = (index) => {
   syncDraftFromScene();
 };
 
-const handleAiEnhanceSlide = async (index) => {
+const openSlideAiDialog = (index) => {
+  if (slideMutation.value.index >= 0) return;
+  slideAiDialog.value = {
+    visible: true,
+    index,
+    instruction: ''
+  };
+};
+
+const closeSlideAiDialog = () => {
+  if (slideMutation.value.index >= 0) return;
+  slideAiDialog.value = { visible: false, index: -1, instruction: '' };
+};
+
+const applySuggestion = (text) => {
+  slideAiDialog.value = {
+    ...slideAiDialog.value,
+    instruction: text
+  };
+};
+
+const submitSlideAiDialog = async () => {
+  const instruction = slideAiDialog.value.instruction.trim();
+  const index = slideAiDialog.value.index;
+  if (!instruction || index < 0 || slideMutation.value.index >= 0) return;
+
   syncDraftFromScene();
-  await handleEnhanceSlide(index);
+  const result = await handleEnhanceSlide(index, instruction);
+  if (result) {
+    closeSlideAiDialog();
+  }
+};
+
+const handleAiEnhanceSlide = async (index) => {
+  openSlideAiDialog(index);
 };
 
 const handleFollowup = async () => {
@@ -722,6 +808,107 @@ watch(
   line-height: 1.55;
 }
 
+.slide-ai-dialog-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(6px);
+}
+
+.slide-ai-dialog {
+  width: min(680px, 100%);
+  padding: 22px;
+  display: grid;
+  gap: 18px;
+}
+
+.slide-ai-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.slide-ai-dialog-head h3 {
+  margin: 6px 0 0;
+  font-size: 22px;
+}
+
+.slide-ai-close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.slide-ai-dialog-body {
+  display: grid;
+  gap: 14px;
+}
+
+.slide-ai-helper {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.slide-ai-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.slide-ai-suggestions button {
+  border: 1px solid rgba(101, 138, 228, 0.18);
+  background: rgba(101, 138, 228, 0.06);
+  color: #3d5fb7;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.slide-ai-input {
+  display: grid;
+  gap: 8px;
+}
+
+.slide-ai-input span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.slide-ai-input textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+  border-radius: 14px;
+  border: 1px solid rgba(40, 49, 78, 0.1);
+  background: rgba(247, 247, 248, 0.92);
+  padding: 14px 16px;
+  font: inherit;
+  line-height: 1.6;
+}
+
+.slide-ai-input textarea:focus {
+  outline: none;
+  border-color: rgba(101, 138, 228, 0.38);
+  box-shadow: 0 0 0 4px rgba(101, 138, 228, 0.12);
+}
+
+.slide-ai-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 @media (max-width: 1180px) {
   .ppt-live-page,
   .ppt-live-page.sidebar-collapsed {
@@ -758,6 +945,14 @@ watch(
   .ppt-live-feed-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .slide-ai-dialog-mask {
+    padding: 14px;
+  }
+
+  .slide-ai-dialog-actions {
+    flex-direction: column-reverse;
   }
 }
 </style>

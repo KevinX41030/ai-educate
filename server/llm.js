@@ -622,7 +622,7 @@ async function generatePptSceneWithLLM({ draft, ragContext = [], onTextDelta }) 
   return safeJsonParse(chatText);
 }
 
-async function generateSingleSlideWithLLM({ draft, slideIndex, ragContext = [] }) {
+async function generateSingleSlideWithLLM({ draft, slideIndex, ragContext = [], instruction = '' }) {
   if (!isLLMConfigured()) return null;
   if (!draft || !Array.isArray(draft.ppt) || !draft.ppt[slideIndex]) return null;
 
@@ -654,6 +654,7 @@ async function generateSingleSlideWithLLM({ draft, slideIndex, ragContext = [] }
           '保持该页在整套课件中的角色与主题一致，优先沿用当前页类型 type，不要改动其他页。' +
           '如果是 cover/toc/summary 页，就按对应角色优化，不要硬改成 content。' +
           '如果是 content 页，要让信息量更完整，bullets 保持 3-5 条完整短句，并尽量补充 example/question/visual/commonMistakes。' +
+          '如果用户提供了 changeRequest，必须优先满足这次单页修改要求，但不要改动其他页。' +
           '优化目标：表达更清晰、结构更适合投屏展示、提问更像老师真实会说的话。'
       },
       {
@@ -665,6 +666,7 @@ async function generateSingleSlideWithLLM({ draft, slideIndex, ragContext = [] }
           lessonPlan: draft.lessonPlan || null,
           interactionIdea: draft.interactionIdea || null,
           brief,
+          changeRequest: instruction || '',
           slideIndex,
           totalSlides: draft.ppt.length,
           previousSlide: slideIndex > 0 ? draft.ppt[slideIndex - 1] : null,
