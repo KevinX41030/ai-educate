@@ -6,7 +6,7 @@ const multer = require('multer');
 const { nanoid } = require('nanoid');
 const { createInitialState, handleMessage, generatePresentation, buildIntentPayload, mergeFields } = require('./agent');
 const { getStats, searchKnowledge, reloadKnowledgeBase } = require('./rag');
-const { isLLMConfigured, generatePptSceneWithLLM } = require('./llm');
+const { isLLMConfigured, generatePptSceneWithLLM, generateSingleSlideWithLLM } = require('./llm');
 const { exportPptx } = require('./export/pptx');
 const { buildPptSceneFromDraft, normalizeScene, mergeSceneIntoDraft } = require('./ppt/scene');
 const { inferDesignPreset, mergeThemeWithPreset, getDesignPresetHints } = require('./ppt/design');
@@ -465,6 +465,47 @@ function createDraftPreviewTracker(state, onPreview) {
   };
 }
 
+function normalizeDraftSlide(rawSlide, fallbackSlide = {}, index = 0) {
+  const validTypes = new Set(['cover', 'toc', 'content', 'summary']);
+  const toList = (value) => Array.isArray(value)
+    ? value.map((item) => `${item || ''}`.trim()).filter(Boolean)
+    : [];
+
+  return {
+    id: fallbackSlide.id || nanoid(),
+    title: typeof rawSlide?.title === 'string' && rawSlide.title.trim()
+      ? rawSlide.title.trim()
+      : (fallbackSlide.title || `第 ${index + 1} 页`),
+    type: validTypes.has(rawSlide?.type) ? rawSlide.type : (fallbackSlide.type || 'content'),
+    bullets: toList(rawSlide?.bullets).length ? toList(rawSlide?.bullets) : (Array.isArray(fallbackSlide.bullets) ? fallbackSlide.bullets : []),
+    example: typeof rawSlide?.example === 'string' ? rawSlide.example : (fallbackSlide.example || ''),
+    question: typeof rawSlide?.question === 'string' ? rawSlide.question : (fallbackSlide.question || ''),
+    visual: typeof rawSlide?.visual === 'string' ? rawSlide.visual : (fallbackSlide.visual || ''),
+    notes: typeof rawSlide?.notes === 'string' ? rawSlide.notes : (fallbackSlide.notes || ''),
+    teachingGoal: typeof rawSlide?.teachingGoal === 'string' ? rawSlide.teachingGoal : (fallbackSlide.teachingGoal || ''),
+    speakerNotes: typeof rawSlide?.speakerNotes === 'string' ? rawSlide.speakerNotes : (fallbackSlide.speakerNotes || ''),
+    commonMistakes: toList(rawSlide?.commonMistakes).length
+      ? toList(rawSlide?.commonMistakes)
+      : (Array.isArray(fallbackSlide.commonMistakes) ? fallbackSlide.commonMistakes : [])
+  };
+}
+
+function replaceSceneSlide(scene, nextSlide, index) {
+  if (!scene || !Array.isArray(scene.slides) || !nextSlide) return scene;
+  const slides = scene.slides.map((slide, slideIndex) => {
+    if (slideIndex !== index) return slide;
+    return {
+      ...nextSlide,
+      id: slide?.id || nextSlide.id
+    };
+  });
+  return {
+    ...scene,
+    slides,
+    updatedAt: new Date().toISOString()
+  };
+}
+
 app.get('/api/status', (_, res) => {
   res.json({
     ok: true,
@@ -621,6 +662,62 @@ app.post('/api/ppt/generate', async (req, res) => {
     return res.status(500).json({
       error: 'ppt_generate_failed',
       message: toClientErrorMessage(error, 'PPT 生成失败，请稍后重试。')
+    });
+  }
+});
+
+app.post('/api/ppt/slide/enhance', async (req, res) => {
+  const { sessionId, draft, scene, slideIndex } = req.body || {};
+  const session = getSession(sessionId);
+  const index = Number(slideIndex);
+
+  syncClientPresentationState(session.state, draft, scene);
+  const exportDraft = session.state.draft;
+
+  if (!exportDraft || !Array.isArray(exportDraft.ppt) || Number.isNaN(index) || index < 0 || index >= exportDraft.ppt.length) {
+    return res.status(400).json({ error: 'invalid_slide_index' });
+  }
+
+  try {
+    const rawSlide = await generateSingleSlideWithLLM({
+      draft: exportDraft,
+      slideIndex: index,
+      ragContext: session.state.rag || []
+    });
+
+    if (!rawSlide || typeof rawSlide !== 'object') {
+      return res.status(500).json({ error: 'slide_enhance_failed', message: 'single_slide_empty' });
+    }
+
+    const nextDraft = {
+      ...exportDraft,
+      ppt: [...exportDraft.ppt],
+      updatedAt: new Date().toISOString()
+    };
+    nextDraft.ppt[index] = normalizeDraftSlide(rawSlide, exportDraft.ppt[index], index);
+    session.state.draft = nextDraft;
+
+    const rebuiltScene = buildPptSceneFromDraft(nextDraft);
+    const nextScene = session.state.scene
+      ? replaceSceneSlide(normalizeScene(session.state.scene, nextDraft), rebuiltScene?.slides?.[index], index)
+      : rebuiltScene;
+
+    applySceneToState(session.state, nextScene, 'slide', nextScene ? 'ready' : 'idle');
+
+    return res.json({
+      sessionId: session.id,
+      state: session.state,
+      intent: buildIntentPayload(session.state),
+      draft: session.state.draft,
+      scene: session.state.scene,
+      sceneStatus: session.state.sceneStatus || 'idle',
+      slideIndex: index
+    });
+  } catch (error) {
+    console.error('[slide_enhance_failed]', error);
+    return res.status(500).json({
+      error: 'slide_enhance_failed',
+      message: toClientErrorMessage(error, '单页优化失败，请稍后重试。')
     });
   }
 });

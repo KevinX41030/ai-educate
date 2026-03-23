@@ -137,6 +137,7 @@
         @delete-slide="handleDeleteSlide"
         @duplicate-slide="handleDuplicateSlide"
         @regenerate-slide="handleRegenerateSlide"
+        @ai-enhance-slide="handleAiEnhanceSlide"
         @export="handleExport"
       />
     </section>
@@ -148,6 +149,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import SlideCanvas from '../components/SlideCanvas.vue';
 import { useWorkspace } from '../composables/useWorkspace';
+import { createSceneFromDraft } from '../utils/pptScene';
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -209,6 +211,7 @@ const {
   fields,
   files,
   handleConfirm,
+  handleEnhanceSlide,
   handleExport,
   handleRegenerateScene,
   handleSend,
@@ -219,6 +222,7 @@ const {
   messages,
   scene,
   sceneStatus,
+  slideMutation,
   summary,
   intent,
   workspacePhase
@@ -236,6 +240,11 @@ const pageDescription = computed(() => {
   return '正在根据整理页中的课程信息生成 PPT，请稍候。';
 });
 const stageStatusText = computed(() => {
+  if (slideMutation.value.index >= 0) {
+    return slideMutation.value.action === 'enhance'
+      ? `正在优化第 ${slideMutation.value.index + 1} 页`
+      : `正在重排第 ${slideMutation.value.index + 1} 页`;
+  }
   if (isAutoGenerating.value && displayDraft.value?.ppt?.length) return '正在逐页生成';
   if (isAutoGenerating.value || isBusy.value) return '正在生成 PPT';
   if (displaySceneStatus.value === 'drafting') return '正在逐页生成';
@@ -341,8 +350,36 @@ const handleDuplicateSlide = (index) => {
 };
 
 const handleRegenerateSlide = (index) => {
-  // For now, triggers full scene regeneration
-  handleRegenerateScene();
+  if (slideMutation.value.index >= 0) return;
+  syncDraftFromScene();
+  if (!draft.value) return;
+
+  const regeneratedScene = createSceneFromDraft(draft.value);
+  if (!regeneratedScene?.slides?.[index]) return;
+
+  if (!scene.value?.slides?.length) {
+    scene.value = regeneratedScene;
+    return;
+  }
+
+  scene.value = {
+    ...scene.value,
+    slides: scene.value.slides.map((slide, slideIndex) => {
+      if (slideIndex !== index) return slide;
+      return {
+        ...regeneratedScene.slides[index],
+        id: slide?.id || regeneratedScene.slides[index].id
+      };
+    }),
+    updatedAt: new Date().toISOString()
+  };
+
+  syncDraftFromScene();
+};
+
+const handleAiEnhanceSlide = async (index) => {
+  syncDraftFromScene();
+  await handleEnhanceSlide(index);
 };
 
 const handleFollowup = async () => {

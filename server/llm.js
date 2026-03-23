@@ -622,10 +622,104 @@ async function generatePptSceneWithLLM({ draft, ragContext = [], onTextDelta }) 
   return safeJsonParse(chatText);
 }
 
+async function generateSingleSlideWithLLM({ draft, slideIndex, ragContext = [] }) {
+  if (!isLLMConfigured()) return null;
+  if (!draft || !Array.isArray(draft.ppt) || !draft.ppt[slideIndex]) return null;
+
+  const targetSlide = draft.ppt[slideIndex];
+  const brief = buildBriefPayload(draft.brief);
+  const knowledge = Array.isArray(ragContext) && ragContext.length
+    ? ragContext.map((item, idx) => `(${idx + 1}) [${item.source}] ${item.content}`).join('\n')
+    : '';
+
+  const payload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    input: [
+      {
+        role: 'system',
+        content:
+          '你是教学课件优化助手。请只优化目标页面，不要重写整份课件。' +
+          '仅输出 JSON，不要输出其他文本。JSON 格式: {' +
+          '"title": string,' +
+          '"type": "cover"|"toc"|"content"|"summary",' +
+          '"bullets": string[],' +
+          '"example": string,' +
+          '"question": string,' +
+          '"visual": string,' +
+          '"notes": string,' +
+          '"teachingGoal": string,' +
+          '"speakerNotes": string,' +
+          '"commonMistakes": string[]' +
+          '}。' +
+          '保持该页在整套课件中的角色与主题一致，优先沿用当前页类型 type，不要改动其他页。' +
+          '如果是 cover/toc/summary 页，就按对应角色优化，不要硬改成 content。' +
+          '如果是 content 页，要让信息量更完整，bullets 保持 3-5 条完整短句，并尽量补充 example/question/visual/commonMistakes。' +
+          '优化目标：表达更清晰、结构更适合投屏展示、提问更像老师真实会说的话。'
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          designPreset: draft.designPreset || null,
+          theme: draft.theme || null,
+          layoutHints: draft.layoutHints || null,
+          lessonPlan: draft.lessonPlan || null,
+          interactionIdea: draft.interactionIdea || null,
+          brief,
+          slideIndex,
+          totalSlides: draft.ppt.length,
+          previousSlide: slideIndex > 0 ? draft.ppt[slideIndex - 1] : null,
+          targetSlide,
+          nextSlide: slideIndex < draft.ppt.length - 1 ? draft.ppt[slideIndex + 1] : null
+        })
+      },
+      {
+        role: 'user',
+        content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
+      }
+    ]
+  };
+
+  let responsesFailure = null;
+
+  try {
+    const response = await callResponsesApi(payload);
+    debugLog('responses_single_slide_raw', response);
+    const outputText = extractOutputText(response);
+    debugLog('responses_single_slide_text', outputText);
+    const parsed = safeJsonParse(outputText);
+    if (parsed) return parsed;
+    responsesFailure = new Error('responses_single_slide_invalid_json');
+  } catch (error) {
+    debugLog('responses_single_slide_error', String(error));
+    responsesFailure = error;
+  }
+
+  const chatPayload = {
+    model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+    messages: [payload.input[0], payload.input[1], payload.input[2]],
+    response_format: { type: 'json_object' },
+    temperature: 0.4
+  };
+
+  try {
+    const chatResponse = await callChatCompletionsApi(chatPayload);
+    debugLog('chat_single_slide_raw', chatResponse);
+    const chatText = extractChatText(chatResponse);
+    debugLog('chat_single_slide_text', chatText);
+    const parsed = safeJsonParse(chatText);
+    if (parsed) return parsed;
+    throw new Error('chat_single_slide_invalid_json');
+  } catch (error) {
+    debugLog('chat_single_slide_error', String(error));
+    throw new Error(`single_slide_generation_failed: responses=${String(responsesFailure)}; chat=${String(error)}`);
+  }
+}
+
 module.exports = {
   extractIntentWithLLM,
   generateDraftWithLLM,
   generatePptSpecWithLLM,
   generatePptSceneWithLLM,
+  generateSingleSlideWithLLM,
   isLLMConfigured
 };

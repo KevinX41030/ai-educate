@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import {
+  enhancePptSlide,
   exportPptx,
   getSessionSnapshot,
   getStatus,
@@ -110,6 +111,7 @@ const initialized = ref(false);
 const isBusy = ref(false);
 const isAutoGenerating = ref(false);
 const isEnhancingScene = ref(false);
+const slideMutation = ref({ index: -1, action: '' });
 const sceneRefreshKey = ref('');
 
 const clearStreamingPreview = () => {
@@ -354,6 +356,11 @@ const outlineSlides = computed(() => {
   return displayDraft.value?.ppt ?? [];
 });
 const workspacePhase = computed(() => {
+  if (slideMutation.value.index >= 0) {
+    return slideMutation.value.action === 'enhance'
+      ? `AI 正在优化第 ${slideMutation.value.index + 1} 页`
+      : `正在重排第 ${slideMutation.value.index + 1} 页`;
+  }
   if (isAutoGenerating.value && displayDraft.value?.ppt?.length) return 'AI 正在逐页生成';
   if (isAutoGenerating.value) return 'AI 正在生成 PPT';
   if (isBusy.value) return 'AI 正在整理需求';
@@ -529,6 +536,31 @@ const handleRegenerateScene = async () => {
   }
 };
 
+const handleEnhanceSlide = async (slideIndex) => {
+  if (!draft.value || slideIndex < 0 || slideMutation.value.index >= 0) return null;
+
+  slideMutation.value = { index: slideIndex, action: 'enhance' };
+  const assistantMessage = appendMessage('assistant', `正在优化第 ${slideIndex + 1} 页…`);
+
+  try {
+    const data = await enhancePptSlide({
+      sessionId: sessionId.value,
+      draft: draft.value,
+      scene: scene.value,
+      slideIndex
+    });
+    syncSession(data.sessionId);
+    applyStatePayload(data.state || {}, data.intent || null);
+    updateMessageText(assistantMessage.id, `已完成第 ${slideIndex + 1} 页优化。`);
+    return data;
+  } catch (error) {
+    updateMessageText(assistantMessage.id, String(error?.message || '单页优化失败，请稍后重试。'));
+    return null;
+  } finally {
+    slideMutation.value = { index: -1, action: '' };
+  }
+};
+
 const handleExport = async () => {
   if (!draft.value) {
     appendMessage('assistant', '请先生成 PPT，再导出。');
@@ -587,6 +619,7 @@ export function useWorkspace() {
     lessonTitle,
     keyPointPreview,
     workspacePhase,
+    slideMutation,
     isBusy,
     isAutoGenerating,
     isEnhancingScene,
@@ -599,6 +632,7 @@ export function useWorkspace() {
     handleClear,
     handleFormSubmit,
     handleConfirm,
+    handleEnhanceSlide,
     handleRegenerateScene,
     handleExport,
     ensureLocalScene,

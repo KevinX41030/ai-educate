@@ -174,6 +174,20 @@ export async function streamRegeneratePptScene({ sessionId, draft, scene = null,
   await readSseResponse(response, onEvent);
 }
 
+export async function enhancePptSlide({ sessionId, draft, scene = null, slideIndex }) {
+  const response = await fetch('/api/ppt/slide/enhance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, draft, scene, slideIndex })
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || data?.error || 'slide_enhance_failed');
+  }
+  return data;
+}
+
 export async function exportPptx({ sessionId, draft, scene = null, useAi = true, regenerateScene = false }) {
   const response = await fetch('/api/export/pptx', {
     method: 'POST',
