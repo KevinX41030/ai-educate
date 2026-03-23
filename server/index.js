@@ -130,12 +130,74 @@ function writeSseEvent(res, event, data = {}) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
-function endSse(res, cleanup) {
+function endSse(res, cleanup, payload = { ok: true }) {
   cleanup?.();
   if (!res.writableEnded) {
-    writeSseEvent(res, 'done', { ok: true });
+    writeSseEvent(res, 'done', payload);
     res.end();
   }
+}
+
+function extractJsonErrorMessage(text = '') {
+  try {
+    const parsed = JSON.parse(text);
+    return parsed?.error?.message || parsed?.message || '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function stripHtml(text = '') {
+  return String(text || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractErrorHost(text = '') {
+  const titleMatch = String(text || '').match(/<title>\s*([^|<]+?)\s*\|/i);
+  if (titleMatch?.[1]) return titleMatch[1].trim();
+  const hostMatch = String(text || '').match(/\b(?:api\.)?[a-z0-9.-]+\.[a-z]{2,}\b/i);
+  return hostMatch?.[0] || '';
+}
+
+function toClientErrorMessage(error, fallback = '请求失败，请稍后重试。') {
+  const raw = error instanceof Error ? error.message : String(error || '');
+  if (!raw) return fallback;
+
+  const upstreamMatch = raw.match(/openai(?:_chat)?_error_(\d+):\s*([\s\S]*)$/);
+  if (upstreamMatch) {
+    const status = upstreamMatch[1];
+    const body = upstreamMatch[2] || '';
+    const jsonMessage = extractJsonErrorMessage(body);
+    if (jsonMessage) {
+      return `模型服务请求失败（${status}）：${jsonMessage}`;
+    }
+
+    if (/<(?:!DOCTYPE|html)\b/i.test(body)) {
+      const host = extractErrorHost(body);
+      return `模型服务上游暂时不可用（${status}${host ? `，${host}` : ''}），请稍后重试。`;
+    }
+
+    const compact = stripHtml(body);
+    if (compact) {
+      return `模型服务请求失败（${status}）：${compact.slice(0, 200)}`;
+    }
+
+    return `模型服务请求失败（${status}），请稍后重试。`;
+  }
+
+  return stripHtml(raw) || fallback;
+}
+
+function writeSseErrorAndEnd(res, cleanup, data = {}) {
+  writeSseEvent(res, 'error', data);
+  return endSse(res, cleanup, {
+    ok: false,
+    error: data.error || 'stream_failed'
+  });
 }
 
 function extractPartialJsonStringField(text, fieldName) {
@@ -304,8 +366,7 @@ app.post('/api/ppt/scene/regenerate/stream', async (req, res) => {
   }
 
   if (!exportDraft) {
-    writeSseEvent(res, 'error', { error: 'draft_required' });
-    return endSse(res, cleanupSse);
+    return writeSseErrorAndEnd(res, cleanupSse, { error: 'draft_required' });
   }
 
   try {
@@ -317,8 +378,7 @@ app.post('/api/ppt/scene/regenerate/stream', async (req, res) => {
       onModelDelta: (delta) => writeSseEvent(res, 'model_delta', { delta })
     });
     if (!result.scene) {
-      writeSseEvent(res, 'error', { error: 'invalid_draft' });
-      return endSse(res, cleanupSse);
+      return writeSseErrorAndEnd(res, cleanupSse, { error: 'invalid_draft' });
     }
     if (session) {
       applySceneToState(session.state, result.scene, result.source, 'ready');
@@ -332,8 +392,11 @@ app.post('/api/ppt/scene/regenerate/stream', async (req, res) => {
     });
     return endSse(res, cleanupSse);
   } catch (error) {
-    writeSseEvent(res, 'error', { error: 'scene_regenerate_failed', message: String(error) });
-    return endSse(res, cleanupSse);
+    console.error('[scene_regenerate_stream_failed]', error);
+    return writeSseErrorAndEnd(res, cleanupSse, {
+      error: 'scene_regenerate_failed',
+      message: toClientErrorMessage(error, '版式优化失败，请稍后重试。')
+    });
   }
 });
 
@@ -375,7 +438,11 @@ app.post('/api/ppt/generate', async (req, res) => {
       rag: result.state?.rag || []
     });
   } catch (error) {
-    return res.status(500).json({ error: 'ppt_generate_failed', message: String(error) });
+    console.error('[ppt_generate_failed]', error);
+    return res.status(500).json({
+      error: 'ppt_generate_failed',
+      message: toClientErrorMessage(error, 'PPT 生成失败，请稍后重试。')
+    });
   }
 });
 
@@ -425,8 +492,11 @@ app.post('/api/ppt/generate/stream', async (req, res) => {
     });
     return endSse(res, cleanupSse);
   } catch (error) {
-    writeSseEvent(res, 'error', { error: 'ppt_generate_failed', message: String(error) });
-    return endSse(res, cleanupSse);
+    console.error('[ppt_generate_stream_failed]', error);
+    return writeSseErrorAndEnd(res, cleanupSse, {
+      error: 'ppt_generate_failed',
+      message: toClientErrorMessage(error, 'PPT 生成失败，请稍后重试。')
+    });
   }
 });
 
@@ -529,8 +599,7 @@ app.post('/api/chat/stream', async (req, res) => {
 
   const trimmed = String(text || '').trim();
   if (!trimmed) {
-    writeSseEvent(res, 'error', { error: 'text_required' });
-    return endSse(res, cleanupSse);
+    return writeSseErrorAndEnd(res, cleanupSse, { error: 'text_required' });
   }
 
   session.messages.push({ role: 'user', text: trimmed, ts: Date.now() });
@@ -559,12 +628,12 @@ app.post('/api/chat/stream', async (req, res) => {
     });
     return endSse(res, cleanupSse);
   } catch (error) {
-    writeSseEvent(res, 'error', {
+    console.error('[chat_stream_failed]', error);
+    return writeSseErrorAndEnd(res, cleanupSse, {
       error: 'chat_failed',
-      message: String(error),
+      message: toClientErrorMessage(error, '模型服务暂不可用，请稍后重试。'),
       fallbackReply: '模型服务暂不可用，请稍后重试。'
     });
-    return endSse(res, cleanupSse);
   }
 });
 

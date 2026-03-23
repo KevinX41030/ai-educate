@@ -382,61 +382,70 @@ function buildSummary(state) {
   ].join("\n");
 }
 
-function buildCollectedFieldLines(state) {
+function joinNaturalList(items = []) {
+  const filtered = items.filter(Boolean);
+  if (!filtered.length) return '';
+  if (filtered.length === 1) return filtered[0];
+  if (filtered.length === 2) return `${filtered[0]}和${filtered[1]}`;
+  return `${filtered.slice(0, -1).join('、')}，以及${filtered[filtered.length - 1]}`;
+}
+
+function buildCollectedFieldSummary(state) {
   const { fields } = state;
-  const lines = [];
-  if (fields.subject) lines.push(`- 主题/章节：${fields.subject}`);
-  if (fields.grade) lines.push(`- 年级/学段：${fields.grade}`);
-  if (fields.duration) lines.push(`- 课堂时长：${fields.duration}`);
-  if (fields.goals) lines.push(`- 教学目标：${fields.goals}`);
-  if (fields.keyPoints.length) lines.push(`- 核心知识点：${fields.keyPoints.join('、')}`);
-  if (fields.style) lines.push(`- 教学风格：${fields.style}`);
-  if (fields.interactions) lines.push(`- 互动设计：${fields.interactions}`);
-  return lines;
+  const parts = [];
+  if (fields.subject) parts.push(`主题是“${fields.subject}”`);
+  if (fields.grade) parts.push(`面向${fields.grade}`);
+  if (fields.duration) parts.push(`课时大约${fields.duration}`);
+  if (fields.goals) parts.push('教学目标我已经记下了');
+  if (fields.keyPoints.length) parts.push(`核心知识点我已经抓到 ${fields.keyPoints.length} 个`);
+  if (fields.style) parts.push(`风格会偏“${fields.style}”`);
+  if (fields.interactions) parts.push('互动设计也已经纳入考虑');
+  return joinNaturalList(parts);
 }
 
 function buildMissingFieldsReply(state) {
   const missingFields = getMissingFields(state);
   if (!missingFields.length) {
-    return '核心信息已经齐全，可以直接点击“生成 PPT”。如果你愿意，我也可以继续帮你补课堂风格、互动形式或练习设计。';
+    return '核心信息已经齐了，现在就可以直接点“生成 PPT”。如果你愿意，我也可以继续帮你补课堂风格、互动形式或练习设计。';
   }
 
-  const collectedLines = buildCollectedFieldLines(state);
-  const missingLines = missingFields.map((field) => `- ${FIELD_LABELS[field]}：${FIELD_QUESTIONS[field]}`);
-  const optionalLines = [];
-  if (!state.fields.style) optionalLines.push(`- ${FIELD_LABELS.style}：${FIELD_QUESTIONS.style}`);
-  if (!state.fields.interactions) optionalLines.push(`- ${FIELD_LABELS.interactions}：${FIELD_QUESTIONS.interactions}`);
+  const collectedSummary = buildCollectedFieldSummary(state);
+  const focusFields = missingFields.slice(0, 2);
+  const focusLabels = joinNaturalList(focusFields.map((field) => FIELD_LABELS[field] || field));
+  const optionalLabels = [];
+  if (!state.fields.style) optionalLabels.push(FIELD_LABELS.style);
+  if (!state.fields.interactions) optionalLabels.push(FIELD_LABELS.interactions);
 
-  const intro = collectedLines.length
-    ? `我先帮你整理到这些信息：\n${collectedLines.join('\n')}`
-    : '你可以直接把课程需求整段发给我，我会自动拆成主题、目标、知识点和课堂结构。';
+  const intro = collectedSummary
+    ? `我先接住了你的关键信息：${collectedSummary}。`
+    : '你可以直接把课程需求整段发给我，我会边聊边替你整理成可生成的课件需求。';
 
-  if (missingFields.length === 1) {
-    return [
-      intro,
-      `还差最后一个关键信息：\n${missingLines[0]}`,
-      optionalLines.length
-        ? `如果你愿意，也可以顺手补这两类可选信息：\n${optionalLines.join('\n')}`
-        : '你可以直接补一句话，我会继续替你整理。'
-    ].filter(Boolean).join('\n\n');
-  }
+  const askLine = focusFields.length === 1
+    ? `现在最关键还差 ${focusLabels}，你直接用一句话告诉我就行。`
+    : `现在最关键还差 ${focusLabels}，你可以直接一句话补给我，我来继续往下整理。`;
 
-  return [
-    intro,
-    `为了直接进入生成，还差这几项：\n${missingLines.join('\n')}`,
-    optionalLines.length
-      ? `可选补充（会让成稿更贴近你的预期）：\n${optionalLines.join('\n')}`
-      : '你可以一次性补成一段自然语言，我来继续拆字段。'
-  ].filter(Boolean).join('\n\n');
+  const hintLine = missingFields.includes('goals') && missingFields.includes('keyPoints')
+    ? '比如你可以直接回：教学目标是……；核心知识点包括……。'
+    : '不需要按表格填，直接自然说给我就可以。';
+
+  const optionalLine = optionalLabels.length
+    ? `如果你对${joinNaturalList(optionalLabels)}有偏好，也可以顺手带上；没有的话我会先按通用优质课思路起稿。`
+    : '';
+
+  return [intro, askLine, hintLine, optionalLine].filter(Boolean).join(' ');
 }
 
 function buildReadyReply(state) {
-  return [
-    `我已经把需求整理好了：\n${buildSummary(state)}`,
-    (!state.fields.style || !state.fields.interactions)
-      ? '如果你想让成稿更像你心里的课堂，还可以继续补充教学风格、互动形式、案例偏好；不补也没关系，已经可以直接生成。'
-      : '信息已经足够完整，可以直接点击“生成 PPT”；如果你还想加实验、案例或练习，我也能继续细化。'
-  ].join('\n\n');
+  const collectedSummary = buildCollectedFieldSummary(state);
+  const intro = collectedSummary
+    ? `我已经把这节课的需求整理得差不多了：${collectedSummary}。`
+    : '我已经把这节课的核心需求整理好了。';
+
+  const nextStep = (!state.fields.style || !state.fields.interactions)
+    ? '现在就可以直接点“生成 PPT”。如果你还想补教学风格、互动形式或案例偏好，也可以继续说；不补我也能先出第一版。'
+    : '现在就可以直接点“生成 PPT”；如果你还想加实验、案例或练习，我也能继续细化。';
+
+  return `${intro} ${nextStep}`;
 }
 
 function buildRagQuery(state) {
