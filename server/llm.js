@@ -291,8 +291,7 @@ async function extractIntentWithLLM({ state, messages, text, onTextDelta }) {
         role: 'user',
         content: buildContext(state, messages, text)
       }
-    ],
-    text: { format: { type: 'json_object' } }
+    ]
   };
 
   try {
@@ -397,8 +396,7 @@ async function generateDraftWithLLM({ state, ragContext = [], onTextDelta }) {
         role: 'user',
         content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
       }
-    ],
-    text: { format: { type: 'json_object' } }
+    ]
   };
 
   let responsesFailure = null;
@@ -503,8 +501,7 @@ async function generatePptSpecWithLLM({ draft, ragContext = [] }) {
         role: 'user',
         content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
       }
-    ],
-    text: { format: { type: 'json_object' } }
+    ]
   };
 
   try {
@@ -587,8 +584,7 @@ async function generatePptSceneWithLLM({ draft, ragContext = [], onTextDelta }) 
         role: 'user',
         content: knowledge ? `可参考的知识库片段：\n${knowledge}` : '无额外知识库片段。'
       }
-    ],
-    text: { format: { type: 'json_object' } }
+    ]
   };
 
   try {
