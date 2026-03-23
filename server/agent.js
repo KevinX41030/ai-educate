@@ -36,6 +36,27 @@ const SMALL_TALK_RESPONSES = {
 
 const VALID_NEXT_ACTIONS = new Set(['ask_more', 'ready_to_generate', 'edit_existing']);
 
+const GENERATE_READY_REPLY_PATTERNS = [
+  /直接(?:开始|进入)?生成/,
+  /直接点(?:击)?生成/,
+  /现在(?:就)?可以(?:直接)?生成/,
+  /已经可以(?:直接)?生成/,
+  /可以(?:先|直接)?生成/,
+  /不补(?:充)?也可以(?:直接)?生成/,
+  /不填也可以(?:直接)?生成/
+];
+
+const GENERATE_BLOCKING_REPLY_PATTERNS = [
+  /还差(?:一个|一些|几个)?/,
+  /还需要(?:再)?/,
+  /还想再确认/,
+  /只想再确认/,
+  /先告诉我/,
+  /一句话告诉我/,
+  /你更希望/,
+  /为了直接进入生成.*还差/
+];
+
 function createInitialAiDecision() {
   return {
     nextAction: 'ask_more',
@@ -463,6 +484,18 @@ function buildFallbackAiDecision(state) {
   };
 }
 
+function replySignalsReadyToGenerate(reply = '') {
+  const normalized = String(reply || '').replace(/\s+/g, '');
+  if (!normalized) return false;
+  return GENERATE_READY_REPLY_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function replyLooksBlockingForGeneration(reply = '') {
+  const normalized = String(reply || '').replace(/\s+/g, '');
+  if (!normalized || replySignalsReadyToGenerate(normalized)) return false;
+  return GENERATE_BLOCKING_REPLY_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
 function resolveAiDecision(state) {
   const fallback = buildFallbackAiDecision(state);
   const stored = state?.aiDecision && typeof state.aiDecision === 'object' ? state.aiDecision : {};
@@ -473,7 +506,7 @@ function resolveAiDecision(state) {
     : fallback.showGenerateCTA;
   return {
     nextAction,
-    showGenerateCTA: nextAction === 'edit_existing' ? false : showGenerateCTA,
+    showGenerateCTA: nextAction === 'ready_to_generate' ? showGenerateCTA : false,
     ctaLabel: hasStoredDecision && typeof stored.ctaLabel === 'string' && stored.ctaLabel.trim()
       ? stored.ctaLabel.trim()
       : fallback.ctaLabel,
@@ -487,13 +520,17 @@ function resolveAiDecision(state) {
 function applyAiDecision(state, decision = null) {
   const fallback = buildFallbackAiDecision(state);
   const raw = decision && typeof decision === 'object' ? decision : {};
-  const nextAction = VALID_NEXT_ACTIONS.has(raw.nextAction) ? raw.nextAction : fallback.nextAction;
+  const requestedNextAction = VALID_NEXT_ACTIONS.has(raw.nextAction) ? raw.nextAction : fallback.nextAction;
+  const assistantReply = typeof raw.assistantReply === 'string' ? raw.assistantReply.trim() : '';
+  const nextAction = requestedNextAction === 'ready_to_generate' && replyLooksBlockingForGeneration(assistantReply)
+    ? 'ask_more'
+    : requestedNextAction;
 
   state.aiDecision = {
     nextAction,
-    showGenerateCTA: nextAction === 'edit_existing'
-      ? false
-      : (typeof raw.showGenerateCTA === 'boolean' ? raw.showGenerateCTA : fallback.showGenerateCTA),
+    showGenerateCTA: nextAction === 'ready_to_generate'
+      ? (typeof raw.showGenerateCTA === 'boolean' ? raw.showGenerateCTA : fallback.showGenerateCTA)
+      : false,
     ctaLabel: typeof raw.ctaLabel === 'string' && raw.ctaLabel.trim()
       ? raw.ctaLabel.trim()
       : fallback.ctaLabel,

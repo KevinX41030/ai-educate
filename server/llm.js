@@ -275,6 +275,9 @@ async function extractIntentWithLLM({ state, messages, text, onTextDelta }) {
           '如果信息还不完整：先概括你已经理解到的重点，再只追问 1-2 个最关键的问题；不要一次把所有缺失字段都像表单一样抛给用户。' +
           '如果用户给了大段描述：优先表示你理解了什么，并主动给出下一步建议，例如“我可以先按这个方向起草，再和你一起细调”。' +
           '如果用户是在闲聊/试探：正常回应，同时轻柔地把话题带回教学需求。' +
+          '注意：showGenerateCTA=true 的真实含义，是前端会立刻展示一个“立即生成 PPT”按钮，用户此刻已经可以直接开始生成。' +
+          '因此当 nextAction=ready_to_generate 时，assistantReply 绝对不能再说“还差一个关键点”“我还想再确认一下”“你先告诉我再生成”这类会让用户误以为不能生成的话。' +
+          '如果你只是想补一个非必需偏好，也要明确说成可选项，例如：“如果你愿意，可以再补一句风格；不补也可以直接点生成。”' +
           '如果你判断信息已经足够开始生成第一版 PPT：nextAction=ready_to_generate，showGenerateCTA=true，ctaLabel/ctaReason 要给出简短明确的按钮文案和触发理由。' +
           '如果还需要继续补充：nextAction=ask_more，showGenerateCTA=false。' +
           '如果当前已经有草稿，且用户是在调整现有内容：nextAction=edit_existing，showGenerateCTA=false。' +
