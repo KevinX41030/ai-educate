@@ -1,0 +1,74 @@
+{
+  "id": "heF6bD6rdwf93qSA5SqIG",
+  "state": {
+    "id": "heF6bD6rdwf93qSA5SqIG",
+    "fields": {
+      "subject": "",
+      "grade": "",
+      "duration": "",
+      "goals": "",
+      "keyPoints": [],
+      "style": "",
+      "interactions": ""
+    },
+    "uploadedFiles": [
+      {
+        "id": "LhyBOnwbSCQeBBvvTBDE6",
+        "sourceId": "upload:MXIgTbDvbE",
+        "name": "photosynthesis-ui.docx",
+        "size": 8784,
+        "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "url": "/uploads/1775664054175-X-PpYU.docx",
+        "diskPath": "/Users/kevinx/ai-educate/data/uploads/1775664054175-X-PpYU.docx",
+        "status": "parsed",
+        "parseSummary": "浏览器验证讲义\n\n重点实验：叶片遮光实验，用于验证光照是光合作用的重要条件。\n\n课堂误区：植物的养料不是主要来自土壤，而是来自光合作用制造的有机物。\n\n互动建议：比较见光部分与遮光部分滴加碘液后的现象，并解释原因。",
+        "parsedAt": "2026-04-08T16:00:54.192Z",
+        "chunkCount": 4,
+        "parsedText": "浏览器验证讲义\n\n重点实验：叶片遮光实验，用于验证光照是光合作用的重要条件。\n\n课堂误区：植物的养料不是主要来自土壤，而是来自光合作用制造的有机物。\n\n互动建议：比较见光部分与遮光部分滴加碘液后的现象，并解释原因。"
+      }
+    ],
+    "brief": {
+      "rawInputs": [],
+      "mergedPrompt": "",
+      "updatedAt": ""
+    },
+    "aiDecision": {
+      "nextAction": "ask_more",
+      "showGenerateCTA": false,
+      "ctaLabel": "",
+      "ctaReason": "",
+      "updatedAt": ""
+    },
+    "ready": false,
+    "confirmed": false,
+    "draft": null,
+    "scene": null,
+    "sceneStatus": "idle",
+    "sceneSource": "",
+    "sceneUpdatedAt": "",
+    "sceneVersion": 0,
+    "lastEdit": "",
+    "rag": [
+      {
+        "id": "kb:README.md:2",
+        "sourceId": "kb:README.md",
+        "sourceType": "knowledge_base",
+        "source": "README.md",
+        "score": 24,
+        "content": "Example:\n- biology/photosynthesis.md\n- math/linear-functions.md\n\nPut subject-matter resources here (.md/.txt/.json).\nThe server will index files under this folder and use simple keyword retrieval\nas a baseline RAG pipeline.",
+        "summary": "Example:\n- biology/photosynthesis.md\n- math/linear-functions.md Put subject-matter resources here (.md/.txt/.json).\nThe server will index fi..."
+      },
+      {
+        "id": "kb:photosynthesis.md:2",
+        "sourceId": "kb:photosynthesis.md",
+        "sourceType": "knowledge_base",
+        "source": "photosynthesis.md",
+        "score": 3,
+        "content": "核心要点：\n- 光反应：在叶绿体类囊体膜上进行，产生 ATP、NADPH 和 O2。\n- 暗反应（碳反应）：在基质中进行，利用 ATP 和 NADPH 固定 CO2，形成有机物。\n\n教学建议：\n- 可用“叶绿体=工厂”的比喻帮助理解反应场所。\n- 用流程图展示光能 → ATP/NADPH → 碳固定的链条。",
+        "summary": "核心要点：\n- 光反应：在叶绿体类囊体膜上进行，产生 ATP、NADPH 和 O2。\n- 暗反应（碳反应）：在基质中进行，利用 ATP 和 NADPH 固定 CO2，形成有机物。 教学建议：\n- 可用“叶绿体=工厂”的比喻帮助理解反应场所。\n- 用流程图展示光能 → ATP/NA..."
+      }
+    ]
+  },
+  "messages": [],
+  "updatedAt": "2026-04-08T16:00:54.193Z"
+}

@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const { chunkText, normalizeText, tokenizeQuery, scoreTextAgainstTokens, summarizeText } = require('../lib/text');
 
 const KB_DIR = path.join(__dirname, '..', '..', 'data', 'knowledge_base');
 
-let index = [];
+let baseIndex = [];
 let stats = { files: 0, chunks: 0, updatedAt: null };
 
 function walkDir(dir) {
@@ -22,12 +23,11 @@ function walkDir(dir) {
 }
 
 function readFileContent(filePath) {
-  const ext = path.extname(filePath).toLowerCase();
+  const extension = path.extname(filePath).toLowerCase();
   const raw = fs.readFileSync(filePath, 'utf8');
-  if (ext === '.json') {
+  if (extension === '.json') {
     try {
-      const parsed = JSON.parse(raw);
-      return JSON.stringify(parsed);
+      return JSON.stringify(JSON.parse(raw));
     } catch (error) {
       return raw;
     }
@@ -35,48 +35,45 @@ function readFileContent(filePath) {
   return raw;
 }
 
-function chunkText(text, maxLen = 800) {
-  const rawChunks = text.split(/\n{2,}/).map((chunk) => chunk.trim()).filter(Boolean);
-  const chunks = [];
-  for (const chunk of rawChunks) {
-    if (chunk.length <= maxLen) {
-      chunks.push(chunk);
-      continue;
-    }
-    for (let i = 0; i < chunk.length; i += maxLen) {
-      chunks.push(chunk.slice(i, i + maxLen));
-    }
-  }
-  return chunks;
+function createChunkRecord({ id, sourceId, sourceType, source, content }) {
+  return {
+    id,
+    sourceId,
+    sourceType,
+    source,
+    content,
+    contentLower: normalizeText(content),
+    summary: summarizeText(content, 120)
+  };
 }
 
-function normalizeText(text) {
-  return text.toLowerCase();
+function buildChunkRecordsFromText({ sourceId, sourceType, source, text }) {
+  const chunks = chunkText(text);
+  return chunks.map((content, index) => createChunkRecord({
+    id: `${sourceId}:${index}`,
+    sourceId,
+    sourceType,
+    source,
+    content
+  }));
 }
 
-function tokenizeQuery(query) {
-  const trimmed = query.trim();
-  if (!trimmed) return [];
-  const parts = trimmed.split(/\s+/).filter(Boolean);
-  return parts.length ? parts : [trimmed];
-}
-
-function buildIndex() {
-  index = [];
+function buildBaseIndex() {
+  baseIndex = [];
   const files = walkDir(KB_DIR).filter((file) => /(\.md|\.txt|\.json)$/i.test(file));
   let chunkCount = 0;
+
   files.forEach((filePath) => {
-    const content = readFileContent(filePath);
-    const chunks = chunkText(content);
-    chunks.forEach((chunk, idx) => {
-      index.push({
-        id: `${path.basename(filePath)}:${idx}`,
-        source: path.relative(KB_DIR, filePath),
-        content: chunk,
-        contentLower: normalizeText(chunk)
-      });
-      chunkCount += 1;
+    const relativePath = path.relative(KB_DIR, filePath);
+    const sourceId = `kb:${relativePath}`;
+    const chunks = buildChunkRecordsFromText({
+      sourceId,
+      sourceType: 'knowledge_base',
+      source: relativePath,
+      text: readFileContent(filePath)
     });
+    baseIndex.push(...chunks);
+    chunkCount += chunks.length;
   });
 
   stats = {
@@ -86,38 +83,75 @@ function buildIndex() {
   };
 }
 
-function scoreChunk(chunk, tokens) {
-  if (!tokens.length) return 0;
-  let score = 0;
-  for (const token of tokens) {
-    if (!token) continue;
-    let idx = chunk.contentLower.indexOf(token.toLowerCase());
-    while (idx !== -1) {
-      score += 1;
-      idx = chunk.contentLower.indexOf(token.toLowerCase(), idx + token.length);
-    }
-  }
-  return score;
+function buildUploadIndex(uploadedFiles = []) {
+  if (!Array.isArray(uploadedFiles)) return [];
+  return uploadedFiles.flatMap((file) => {
+    if (!file?.parsedText || file.status !== 'parsed') return [];
+    const sourceId = file.sourceId || `upload:${file.id}`;
+    return buildChunkRecordsFromText({
+      sourceId,
+      sourceType: 'upload',
+      source: file.name || sourceId,
+      text: file.parsedText
+    });
+  });
 }
 
-function searchKnowledge(query, topK = 4) {
-  if (!query || !index.length) return [];
-  const tokens = tokenizeQuery(query);
-  const scored = index
-    .map((chunk) => ({
-      ...chunk,
-      score: scoreChunk(chunk, tokens)
-    }))
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score)
+function buildSearchIndex(uploadedFiles = []) {
+  return [...baseIndex, ...buildUploadIndex(uploadedFiles)];
+}
+
+function mergeChunkMatches(matches = [], topK = 4) {
+  const merged = new Map();
+
+  matches.forEach((match) => {
+    if (!merged.has(match.sourceId)) {
+      merged.set(match.sourceId, {
+        id: match.id,
+        sourceId: match.sourceId,
+        sourceType: match.sourceType,
+        source: match.source,
+        score: match.score,
+        contents: [match.content]
+      });
+      return;
+    }
+
+    const current = merged.get(match.sourceId);
+    current.score += match.score;
+    if (current.contents.length < 2 && !current.contents.includes(match.content)) {
+      current.contents.push(match.content);
+    }
+  });
+
+  return [...merged.values()]
+    .sort((left, right) => right.score - left.score)
     .slice(0, topK)
     .map((item) => ({
       id: item.id,
+      sourceId: item.sourceId,
+      sourceType: item.sourceType,
       source: item.source,
-      content: item.content,
-      score: item.score
+      score: item.score,
+      content: item.contents.join('\n\n'),
+      summary: summarizeText(item.contents.join(' '), 140)
     }));
-  return scored;
+}
+
+function searchKnowledge(query, topK = 4, uploadedFiles = []) {
+  if (!query) return [];
+  const tokens = tokenizeQuery(query);
+  if (!tokens.length) return [];
+
+  const matches = buildSearchIndex(uploadedFiles)
+    .map((chunk) => ({
+      ...chunk,
+      score: scoreTextAgainstTokens(chunk.contentLower, tokens)
+    }))
+    .filter((item) => item.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  return mergeChunkMatches(matches, topK);
 }
 
 function getStats() {
@@ -125,13 +159,14 @@ function getStats() {
 }
 
 function reloadKnowledgeBase() {
-  buildIndex();
+  buildBaseIndex();
   return getStats();
 }
 
-buildIndex();
+buildBaseIndex();
 
 module.exports = {
+  buildChunkRecordsFromText,
   searchKnowledge,
   getStats,
   reloadKnowledgeBase

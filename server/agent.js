@@ -1,8 +1,24 @@
 const { nanoid } = require('nanoid');
-const { extractIntentWithLLM, generateDraftWithLLM, isLLMConfigured } = require('./llm');
+const { extractIntentWithLLM, isLLMConfigured } = require('./llm');
 const { searchKnowledge } = require('./rag');
 const { buildPptSceneFromDraft } = require('./ppt/scene');
 const { inferDesignPreset, mergeThemeWithPreset, getDesignPresetHints } = require('./ppt/design');
+const { runPptGenerationPipeline } = require('./ppt/generation-pipeline');
+const {
+  createInitialGenerationState,
+  resetGenerationState,
+  beginGenerationState,
+  setGenerationStage,
+  setGenerationPlan,
+  markGenerationSlidePending,
+  markGenerationSlideCompleted,
+  markGenerationCompleted,
+  markGenerationFailed,
+  buildResumeGenerationContext,
+  isResumableGeneration
+} = require('./ppt/generation-state');
+const { tokenizeQuery, scoreTextAgainstTokens } = require('./lib/text');
+const { syncClassroomFromDraft } = require('./classroom/state');
 
 const REQUIRED_FIELDS = ["subject", "grade", "duration", "goals", "keyPoints"];
 
@@ -98,8 +114,13 @@ function createInitialState() {
     sceneSource: '',
     sceneUpdatedAt: '',
     sceneVersion: 0,
+    classroom: null,
+    classroomSource: '',
+    classroomUpdatedAt: '',
+    classroomVersion: 0,
     lastEdit: "",
-    rag: []
+    rag: [],
+    generation: createInitialGenerationState()
   };
 }
 
@@ -123,7 +144,14 @@ function buildFieldsPrompt(state) {
     Array.isArray(fields.keyPoints) && fields.keyPoints.length ? `核心知识点：${fields.keyPoints.join('；')}` : '',
     fields.style ? `教学风格：${fields.style}` : '',
     fields.interactions ? `互动设计：${fields.interactions}` : '',
-    uploadedFiles.length ? `参考资料：${uploadedFiles.map((file) => file.name).join('、')}` : ''
+    uploadedFiles.length
+      ? `参考资料：${uploadedFiles.map((file) => {
+          if (file.status === 'parsed' && file.parseSummary) {
+            return `${file.name}（${file.parseSummary}）`;
+          }
+          return file.name;
+        }).join('、')}`
+      : ''
   ].filter(Boolean);
 
   return parts.join('\n');
@@ -169,6 +197,7 @@ function syncSceneFromDraft(state) {
     state.sceneStatus = 'idle';
     state.sceneSource = '';
     state.sceneUpdatedAt = '';
+    syncClassroomFromDraft(state, { status: 'idle' });
     return;
   }
 
@@ -178,6 +207,10 @@ function syncSceneFromDraft(state) {
   state.sceneStatus = isLLMConfigured() ? 'stale' : 'ready';
   state.sceneUpdatedAt = scene?.updatedAt || new Date().toISOString();
   state.sceneVersion = (state.sceneVersion || 0) + 1;
+  syncClassroomFromDraft(state, {
+    source: 'draft',
+    status: state.sceneStatus
+  });
 }
 
 function normalizeKeyPoints(value) {
@@ -453,7 +486,13 @@ function buildRagQuery(state) {
   const parts = [
     fields.subject,
     fields.goals,
-    Array.isArray(fields.keyPoints) ? fields.keyPoints.join(' ') : ''
+    Array.isArray(fields.keyPoints) ? fields.keyPoints.join(' ') : '',
+    Array.isArray(state?.uploadedFiles)
+      ? state.uploadedFiles
+          .filter((file) => file.status === 'parsed')
+          .map((file) => file.name)
+          .join(' ')
+      : ''
   ];
   return parts.filter(Boolean).join(' ');
 }
@@ -466,7 +505,7 @@ function getMissingFields(state) {
 }
 
 function buildFallbackAiDecision(state) {
-  if (state?.draft) {
+  if (state?.draft || state?.classroom) {
     return {
       nextAction: 'edit_existing',
       showGenerateCTA: false,
@@ -597,7 +636,7 @@ function buildSmallTalkReply(intent, state, missingField) {
     if (missingField) {
       return `${base}\n\n${buildMissingFieldsReply(state)}`;
     }
-    if (!state.draft) {
+    if (!state.draft && !state.classroom) {
       return `${base}\n\n${buildReadyReply(state)}`;
     }
   }
@@ -650,7 +689,8 @@ function generateDraft(state) {
       visual: `为“${point}”补充示意图/流程图/结构图。`,
       notes: fields.goals || '',
       teachingGoal: fields.goals || '',
-      commonMistakes: ["只记结论，不理解条件与因果", "混淆条件、原料、产物"]
+      commonMistakes: ["只记结论，不理解条件与因果", "混淆条件、原料、产物"],
+      citations: []
     });
   });
 
@@ -706,7 +746,8 @@ function normalizeDraft(raw) {
     speakerNotes: typeof slide.speakerNotes === 'string' ? slide.speakerNotes : '',
     commonMistakes: Array.isArray(slide.commonMistakes)
       ? slide.commonMistakes.map((item) => `${item}`.trim()).filter(Boolean)
-      : []
+      : [],
+    citations: normalizeCitations(slide.citations)
   }));
 
   const lessonPlan = raw.lessonPlan || {};
@@ -787,6 +828,74 @@ function applyEdit(draft, text) {
   return updated;
 }
 
+function normalizeCitations(value) {
+  const items = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(/[，,、\n]/)
+      : [];
+  return [...new Set(items.map((item) => `${item || ''}`.trim()).filter(Boolean))];
+}
+
+function inferSlideCitations(slide, ragResults = []) {
+  const sourceIds = [...new Set((ragResults || []).map((item) => item?.sourceId).filter(Boolean))];
+  if (!sourceIds.length) return [];
+
+  const rawQuery = [
+    slide?.title,
+    ...(Array.isArray(slide?.bullets) ? slide.bullets : []),
+    slide?.example,
+    slide?.question,
+    slide?.notes,
+    slide?.teachingGoal
+  ].filter(Boolean).join(' ');
+
+  const tokens = tokenizeQuery(rawQuery);
+  if (!tokens.length) return sourceIds.slice(0, 2);
+
+  const scores = new Map();
+  ragResults.forEach((item) => {
+    const sourceId = item?.sourceId;
+    if (!sourceId) return;
+    const nextScore = scoreTextAgainstTokens(item.content || '', tokens) + (item.sourceType === 'upload' ? 1 : 0);
+    scores.set(sourceId, Math.max(scores.get(sourceId) || 0, nextScore));
+  });
+
+  const ranked = [...scores.entries()]
+    .filter(([, score]) => score > 0)
+    .sort((left, right) => right[1] - left[1])
+    .map(([sourceId]) => sourceId);
+
+  if (!ranked.length) return sourceIds.slice(0, 2);
+  return ranked.slice(0, 2);
+}
+
+function attachDraftCitations(draft, ragResults = []) {
+  if (!draft || !Array.isArray(draft.ppt)) return draft;
+  return {
+    ...draft,
+    ppt: draft.ppt.map((slide) => {
+      const citations = normalizeCitations(slide?.citations);
+      if (citations.length) {
+        return { ...slide, citations };
+      }
+      return {
+        ...slide,
+        citations: slide?.type === 'content'
+          ? inferSlideCitations(slide, ragResults)
+          : []
+      };
+    }),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function refreshRagForState(state, topK = 6) {
+  const ragQuery = buildRagQuery(state);
+  state.rag = searchKnowledge(ragQuery, topK, state.uploadedFiles || []);
+  return state.rag;
+}
+
 function getNextQuestion(state) {
   for (const field of REQUIRED_FIELDS) {
     if (!state.fields[field] || (field === "keyPoints" && state.fields.keyPoints.length === 0)) {
@@ -810,40 +919,141 @@ async function generatePresentation(state, options = {}) {
       reply: buildMissingFieldsReply(state),
       state,
       draft: state.draft || null,
-      scene: state.scene || null
+      scene: state.scene || null,
+      classroom: state.classroom || null
     };
   }
 
   state.ready = true;
+  const resumeContext = buildResumeGenerationContext(state);
+  const shouldRunPipeline = !state.draft || isResumableGeneration(state);
 
-  if (!state.draft) {
-    const ragQuery = buildRagQuery(state);
-    state.rag = searchKnowledge(ragQuery, 4);
-    const llmDraft = await generateDraftWithLLM({
-      state,
-      ragContext: state.rag,
-      onTextDelta: options.onModelDelta
-    });
-    const normalized = normalizeDraft(llmDraft);
-    state.draft = normalized || generateDraft(state);
-    if (state.draft && !state.draft.brief) {
-      state.draft.brief = state.brief || null;
+  if (shouldRunPipeline) {
+    refreshRagForState(state, 6);
+    beginGenerationState(state, { resume: Boolean(resumeContext) });
+
+    try {
+      const generated = await runPptGenerationPipeline(state, {
+        ragContext: state.rag,
+        useAi: options.useAi,
+        resume: resumeContext,
+        onPlan: ({ plan, resume: planResume = false, completedCount = 0 } = {}) => {
+          setGenerationPlan(state, plan, {
+            resume: planResume,
+            completedCount
+          });
+        },
+        onStage: (payload = {}) => {
+          setGenerationStage(state, payload);
+          options.onStage?.({
+            ...payload,
+            resume: Boolean(resumeContext)
+          });
+        },
+        onProgress: (payload = {}) => {
+          options.onProgress?.(payload);
+        },
+        onOutline: (payload = {}) => {
+          const existingOutline = Number.isInteger(payload.index)
+            ? state.generation?.outlines?.[payload.index]
+            : null;
+          if (
+            payload.resume ||
+            (existingOutline && (
+              (payload.outline?.id && existingOutline.id === payload.outline.id) ||
+              (payload.outline?.title && existingOutline.title === payload.outline.title)
+            ))
+          ) {
+            options.onOutline?.(payload);
+            return;
+          }
+          const plan = {
+            designPreset: state.generation?.designPreset || state.draft?.designPreset || '',
+            theme: state.generation?.theme || state.draft?.theme || null,
+            layoutHints: state.generation?.layoutHints || state.draft?.layoutHints || [],
+            lessonPlan: state.generation?.lessonPlan || state.draft?.lessonPlan || null,
+            interactionIdea: state.generation?.interactionIdea || state.draft?.interactionIdea || null,
+            outlines: [
+              ...(Array.isArray(state.generation?.outlines) ? state.generation.outlines : []),
+              payload.outline
+            ]
+          };
+          setGenerationPlan(state, plan, { resume: false });
+          options.onOutline?.(payload);
+        },
+        onSlide: (payload = {}) => {
+          markGenerationSlidePending(state, payload.index);
+          state.draft = payload.draft;
+          syncClassroomFromDraft(state, {
+            source: 'stream',
+            status: payload.sceneStatus || 'drafting'
+          });
+          markGenerationSlideCompleted(state, payload.index, payload.slide);
+          options.onSlide?.({
+            ...payload,
+            classroom: state.classroom || null
+          });
+        },
+        onDraftPreview: (payload = {}) => {
+          state.draft = payload.draft;
+          syncClassroomFromDraft(state, {
+            source: 'stream',
+            status: payload.sceneStatus || 'drafting'
+          });
+          options.onDraftPreview?.({
+            ...payload,
+            classroom: state.classroom || null
+          });
+        },
+        onModelDelta: options.onModelDelta
+      });
+
+      const nextDraft = generated?.draft && Array.isArray(generated.draft.ppt) && generated.draft.ppt.length
+        ? generated.draft
+        : generateDraft(state);
+      state.draft = attachDraftCitations(nextDraft, state.rag);
+      if (state.draft && !state.draft.brief) {
+        state.draft.brief = state.brief || null;
+      }
+      if (generated?.scene) {
+        state.scene = generated.scene;
+        state.sceneSource = generated.sceneSource || 'draft';
+        state.sceneStatus = generated.sceneStatus || 'ready';
+        state.sceneUpdatedAt = generated.scene?.updatedAt || new Date().toISOString();
+        state.sceneVersion = (state.sceneVersion || 0) + 1;
+      } else {
+        syncSceneFromDraft(state);
+      }
+      syncClassroomFromDraft(state, {
+        source: generated?.scene ? 'pipeline' : 'draft',
+        status: state.sceneStatus || 'ready'
+      });
+      markGenerationCompleted(state);
+      applyAiDecision(state, { nextAction: 'edit_existing', showGenerateCTA: false });
+      state.confirmed = true;
+
+      return {
+        reply: resumeContext
+          ? `已继续完成 PPT 生成。\n${buildSummary(state)}\n\n可继续修改内容，或直接导出 PPT。`
+          : `PPT 已开始生成并已同步预览。\n${buildSummary(state)}\n\n可继续修改内容，或直接导出 PPT。`,
+        state,
+        draft: state.draft,
+        scene: state.scene,
+        classroom: state.classroom || null
+      };
+    } catch (error) {
+      markGenerationFailed(state, error);
+      throw error;
     }
-    applyAiDecision(state, { nextAction: 'edit_existing', showGenerateCTA: false });
-    syncSceneFromDraft(state);
-    state.confirmed = true;
-
-    return {
-      reply: `PPT 已开始生成并已同步预览。\n${buildSummary(state)}\n\n可继续修改内容，或直接导出 PPT。`,
-      state,
-      draft: state.draft,
-      scene: state.scene
-    };
   }
 
   if (!state.scene) {
     syncSceneFromDraft(state);
   }
+  if (!Array.isArray(state.draft?.ppt?.[0]?.citations)) {
+    state.draft = attachDraftCitations(state.draft, state.rag || []);
+  }
+  resetGenerationState(state, { status: 'completed', currentStage: 'completed', statusMessage: '生成已完成', canResume: false });
   applyAiDecision(state, { nextAction: 'edit_existing', showGenerateCTA: false });
   state.confirmed = true;
 
@@ -851,7 +1061,8 @@ async function generatePresentation(state, options = {}) {
     reply: "PPT 已生成，可继续修改或直接导出。",
     state,
     draft: state.draft,
-    scene: state.scene
+    scene: state.scene,
+    classroom: state.classroom || null
   };
 }
 
@@ -883,14 +1094,16 @@ async function handleMessage(state, text, messages = [], options = {}) {
 
   const editInstruction = llmResult?.edit || text;
   if (state.draft && (llmResult?.intent === "edit" || isEdit(text))) {
-    state.draft = applyEdit(state.draft, editInstruction);
+    state.draft = attachDraftCitations(applyEdit(state.draft, editInstruction), state.rag || []);
+    resetGenerationState(state);
     syncSceneFromDraft(state);
     state.lastEdit = editInstruction;
     return {
       reply: "已根据你的修改建议更新课件草稿。还需要调整哪些部分？",
       state,
       draft: state.draft,
-      scene: state.scene
+      scene: state.scene,
+      classroom: state.classroom || null
     };
   }
 
@@ -904,7 +1117,8 @@ async function handleMessage(state, text, messages = [], options = {}) {
       reply: assistantReply || buildSmallTalkReply(smallTalkIntent, state, missingField),
       state,
       draft: state.draft || null,
-      scene: state.scene || null
+      scene: state.scene || null,
+      classroom: state.classroom || null
     };
   }
 
@@ -929,7 +1143,7 @@ async function handleMessage(state, text, messages = [], options = {}) {
   }
 
   return {
-    reply: assistantReply || (state.draft
+    reply: assistantReply || ((state.draft || state.classroom)
       ? "已记录你的补充。需要我继续调整 PPT，还是再补充细节？"
       : "已记录你的补充。信息齐全后，可点击“生成 PPT”进入生成页。"),
     state
@@ -943,5 +1157,9 @@ module.exports = {
   buildSummary,
   buildIntentPayload,
   getMissingFields,
-  mergeFields
+  mergeFields,
+  normalizeDraft,
+  applyEdit,
+  attachDraftCitations,
+  refreshRagForState
 };

@@ -15,6 +15,11 @@ const normalizeItems = (items) => {
   return items.map((item) => `${item || ''}`.trim()).filter(Boolean);
 };
 
+const normalizeCitations = (citations) => {
+  if (!Array.isArray(citations)) return [];
+  return [...new Set(citations.map((item) => `${item || ''}`.trim()).filter(Boolean))];
+};
+
 const createBlock = (type, data = {}) => ({
   id: data.id || uid(`block-${type}`),
   type,
@@ -25,6 +30,11 @@ const createBlock = (type, data = {}) => ({
 });
 
 const inferVariant = (slide) => {
+  const explicit = `${slide?.layout || ''}`.trim().toLowerCase();
+  if (explicit === 'process') return 'process';
+  if (explicit === 'case' || explicit === 'compare') return 'case';
+  if (explicit === 'practice') return 'activity';
+  if (explicit === 'misconception' || explicit === 'concept') return 'concept';
   const text = [slide?.title, ...(Array.isArray(slide?.bullets) ? slide.bullets : [])].join(' ');
   if (/(流程|步骤|过程|机制|路径|循环)/.test(text)) return 'process';
   if (/(练习|互动|讨论|小测|活动|任务|探究|闯关|抢答|游戏)/.test(text)) return 'activity';
@@ -165,7 +175,8 @@ export function createSceneFromDraft(draft) {
         variant: role === 'content' ? inferVariant(slide) : role,
         background: { type: 'solid', color: theme.background },
         blocks,
-        notes: joinTextParts([slide?.speakerNotes, slide?.notes, slide?.teachingGoal])
+        notes: joinTextParts([slide?.speakerNotes, slide?.notes, slide?.teachingGoal]),
+        citations: normalizeCitations(slide?.citations)
       };
     }),
     updatedAt: draft.updatedAt || new Date().toISOString()
@@ -185,6 +196,7 @@ export function mergeDraftWithScene(draft, scene) {
       id: slide?.id || fallbackSlide.id || uid('slide'),
       title: slide?.title || titleBlock?.text || fallbackSlide.title || '内容',
       type: VALID_ROLES.has(slide?.role) ? slide.role : (fallbackSlide.type || 'content'),
+      layout: slide?.variant || fallbackSlide.layout || '',
       bullets: extractBullets(slide, fallbackSlide),
       example: calloutBlock?.text || fallbackSlide.example || '',
       question: questionBlock?.text || fallbackSlide.question || '',
@@ -192,7 +204,10 @@ export function mergeDraftWithScene(draft, scene) {
       notes: slide?.notes || fallbackSlide.notes || '',
       teachingGoal: fallbackSlide.teachingGoal || '',
       speakerNotes: fallbackSlide.speakerNotes || '',
-      commonMistakes: Array.isArray(fallbackSlide.commonMistakes) ? fallbackSlide.commonMistakes : []
+      commonMistakes: Array.isArray(fallbackSlide.commonMistakes) ? fallbackSlide.commonMistakes : [],
+      citations: normalizeCitations(slide?.citations).length
+        ? normalizeCitations(slide?.citations)
+        : normalizeCitations(fallbackSlide?.citations)
     };
   });
 

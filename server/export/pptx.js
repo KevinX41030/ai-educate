@@ -4,6 +4,7 @@ const PptxGenJS = require('pptxgenjs');
 const { ensureTemplateFile } = require('./template');
 const { buildEditablePptx } = require('./editable');
 const { sceneToPptSpec } = require('../ppt/scene');
+const { writeClassroomPptx } = require('../classroom/export');
 
 const EXPORT_DIR = path.join(__dirname, '..', '..', 'data', 'exports');
 const DEFAULT_THEME = {
@@ -252,7 +253,11 @@ function numberedText(items) {
 }
 
 function inferLayout(slide) {
-  if (slide.layout) return slide.layout;
+  const explicit = `${slide.layout || ''}`.trim().toLowerCase();
+  if (explicit === 'process') return 'process';
+  if (explicit === 'case' || explicit === 'compare') return 'case';
+  if (explicit === 'practice') return 'activity';
+  if (explicit === 'misconception' || explicit === 'concept') return 'concept';
   if (slide.type !== 'content') return '';
   const title = String(slide.title || '');
   const text = [title, ...(slide.bullets || [])].join(' ');
@@ -553,12 +558,21 @@ function buildPptx(draft, options = {}) {
 }
 
 async function exportPptx(draft, fileNamePrefix = 'lesson', options = {}) {
-  const normalized = normalizeDraft(draft);
-  if (!normalized) return null;
-
   ensureExportDir();
   const fileName = `${fileNamePrefix}-${Date.now()}.pptx`;
   const filePath = path.join(EXPORT_DIR, fileName);
+
+  if (options.classroom) {
+    const classroomResult = await writeClassroomPptx(options.classroom, filePath, {
+      source: 'classroom_export'
+    });
+    if (classroomResult) {
+      return { fileName, filePath };
+    }
+  }
+
+  const normalized = normalizeDraft(draft);
+  if (!normalized) return null;
 
   if (options.scene) {
     const pptx = buildEditablePptx(normalized, options);

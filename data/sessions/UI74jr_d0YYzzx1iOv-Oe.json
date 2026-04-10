@@ -1,0 +1,61 @@
+{
+  "id": "UI74jr_d0YYzzx1iOv-Oe",
+  "state": {
+    "id": "UI74jr_d0YYzzx1iOv-Oe",
+    "fields": {
+      "subject": "光合作用",
+      "grade": "初二",
+      "duration": "45分钟",
+      "goals": "",
+      "keyPoints": [
+        "条件",
+        "过程"
+      ],
+      "style": "",
+      "interactions": ""
+    },
+    "uploadedFiles": [],
+    "brief": {
+      "rawInputs": [
+        {
+          "id": "iT9-UgXIF1EwfUv8MHcnR",
+          "source": "user",
+          "text": "给初二做一节45分钟的光合作用课件，重点讲条件和过程。",
+          "ts": 1775655421663
+        }
+      ],
+      "mergedPrompt": "给初二做一节45分钟的光合作用课件，重点讲条件和过程。\n\n主题：光合作用\n年级：初二\n时长：45分钟\n核心知识点：条件；过程",
+      "updatedAt": "2026-04-08T13:37:16.270Z"
+    },
+    "aiDecision": {
+      "nextAction": "ready_to_generate",
+      "showGenerateCTA": true,
+      "ctaLabel": "立即生成PPT",
+      "ctaReason": "已明确主题、年级、时长和重点，可直接生成光合作用课件初稿。",
+      "updatedAt": "2026-04-08T13:37:16.271Z"
+    },
+    "ready": true,
+    "confirmed": false,
+    "draft": null,
+    "scene": null,
+    "sceneStatus": "idle",
+    "sceneSource": "",
+    "sceneUpdatedAt": "",
+    "sceneVersion": 0,
+    "lastEdit": "",
+    "rag": []
+  },
+  "messages": [
+    {
+      "role": "user",
+      "text": "给初二做一节45分钟的光合作用课件，重点讲条件和过程。",
+      "ts": 1775655421663
+    },
+    {
+      "role": "assistant",
+      "text": "明白了，我先按这个方向来：给初二做一节 45 分钟的《光合作用》课件，重点突出“条件”和“过程”。这个信息已经足够先生成一版 PPT 了。若你愿意，也可以再补一句你想要的风格，比如偏基础讲解、实验探究，还是中考导向；不补也完全可以直接开始生成。",
+      "ts": 1775655436271
+    }
+  ],
+  "updatedAt": "2026-04-08T13:37:16.271Z"
+}

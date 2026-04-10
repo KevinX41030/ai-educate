@@ -40,10 +40,16 @@
             <span>第 {{ selectedSlideIndex + 1 }} 页</span>
             <strong>{{ selectedSlide?.title || '未命名页面' }}</strong>
           </div>
-          <em>{{ sceneStatusLabel }}</em>
+          <em>{{ previewStatusLabel }}</em>
         </div>
 
-        <SceneSlideCard v-if="selectedSceneSlide" :slide="selectedSceneSlide" :index="selectedSlideIndex" />
+        <ClassroomSlideCard
+          v-if="selectedClassroomScene"
+          :scene="selectedClassroomScene"
+          :index="selectedSlideIndex"
+        />
+
+        <SceneSlideCard v-else-if="selectedSceneSlide" :slide="selectedSceneSlide" :index="selectedSlideIndex" />
 
         <article v-else class="live-preview-fallback">
           <h3>{{ selectedFallbackSlide?.title }}</h3>
@@ -59,9 +65,14 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import ClassroomSlideCard from './classroom/ClassroomSlideCard.vue';
 import SceneSlideCard from './SceneSlideCard.vue';
 
 const props = defineProps({
+  classroom: {
+    type: Object,
+    default: null
+  },
   draft: {
     type: Object,
     default: null
@@ -70,7 +81,7 @@ const props = defineProps({
     type: Object,
     default: null
   },
-  sceneStatus: {
+  previewStatus: {
     type: String,
     default: 'idle'
   },
@@ -82,36 +93,45 @@ const props = defineProps({
 
 const selectedSlideIndex = ref(0);
 
+const classroomScenes = computed(() => props.classroom?.scenes ?? []);
 const sceneSlides = computed(() => props.scene?.slides ?? []);
 const fallbackSlides = computed(() => (sceneSlides.value.length ? [] : props.draft?.ppt ?? []));
-const displaySlides = computed(() => (sceneSlides.value.length ? sceneSlides.value : fallbackSlides.value));
+const displaySlides = computed(() => {
+  if (classroomScenes.value.length) return classroomScenes.value;
+  return sceneSlides.value.length ? sceneSlides.value : fallbackSlides.value;
+});
 const selectedSlide = computed(() => displaySlides.value[selectedSlideIndex.value] || null);
+const selectedClassroomScene = computed(() => classroomScenes.value[selectedSlideIndex.value] || null);
 const selectedSceneSlide = computed(() => sceneSlides.value[selectedSlideIndex.value] || null);
 const selectedFallbackSlide = computed(() => fallbackSlides.value[selectedSlideIndex.value] || null);
 
 const statusLabel = computed(() => {
-  if (props.sceneStatus === 'generating') return '生成中';
-  if (props.sceneStatus === 'ready') return '已完成';
+  if (classroomScenes.value.length) return '已生成';
+  if (props.previewStatus === 'generating') return '生成中';
+  if (props.previewStatus === 'ready') return '已完成';
   if (displaySlides.value.length) return '已生成';
   return '等待开始';
 });
 
 const statusTone = computed(() => {
-  if (props.sceneStatus === 'generating') return 'active';
-  if (props.sceneStatus === 'ready') return 'success';
+  if (classroomScenes.value.length) return 'success';
+  if (props.previewStatus === 'generating') return 'active';
+  if (props.previewStatus === 'ready') return 'success';
   return 'idle';
 });
 
 const statusDescription = computed(() => {
-  if (props.sceneStatus === 'generating') return '正在补全页面布局与内容结构。';
-  if (props.sceneStatus === 'ready') return '当前页面已经同步到最新结果，可以继续补充需求。';
+  if (classroomScenes.value.length) return '当前展示的是导出同源的课件结果，预览与导出使用同一份结构。';
+  if (props.previewStatus === 'generating') return '正在补全页面布局与内容结构。';
+  if (props.previewStatus === 'ready') return '当前页面已经同步到最新结果，可以继续补充需求。';
   if (displaySlides.value.length) return 'PPT 已经生成，当前展示的是最新页面结果。';
   return '当前还没有页面内容，先从左侧发起一次 PPT 生成。';
 });
 
-const sceneStatusLabel = computed(() => {
-  if (props.sceneStatus === 'generating') return '页面生成中';
-  if (props.sceneStatus === 'ready') return '页面已完成';
+const previewStatusLabel = computed(() => {
+  if (classroomScenes.value.length) return '预览已就绪';
+  if (props.previewStatus === 'generating') return '页面生成中';
+  if (props.previewStatus === 'ready') return '页面已完成';
   if (displaySlides.value.length) return '已生成页面';
   return '等待内容';
 });
@@ -131,6 +151,13 @@ watch(
 );
 
 const slideSummary = (slide) => {
+  if (slide?.content?.canvas?.elements?.length) {
+    const textElement = slide.content.canvas.elements.find((element) => element.type === 'text' && element.content);
+    if (textElement?.content) {
+      return `${textElement.content}`.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 22);
+    }
+    return slide?.slideMeta?.layout || 'classroom';
+  }
   if (slide?.blocks?.length) {
     const textBlock = slide.blocks.find((block) => block.text) || slide.blocks.find((block) => block.items?.length);
     if (textBlock?.text) return textBlock.text.slice(0, 22);

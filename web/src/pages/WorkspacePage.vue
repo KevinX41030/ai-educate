@@ -5,12 +5,15 @@
         :fields="fields"
         :summary="summary"
         :files="files"
+        :classroom="classroom"
         :draft="draft"
         :export-label="exportLabel"
-        :can-generate="canGeneratePpt"
-        :generate-label="draft ? '查看PPT' : '生成PPT'"
+        :can-generate="canGeneratePpt || hasPresentation"
+        :generate-label="hasPresentation ? '查看PPT' : '生成PPT'"
         :on-reset="handleClear"
         :on-generate="handleGenerate"
+        :on-export="handleExport"
+        :on-export-docx="handleExportDocx"
         :on-update-field="handleFieldChange"
       />
     </aside>
@@ -22,7 +25,7 @@
         :can-generate="canGeneratePpt"
         :cta-label="generateCtaLabel"
         :cta-reason="generateCtaReason"
-        :has-draft="Boolean(draft)"
+        :has-draft="hasPresentation"
         :on-send="handleSend"
         :on-generate="handleGenerate"
         :on-upload="handleUpload"
@@ -32,7 +35,7 @@
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import CourseInfoPanel from '../components/CourseInfoPanel.vue';
 import WorkspaceChatPanel from '../components/WorkspaceChatPanel.vue';
@@ -44,6 +47,7 @@ let initialPromptHandled = false;
 
 const {
   canGeneratePpt,
+  classroom,
   draft,
   exportLabel,
   fields,
@@ -52,6 +56,8 @@ const {
   generateCtaReason,
   handleClear,
   handleConfirm,
+  handleExport,
+  handleExportDocx,
   handleFieldChange,
   handleSend,
   handleUpload,
@@ -64,9 +70,11 @@ const {
   summary
 } = useWorkspace();
 
+const hasPresentation = computed(() => Boolean(draft.value || classroom.value?.scenes?.length));
+
 const handleGenerate = async () => {
   await syncFields();
-  if (draft.value) {
+  if (hasPresentation.value) {
     await router.push({ name: 'ppt-live' });
     return;
   }

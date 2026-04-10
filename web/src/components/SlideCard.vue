@@ -4,13 +4,12 @@
     :class="[`preset-${designPreset}`, `role-${slide.role}`, `variant-${slide.variant || slide.role}`]"
     @mouseenter="isHovered = true"
     @mouseleave="isHovered = false"
-  >
-    <SlideToolbar
-      :visible="isHovered"
-      @menu="$emit('menu', slideIndex)"
-      @regenerate="$emit('regenerate', slideIndex)"
-      @ai-enhance="$emit('ai-enhance', slideIndex)"
-    />
+    >
+      <SlideToolbar
+        :visible="isHovered"
+        @menu="(anchorRect) => $emit('menu', { slideIndex, anchorRect })"
+        @ai-enhance="$emit('ai-enhance', slideIndex)"
+      />
 
     <!-- Decorative elements per preset -->
     <div class="sc-decor">
@@ -38,27 +37,47 @@
       </template>
     </div>
 
-    <!-- Slide content: blocks rendered as editable -->
-    <div class="sc-content" :class="{ 'sc-cover-layout': slide.role === 'cover' }">
-      <EditableBlock
-        v-for="block in sortedBlocks"
-        :key="block.id"
-        :block="block"
-        :slide-index="slideIndex"
-        @update="(data) => $emit('update-block', data)"
-      />
-    </div>
+    <div ref="fitViewportRef" class="sc-fit-viewport">
+      <div
+        ref="fitBodyRef"
+        class="sc-fit-body"
+        :style="{ transform: `scale(${fitScale})` }"
+      >
+        <!-- Slide content: blocks rendered as editable -->
+        <div class="sc-content" :class="{ 'sc-cover-layout': slide.role === 'cover' }">
+          <EditableBlock
+            v-for="block in sortedBlocks"
+            :key="block.id"
+            :block="block"
+            :slide-index="slideIndex"
+            @update="(data) => $emit('update-block', data)"
+          />
+        </div>
 
-    <!-- Footer -->
-    <div class="sc-footer">
-      <span>AI-Educate</span>
-      <span>{{ slideIndex + 1 }} / {{ totalSlides }}</span>
+        <div v-if="slide.citationLabels?.length" class="sc-citations">
+          <span class="sc-citations-label">参考</span>
+          <span
+            v-for="label in slide.citationLabels"
+            :key="label"
+            class="sc-citation-chip"
+            :title="label"
+          >
+            {{ label }}
+          </span>
+        </div>
+
+        <!-- Footer -->
+        <div class="sc-footer">
+          <span>AI-Educate</span>
+          <span>{{ slideIndex + 1 }} / {{ totalSlides }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import EditableBlock from './EditableBlock.vue';
 import SlideToolbar from './SlideToolbar.vue';
 
@@ -79,9 +98,14 @@ const props = defineProps({
   }
 });
 
-defineEmits(['update-block', 'menu', 'regenerate', 'ai-enhance']);
+defineEmits(['update-block', 'menu', 'ai-enhance']);
 
 const isHovered = ref(false);
+const fitViewportRef = ref(null);
+const fitBodyRef = ref(null);
+const fitScale = ref(1);
+let resizeObserver = null;
+let rafId = 0;
 
 const BLOCK_ORDER = {
   title: 1, subtitle: 2, bullets: 3,
@@ -94,6 +118,57 @@ const sortedBlocks = computed(() => {
   const blocks = props.slide?.blocks || [];
   return [...blocks].sort((a, b) => (BLOCK_ORDER[a.type] || 99) - (BLOCK_ORDER[b.type] || 99));
 });
+
+const measureFit = () => {
+  const viewport = fitViewportRef.value;
+  const body = fitBodyRef.value;
+  if (!viewport || !body) return;
+
+  const viewportWidth = viewport.clientWidth || 1;
+  const viewportHeight = viewport.clientHeight || 1;
+  const bodyWidth = body.scrollWidth || viewportWidth;
+  const bodyHeight = body.scrollHeight || viewportHeight;
+  const nextScale = Math.min(1, viewportWidth / bodyWidth, viewportHeight / bodyHeight);
+  fitScale.value = Number.isFinite(nextScale) && nextScale > 0 ? Math.max(0.72, nextScale) : 1;
+};
+
+const scheduleMeasure = () => {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(() => {
+    rafId = 0;
+    measureFit();
+  });
+};
+
+onMounted(async () => {
+  await nextTick();
+  measureFit();
+
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      scheduleMeasure();
+    });
+    if (fitViewportRef.value) resizeObserver.observe(fitViewportRef.value);
+    if (fitBodyRef.value) resizeObserver.observe(fitBodyRef.value);
+  }
+
+  window.addEventListener('resize', scheduleMeasure);
+});
+
+onBeforeUnmount(() => {
+  if (rafId) cancelAnimationFrame(rafId);
+  resizeObserver?.disconnect();
+  window.removeEventListener('resize', scheduleMeasure);
+});
+
+watch(
+  () => props.slide,
+  async () => {
+    await nextTick();
+    scheduleMeasure();
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>
@@ -112,6 +187,22 @@ const sortedBlocks = computed(() => {
 
 .slide-card:hover {
   box-shadow: 0 4px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(101, 138, 228, 0.15);
+}
+
+.sc-fit-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.sc-fit-body {
+  position: absolute;
+  inset: 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top left;
 }
 
 /* Decorative layer */
@@ -214,8 +305,6 @@ const sortedBlocks = computed(() => {
 
 /* Content area */
 .sc-content {
-  position: relative;
-  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -244,6 +333,39 @@ const sortedBlocks = computed(() => {
 
 .preset-classroom {
   background: #F0FDFA;
+}
+
+.sc-citations {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 7% 1.6%;
+}
+
+.sc-citations-label {
+  display: inline-flex;
+  align-items: center;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sc-citation-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 180px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+  color: #475569;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Footer */

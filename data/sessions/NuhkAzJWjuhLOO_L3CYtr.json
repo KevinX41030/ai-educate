@@ -1,0 +1,103 @@
+{
+  "id": "NuhkAzJWjuhLOO_L3CYtr",
+  "state": {
+    "id": "NuhkAzJWjuhLOO_L3CYtr",
+    "fields": {
+      "subject": "光合作用",
+      "grade": "初二",
+      "duration": "45分钟",
+      "goals": "理解光合作用的基本原理，并只生成一版 demo 课件",
+      "keyPoints": [
+        "光反应",
+        "暗反应"
+      ],
+      "style": "探究式，控制页数",
+      "interactions": "简单提问即可"
+    },
+    "uploadedFiles": [],
+    "brief": {
+      "rawInputs": [],
+      "mergedPrompt": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用的基本原理，并只生成一版 demo 课件\n核心知识点：光反应；暗反应\n教学风格：探究式，控制页数\n互动设计：简单提问即可",
+      "updatedAt": "2026-04-10T15:51:15.394Z"
+    },
+    "aiDecision": {
+      "nextAction": "ask_more",
+      "showGenerateCTA": false,
+      "ctaLabel": "",
+      "ctaReason": "",
+      "updatedAt": ""
+    },
+    "ready": true,
+    "confirmed": false,
+    "draft": null,
+    "scene": null,
+    "sceneStatus": "idle",
+    "sceneSource": "",
+    "sceneUpdatedAt": "",
+    "sceneVersion": 0,
+    "openmaic": {
+      "enabled": true,
+      "baseUrl": "http://127.0.0.1:3001",
+      "status": "failed",
+      "step": "generating_outlines",
+      "progress": 15,
+      "message": "fetch failed",
+      "jobId": "ZcXy8ATTxF",
+      "pollUrl": "http://127.0.0.1:3001/api/generate-classroom/ZcXy8ATTxF",
+      "classroomId": "",
+      "classroomUrl": "",
+      "scenesGenerated": 0,
+      "scenesCount": 0,
+      "classroom": null,
+      "updatedAt": "2026-04-10T15:52:15.502Z",
+      "startedAt": "2026-04-10T15:51:15.394Z",
+      "completedAt": "",
+      "lastError": "fetch failed"
+    },
+    "lastEdit": "",
+    "rag": [
+      {
+        "id": "kb:photosynthesis.md:1",
+        "sourceId": "kb:photosynthesis.md",
+        "sourceType": "knowledge_base",
+        "source": "photosynthesis.md",
+        "score": 16,
+        "content": "光合作用是绿色植物在光能作用下，将二氧化碳和水合成有机物并释放氧气的过程。\n\n# 光合作用",
+        "summary": "光合作用是绿色植物在光能作用下，将二氧化碳和水合成有机物并释放氧气的过程。 # 光合作用"
+      },
+      {
+        "id": "kb:README.md:1",
+        "sourceId": "kb:README.md",
+        "sourceType": "knowledge_base",
+        "source": "README.md",
+        "score": 3,
+        "content": "Put subject-matter resources here (.md/.txt/.json).\nThe server will index files under this folder and use simple keyword retrieval\nas a baseline RAG pipeline.",
+        "summary": "Put subject-matter resources here (.md/.txt/.json).\nThe server will index files under this folder and use simple keyword retrieval\nas a base..."
+      }
+    ],
+    "generation": {
+      "status": "error",
+      "currentStage": "outline",
+      "statusMessage": "生成失败，可稍后继续",
+      "totalSlides": 0,
+      "completedOutlines": 0,
+      "completedSlides": 0,
+      "currentSlideIndex": -1,
+      "outlines": [],
+      "slideStates": [],
+      "designPreset": "",
+      "theme": null,
+      "layoutHints": [],
+      "lessonPlan": null,
+      "interactionIdea": null,
+      "startedAt": "2026-04-10T15:51:15.394Z",
+      "updatedAt": "2026-04-10T15:52:15.502Z",
+      "completedAt": "",
+      "lastError": "TypeError: fetch failed",
+      "canResume": true,
+      "sessionEpoch": 1
+    }
+  },
+  "messages": [],
+  "updatedAt": "2026-04-10T15:52:15.503Z"
+}

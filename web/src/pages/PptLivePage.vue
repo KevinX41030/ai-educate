@@ -12,11 +12,14 @@
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <div class="minibar-divider"></div>
-        <button class="minibar-btn" title="重新排版" :disabled="!draft" @click="handleRegenerateScene">
+        <button class="minibar-btn" title="刷新预览" :disabled="!draft" @click="handleRegenerateScene">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15 9a6 6 0 11-1.5-3.96" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M15 3v3.5h-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <button class="minibar-btn" title="导出 PPT" @click="handleExport">
+        <button class="minibar-btn" title="导出 PPT" :disabled="!(draft || displayClassroom)" @click="handleExport">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v9M5.5 8.5L9 12l3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 14h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button class="minibar-btn" title="导出教案" :disabled="!draft" @click="handleExportDocx">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M5 3.5h5l3 3V14a1 1 0 01-1 1H5.8a.8.8 0 01-.8-.8V4.3a.8.8 0 01.8-.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 3.5V7h3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M6.8 10.2h4.6M6.8 12.5h4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         </button>
         <div class="minibar-spacer"></div>
         <div class="minibar-page-count">{{ slideCount }}</div>
@@ -31,7 +34,7 @@
           </button>
         </div>
         <div class="ppt-live-intro">
-          <h1>{{ draft ? 'PPT 已生成' : '正在生成 PPT' }}</h1>
+          <h1>{{ pageTitle }}</h1>
           <p>{{ pageDescription }}</p>
         </div>
 
@@ -70,9 +73,38 @@
 
         <div class="ppt-live-actions">
           <button class="ghost" type="button" @click="goBack">返回整理页</button>
-          <button class="secondary" type="button" :disabled="!draft" @click="handleRegenerateScene">
-            重新排版
+          <button
+            v-if="canResumeGeneration"
+            class="primary"
+            type="button"
+            @click="handleResumeGeneration"
+          >
+            继续生成
           </button>
+          <button class="secondary" type="button" :disabled="!draft" @click="handleRegenerateScene">
+            刷新预览
+          </button>
+          <button class="secondary" type="button" :disabled="!draft" @click="handleExportDocx">
+            导出教案
+          </button>
+        </div>
+
+        <div v-if="draft" class="ppt-live-edit-grid">
+          <label class="ppt-live-inline-field">
+            <span class="ppt-live-label">修改范围</span>
+            <select v-model="editScope">
+              <option value="all">整套课件</option>
+              <option value="toc">目录页</option>
+              <option value="slides">指定页面</option>
+              <option value="lesson_plan">教案</option>
+              <option value="interaction">互动设计</option>
+            </select>
+          </label>
+
+          <label v-if="editScope === 'slides'" class="ppt-live-inline-field">
+            <span class="ppt-live-label">页码范围</span>
+            <input v-model="editSlideRange" type="text" placeholder="如 3-5 或 4" />
+          </label>
         </div>
 
         <label v-if="draft" class="ppt-live-section">
@@ -80,13 +112,13 @@
           <textarea
             v-model="followup"
             rows="4"
-            placeholder="继续补充课堂风格、页面重点或要调整的内容。"
+            :placeholder="followupPlaceholder"
             @keydown.enter.exact.prevent="handleFollowup"
           ></textarea>
         </label>
 
         <button v-if="draft" class="secondary" type="button" :disabled="!canFollowup" @click="handleFollowup">
-          调整当前 PPT
+          应用定向修改
         </button>
 
         <div class="ppt-live-feed">
@@ -127,11 +159,13 @@
 
       <SlideCanvas
         v-else
+        :classroom="displayClassroom"
         :draft="displayDraft"
         :scene="displayScene"
-        :scene-status="displaySceneStatus"
-        :can-export="Boolean(draft)"
+        :preview-status="displaySceneStatus"
+        :can-export="Boolean(draft || displayClassroom)"
         :fields="fields"
+        :rag="rag"
         @update-block="handleUpdateBlock"
         @add-slide="handleAddSlide"
         @delete-slide="handleDeleteSlide"
@@ -198,6 +232,8 @@ const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const route = useRoute();
 const router = useRouter();
 const followup = ref('');
+const editScope = ref('all');
+const editSlideRange = ref('');
 const autostartHandled = ref(false);
 const slideAiDialog = ref({ visible: false, index: -1, instruction: '' });
 
@@ -248,21 +284,27 @@ const startDrag = (e) => {
 const {
   draft,
   displayDraft,
+  displayClassroom,
   displayScene,
   displaySceneStatus,
   ensureLocalScene,
+  canResumeGeneration,
   fields,
   files,
   handleConfirm,
   handleEnhanceSlide,
   handleExport,
+  handleExportDocx,
   handleRegenerateScene,
+  handleResumeGeneration,
+  handleScopedEdit,
   handleSend,
   initWorkspace,
   isAutoGenerating,
   isBusy,
   mergeDraftWithScene,
   messages,
+  rag,
   scene,
   sceneStatus,
   slideMutation,
@@ -273,14 +315,43 @@ const {
 
 initWorkspace();
 
-const slideCount = computed(() => displayScene.value?.slides?.length || displayDraft.value?.ppt?.length || 0);
-const canFollowup = computed(() => followup.value.trim().length > 0 && !isBusy.value && !isAutoGenerating.value);
-const showEmptyState = computed(() => !displayDraft.value && !intent.value?.ready && !isBusy.value && !isAutoGenerating.value);
+const slideCount = computed(() => {
+  return displayClassroom.value?.scenes?.length
+    || displayScene.value?.slides?.length
+    || displayDraft.value?.ppt?.length
+    || 0;
+});
+const canFollowup = computed(() => {
+  if (!followup.value.trim() || isBusy.value || isAutoGenerating.value) return false;
+  if (editScope.value !== 'slides') return true;
+  return editSlideRange.value.trim().length > 0;
+});
+const showEmptyState = computed(() => {
+  if (displayClassroom.value?.scenes?.length) return false;
+  return !displayDraft.value
+    && !intent.value?.ready
+    && !isBusy.value
+    && !isAutoGenerating.value;
+});
+const followupPlaceholder = computed(() => {
+  if (editScope.value === 'toc') return '例如：把目录页改成更像章节导航，标题更短一些。';
+  if (editScope.value === 'slides') return '例如：第 3-5 页改成案例驱动结构，每页只保留 3 个要点。';
+  if (editScope.value === 'lesson_plan') return '例如：补上教学过程分步安排和课后作业。';
+  if (editScope.value === 'interaction') return '例如：增加一个 5 分钟的小组互动和评价方式。';
+  return '继续补充课堂风格、页面重点或要调整的内容。';
+});
 const pageDescription = computed(() => {
   if (showEmptyState.value) return '请先返回整理页，把需求整理完整后再发起生成。';
+  if (displayClassroom.value?.scenes?.length) return '右侧画布展示的是与导出同源的课件结构。';
   if (isAutoGenerating.value && displayDraft.value) return '右侧画布会随着生成进度逐页更新预览。';
   if (draft.value) return '右侧画布中的每个页面都可以直接点击编辑。';
   return '正在根据整理页中的课程信息生成 PPT，请稍候。';
+});
+const pageTitle = computed(() => {
+  if (displayClassroom.value?.scenes?.length) return 'PPT 已生成';
+  if (canResumeGeneration.value) return '继续完成 PPT 生成';
+  if (draft.value) return 'PPT 已生成';
+  return '正在生成 PPT';
 });
 const stageStatusText = computed(() => {
   if (slideMutation.value.index >= 0) {
@@ -290,6 +361,7 @@ const stageStatusText = computed(() => {
   }
   if (isAutoGenerating.value && displayDraft.value?.ppt?.length) return '正在逐页生成';
   if (isAutoGenerating.value || isBusy.value) return '正在生成 PPT';
+  if (displayClassroom.value?.scenes?.length) return 'PPT 已生成';
   if (displaySceneStatus.value === 'drafting') return '正在逐页生成';
   if (sceneStatus.value === 'generating') return '正在补全页面';
   if (draft.value) return 'PPT 已生成';
@@ -314,6 +386,9 @@ const recognizedFields = computed(() => {
   return items.filter((item) => `${item.value || ''}`.trim());
 });
 const activeSlideForDialog = computed(() => {
+  if (displayClassroom.value?.scenes?.length) {
+    return displayClassroom.value.scenes[slideAiDialog.value.index] || null;
+  }
   const slides = displayScene.value?.slides?.length ? displayScene.value.slides : (displayDraft.value?.ppt || []);
   return slides[slideAiDialog.value.index] || null;
 });
@@ -471,8 +546,13 @@ const handleAiEnhanceSlide = async (index) => {
 const handleFollowup = async () => {
   const text = followup.value.trim();
   if (!text || isBusy.value || isAutoGenerating.value) return;
+  if (editScope.value === 'slides' && !editSlideRange.value.trim()) return;
   followup.value = '';
-  await handleSend(text, { autoGenerate: false });
+  await handleScopedEdit({
+    scope: editScope.value,
+    instruction: text,
+    slideRange: editScope.value === 'slides' ? editSlideRange.value.trim() : null
+  });
 };
 
 const goBack = async () => {
@@ -696,8 +776,40 @@ watch(
 
 .ppt-live-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.ppt-live-edit-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.ppt-live-inline-field {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(40, 49, 78, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.ppt-live-inline-field select,
+.ppt-live-inline-field input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(40, 49, 78, 0.1);
+  background: rgba(247, 247, 248, 0.92);
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--ink);
+}
+
+.ppt-live-inline-field select:focus,
+.ppt-live-inline-field input:focus {
+  outline: none;
+  border-color: rgba(101, 138, 228, 0.38);
+  box-shadow: 0 0 0 4px rgba(101, 138, 228, 0.12);
 }
 
 .ppt-live-status-row,

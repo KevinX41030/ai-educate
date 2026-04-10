@@ -16,7 +16,8 @@
 
       <div class="preview-hero-actions">
         <div class="hero-tools">
-          <button class="secondary" type="button" :disabled="!draft || !canExport" @click="handleRegenerateScene">重新排版</button>
+          <button class="secondary" type="button" :disabled="!draft || !canExport" @click="handleRegenerateScene">刷新预览</button>
+          <button class="secondary" type="button" :disabled="!draft || !canExport" @click="handleExportDocx">导出教案</button>
           <button class="primary" type="button" :disabled="!canExport" @click="handleExport">{{ exportLabel }}</button>
         </div>
       </div>
@@ -39,6 +40,14 @@
         @click="handleConfirm"
       >
         确认生成
+      </button>
+      <button
+        v-if="generationState?.canResume"
+        class="primary"
+        type="button"
+        @click="handleResumeGeneration"
+      >
+        继续生成
       </button>
     </div>
 
@@ -87,19 +96,40 @@
               <span class="stage-kicker">第 {{ selectedSlideIndex + 1 }} 页</span>
               <h3>{{ selectedSlide?.title || '未命名页面' }}</h3>
             </div>
-            <span class="scene-status">{{ sceneStatusText }}</span>
+            <span class="preview-status">{{ previewStatusText }}</span>
           </div>
 
           <div class="stage-surface">
-            <SceneSlideCard v-if="selectedSceneSlide" :slide="selectedSceneSlide" :index="selectedSlideIndex" />
+            <ClassroomSlideCard
+              v-if="selectedClassroomScene"
+              :scene="selectedClassroomScene"
+              :index="selectedSlideIndex"
+              :citation-labels="selectedSlideSources.map((item) => item.source || item.sourceId)"
+            />
+
+            <SceneSlideCard v-else-if="selectedSceneSlide" :slide="selectedSceneSlide" :index="selectedSlideIndex" />
 
             <article v-else class="fallback-stage">
               <h4>{{ selectedFallbackSlide?.title }}</h4>
               <ul v-if="selectedFallbackSlide?.bullets?.length">
                 <li v-for="(bullet, bulletIndex) in selectedFallbackSlide.bullets" :key="bulletIndex">{{ bullet }}</li>
               </ul>
-              <p v-else class="muted">该页内容生成中，稍后会显示更完整的版式结构。</p>
+              <p v-else class="muted">该页内容生成中，稍后会显示更完整的页面结果。</p>
             </article>
+          </div>
+
+          <div v-if="selectedSlideSources.length" class="slide-sources">
+            <span>本页参考资料</span>
+            <div class="slide-source-list">
+              <article
+                v-for="source in selectedSlideSources"
+                :key="source.sourceId"
+                class="slide-source-card"
+              >
+                <strong>{{ source.source }}</strong>
+                <p>{{ source.summary || source.content || '已命中参考资料。' }}</p>
+              </article>
+            </div>
           </div>
         </div>
       </template>
@@ -144,8 +174,11 @@
     <div v-else class="tab-surface knowledge-list">
       <p v-if="!rag.length" class="muted">暂无知识库引用，后续生成时会自动把命中的参考内容带入页面与教案。</p>
       <div v-for="item in rag" :key="item.id" class="knowledge-card">
-        <div class="knowledge-meta">{{ item.source }} · score {{ item.score }}</div>
-        <p>{{ item.content }}</p>
+        <div class="knowledge-meta">
+          <span>{{ item.source }}</span>
+          <span>{{ item.sourceType === 'upload' ? '上传资料' : '知识库' }}</span>
+        </div>
+        <p>{{ item.summary || item.content }}</p>
       </div>
     </div>
   </section>
@@ -153,12 +186,17 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import ClassroomSlideCard from './classroom/ClassroomSlideCard.vue';
 import SceneSlideCard from './SceneSlideCard.vue';
 
 const props = defineProps({
   summary: {
     type: String,
     default: ''
+  },
+  classroom: {
+    type: Object,
+    default: null
   },
   draft: {
     type: Object,
@@ -172,7 +210,7 @@ const props = defineProps({
     type: Object,
     default: null
   },
-  sceneStatus: {
+  previewStatus: {
     type: String,
     default: 'idle'
   },
@@ -200,11 +238,23 @@ const props = defineProps({
     type: Function,
     default: null
   },
+  onExportDocx: {
+    type: Function,
+    default: null
+  },
   exportLabel: {
     type: String,
     default: '导出PPT'
   },
   onRegenerateScene: {
+    type: Function,
+    default: null
+  },
+  generationState: {
+    type: Object,
+    default: () => ({})
+  },
+  onResumeGeneration: {
     type: Function,
     default: null
   }
@@ -238,21 +288,50 @@ const toList = (value) => {
     .filter(Boolean);
 };
 
+const htmlToPlainText = (value = '') =>
+  `${value || ''}`
+    .replace(/<\/(p|div|li|h\d)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const classroomScenes = computed(() => props.classroom?.scenes ?? []);
 const sceneSlides = computed(() => props.scene?.slides ?? []);
 const fallbackSlides = computed(() => (sceneSlides.value.length ? [] : (props.draft?.ppt ?? [])));
-const displaySlides = computed(() => (sceneSlides.value.length ? sceneSlides.value : fallbackSlides.value));
+const displaySlides = computed(() => {
+  if (classroomScenes.value.length) return classroomScenes.value;
+  return sceneSlides.value.length ? sceneSlides.value : fallbackSlides.value;
+});
 const selectedSlide = computed(() => displaySlides.value[selectedSlideIndex.value] || null);
+const selectedClassroomScene = computed(() => classroomScenes.value[selectedSlideIndex.value] || null);
 const selectedSceneSlide = computed(() => sceneSlides.value[selectedSlideIndex.value] || null);
 const selectedFallbackSlide = computed(() => fallbackSlides.value[selectedSlideIndex.value] || null);
-const lessonPlan = computed(() => props.draft?.lessonPlan || null);
-const interactionIdea = computed(() => props.draft?.interactionIdea || null);
-const updatedAt = computed(() => props.draft?.updatedAt || null);
+const selectedSlideSources = computed(() => {
+  const citations = Array.isArray(selectedSlide.value?.citations) && selectedSlide.value.citations.length
+    ? selectedSlide.value.citations
+    : (Array.isArray(selectedFallbackSlide.value?.citations) ? selectedFallbackSlide.value.citations : []);
+
+  if (!citations.length) return [];
+  const sourceMap = new Map((props.rag || []).map((item) => [item.sourceId, item]));
+  return citations
+    .map((sourceId) => sourceMap.get(sourceId))
+    .filter(Boolean);
+});
+const lessonPlan = computed(() => props.classroom?.stage?.lessonPlan || props.draft?.lessonPlan || null);
+const interactionIdea = computed(() => props.classroom?.stage?.interactionIdea || props.draft?.interactionIdea || null);
+const updatedAt = computed(() => props.classroom?.updatedAt || props.draft?.updatedAt || null);
 const interactionTokens = computed(() => toList(props.fields?.interactions));
 const missingFields = computed(() =>
   (props.intent?.missingFields || []).map((field) => FIELD_LABELS[field] || field)
 );
 const canConfirm = computed(() => props.intent && props.intent.ready && !props.intent.confirmed);
 const previewSubtitle = computed(() => {
+  if (props.classroom?.description) return props.classroom.description;
   if (props.fields?.goals) return props.fields.goals;
   return '左侧输入越清晰，右侧预览越接近最终可导出的课件成果。';
 });
@@ -268,26 +347,43 @@ const summaryChips = computed(() => [
   { label: '页数', value: displaySlides.value.length ? `${displaySlides.value.length} 页` : '未生成' }
 ]);
 const confirmTone = computed(() => {
+  if (props.generationState?.canResume) return 'warn';
   if (props.intent?.confirmed) return 'success';
   if (missingFields.value.length) return 'warn';
   return 'info';
 });
 const confirmTitle = computed(() => {
+  if (props.generationState?.canResume) return '上次生成未完成，可以从中断处继续';
   if (props.intent?.confirmed) return '需求已确认，课件可继续预览与导出';
   if (missingFields.value.length) return '还有少量信息待补全';
   return '信息已齐，可以确认生成课件';
 });
 const confirmDescription = computed(() => {
-  if (props.intent?.confirmed) return '如果还想微调页面结构，可以先重新排版，再导出 PPT。';
+  if (props.generationState?.canResume) {
+    const completed = Number(props.generationState?.completedSlides || 0);
+    const total = Number(props.generationState?.totalSlides || 0);
+    return total
+      ? `上次任务已完成 ${completed}/${total} 页，点击“继续生成”会从当前进度往下接着跑。`
+      : '上次任务中断了，点击“继续生成”会优先复用已生成结果。';
+  }
+  if (props.intent?.confirmed) return '如果还想刷新当前页面结果，可以先刷新预览，再导出 PPT。';
   if (missingFields.value.length) return '建议先补全关键字段，让页面结构、互动安排和教案内容更加稳定。';
   return '点击确认后，系统会基于当前信息生成更完整的课件草稿。';
 });
-const sceneStatusText = computed(() => {
-  if (props.sceneStatus === 'drafting') return `正在逐页生成预览，已完成 ${displaySlides.value.length} 页`;
-  if (props.sceneStatus === 'stale') return '当前是基础草稿，可点击“重新排版”生成增强版式';
-  if (props.sceneStatus === 'generating') return '正在生成增强版式';
-  if (props.sceneStatus === 'ready') return '增强版式已就绪';
-  return '当前使用基础预览';
+const previewStatusText = computed(() => {
+  if (props.generationState?.canResume) {
+    return props.generationState?.statusMessage || '生成已中断，可继续';
+  }
+  if (classroomScenes.value.length) {
+    if (props.previewStatus === 'drafting') return `正在逐页生成课件预览，已完成 ${displaySlides.value.length} 页`;
+    if (props.previewStatus === 'generating') return '正在刷新课件预览';
+    return '课件预览已就绪';
+  }
+  if (props.previewStatus === 'drafting') return `正在逐页生成课件预览，已完成 ${displaySlides.value.length} 页`;
+  if (props.previewStatus === 'stale') return '当前预览基于草稿，可点击“刷新预览”同步最新页面结果';
+  if (props.previewStatus === 'generating') return '正在刷新课件预览';
+  if (props.previewStatus === 'ready') return '课件预览已同步到最新结果';
+  return '当前展示草稿预览';
 });
 
 watch(
@@ -312,6 +408,13 @@ watch(
 );
 
 const slidePreviewText = (slide) => {
+  if (slide?.content?.canvas?.elements?.length) {
+    const textElement = slide.content.canvas.elements.find((element) => element.type === 'text' && element.content);
+    if (textElement?.content) {
+      return htmlToPlainText(textElement.content).slice(0, 22) || (slide.slideMeta?.layout || 'classroom');
+    }
+    if (slide?.slideMeta?.layout) return slide.slideMeta.layout;
+  }
   if (slide?.blocks?.length) {
     const firstTextBlock = slide.blocks.find((block) => block.text) || slide.blocks.find((block) => block.items?.length);
     if (firstTextBlock?.text) return firstTextBlock.text.slice(0, 22);
@@ -332,11 +435,21 @@ const handleExport = () => {
     props.onExport();
     return;
   }
-  if (!props.draft) {
+  if (!props.draft && !props.classroom) {
     window.alert('请先生成 PPT，再导出。');
     return;
   }
   window.alert('导出功能为占位，后续将生成 .pptx/.docx 文件。');
+};
+
+const handleExportDocx = () => {
+  if (props.onExportDocx) {
+    props.onExportDocx();
+    return;
+  }
+  if (!props.draft) {
+    window.alert('请先生成内容，再导出教案。');
+  }
 };
 
 const handleRegenerateScene = () => {
@@ -346,6 +459,14 @@ const handleRegenerateScene = () => {
 const handleConfirm = () => {
   if (!props.onConfirm) return;
   props.onConfirm();
+};
+
+const handleResumeGeneration = () => {
+  if (props.onResumeGeneration) {
+    props.onResumeGeneration();
+    return;
+  }
+  handleConfirm();
 };
 </script>
 
@@ -573,7 +694,7 @@ const handleConfirm = () => {
   font-size: 22px;
 }
 
-.scene-status {
+.preview-status {
   color: var(--muted);
   font-size: 12px;
   text-align: right;
@@ -582,6 +703,41 @@ const handleConfirm = () => {
 
 .stage-surface {
   min-height: 280px;
+}
+
+.slide-sources {
+  display: grid;
+  gap: 10px;
+}
+
+.slide-sources > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.slide-source-list {
+  display: grid;
+  gap: 10px;
+}
+
+.slide-source-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(91, 108, 255, 0.05);
+  border: 1px solid rgba(91, 108, 255, 0.12);
+}
+
+.slide-source-card strong {
+  font-size: 14px;
+}
+
+.slide-source-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
 }
 
 .fallback-stage {
@@ -683,8 +839,13 @@ const handleConfirm = () => {
 }
 
 .knowledge-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   color: var(--muted);
   font-size: 12px;
+  font-weight: 700;
 }
 
 @media (max-width: 720px) {

@@ -4,21 +4,25 @@
       <div class="page-intro">
         <span class="panel-kicker">Preview · 课件预览</span>
         <h1>在一个独立页面里专心看结果</h1>
-        <p>这一页只保留预览、确认生成、排版和导出，避免与输入过程互相干扰。</p>
+        <p>这一页只保留预览、确认生成、预览刷新和导出，避免与输入过程互相干扰。</p>
       </div>
 
       <PreviewPanel
         :summary="summary"
+        :classroom="displayClassroom"
         :draft="displayDraft"
         :scene="displayScene"
-        :scene-status="displaySceneStatus"
+        :preview-status="displaySceneStatus"
         :intent="intent"
         :rag="rag"
         :fields="fields"
         :files="files"
-        :can-export="Boolean(draft)"
+        :can-export="Boolean(draft || classroom)"
         :on-confirm="handleConfirm"
+        :generation-state="generationState"
+        :on-resume-generation="handleResumeGeneration"
         :on-export="handleExport"
+        :on-export-docx="handleExportDocx"
         :export-label="exportLabel"
         :on-regenerate-scene="handleRegenerateScene"
       />
@@ -40,6 +44,8 @@ import WorkspaceSidebar from '../components/WorkspaceSidebar.vue';
 import { useWorkspace } from '../composables/useWorkspace';
 
 const {
+  classroom,
+  displayClassroom,
   displayDraft,
   displayScene,
   displaySceneStatus,
@@ -48,9 +54,12 @@ const {
   fields,
   files,
   handleConfirm,
+  handleResumeGeneration,
   handleExport,
+  handleExportDocx,
   handleRegenerateScene,
   intent,
+  generationState,
   rag,
   scene,
   sceneStatus,

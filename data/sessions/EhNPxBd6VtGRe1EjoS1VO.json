@@ -1,0 +1,655 @@
+{
+  "id": "EhNPxBd6VtGRe1EjoS1VO",
+  "state": {
+    "id": "EhNPxBd6VtGRe1EjoS1VO",
+    "fields": {
+      "subject": "光合作用",
+      "grade": "初二",
+      "duration": "45分钟",
+      "goals": "理解光合作用的基本原理",
+      "keyPoints": [
+        "光反应",
+        "暗反应"
+      ],
+      "style": "探究式",
+      "interactions": "分组讨论"
+    },
+    "uploadedFiles": [],
+    "brief": {
+      "rawInputs": [],
+      "mergedPrompt": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用的基本原理\n核心知识点：光反应；暗反应\n教学风格：探究式\n互动设计：分组讨论",
+      "updatedAt": "2026-04-10T13:01:08.152Z"
+    },
+    "aiDecision": {
+      "nextAction": "edit_existing",
+      "showGenerateCTA": false,
+      "ctaLabel": "查看 PPT",
+      "ctaReason": "当前草稿已生成，可以继续调整或查看页面。",
+      "updatedAt": "2026-04-10T13:01:08.155Z"
+    },
+    "ready": true,
+    "confirmed": true,
+    "draft": {
+      "designPreset": "corporate",
+      "brief": {
+        "rawInputs": [],
+        "mergedPrompt": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用的基本原理\n核心知识点：光反应；暗反应\n教学风格：探究式\n互动设计：分组讨论",
+        "updatedAt": "2026-04-10T13:01:08.152Z"
+      },
+      "ppt": [
+        {
+          "id": "k_QhNfTbVw6y-TvbyePAV",
+          "title": "光合作用",
+          "type": "cover",
+          "bullets": [
+            "初二",
+            "45分钟"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用的基本原理\n核心知识点：光反应；暗反应\n教学风格：探究式\n互动设计：分组讨论",
+          "teachingGoal": "理解光合作用的基本原理",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": []
+        },
+        {
+          "id": "st4NQahCz_8JZ_YRhmyst",
+          "title": "目录",
+          "type": "toc",
+          "bullets": [
+            "光反应",
+            "暗反应"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "说明本课学习路径。",
+          "teachingGoal": "理解光合作用的基本原理",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": []
+        },
+        {
+          "id": "vEdr3e_VZmI5S-aOl_OkR",
+          "title": "光反应",
+          "type": "content",
+          "bullets": [
+            "光反应的核心概念与关键条件",
+            "光反应与前后知识点之间的关系",
+            "光反应在课堂中的理解抓手与观察点"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "理解光合作用的基本原理",
+          "teachingGoal": "理解光合作用的基本原理",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "4esMNDtA96TqfLSA6tGd3",
+          "title": "光反应：应用与易错",
+          "type": "content",
+          "bullets": [
+            "围绕“光反应”设计一个贴近课堂的应用场景",
+            "梳理学生学习“光反应”时最容易混淆的地方",
+            "通过提问或练习检验学生是否真正理解“光反应”"
+          ],
+          "example": "",
+          "question": "如果课堂上要快速检查“光反应”是否掌握，你会怎么追问？",
+          "visual": "",
+          "notes": "",
+          "teachingGoal": "理解光合作用的基本原理",
+          "speakerNotes": "",
+          "commonMistakes": [
+            "只记结论，不理解条件",
+            "会背术语，但不会迁移到情境中"
+          ],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "GdY2giv_oXwmiu90iTFJS",
+          "title": "暗反应",
+          "type": "content",
+          "bullets": [
+            "暗反应的核心概念与关键条件",
+            "暗反应与前后知识点之间的关系",
+            "暗反应在课堂中的理解抓手与观察点"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "理解光合作用的基本原理",
+          "teachingGoal": "理解光合作用的基本原理",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "5LsebmyDn9BiLxwL0GX5l",
+          "title": "暗反应：应用与易错",
+          "type": "content",
+          "bullets": [
+            "围绕“暗反应”设计一个贴近课堂的应用场景",
+            "梳理学生学习“暗反应”时最容易混淆的地方",
+            "通过提问或练习检验学生是否真正理解“暗反应”"
+          ],
+          "example": "",
+          "question": "如果课堂上要快速检查“暗反应”是否掌握，你会怎么追问？",
+          "visual": "",
+          "notes": "分组讨论",
+          "teachingGoal": "理解光合作用的基本原理",
+          "speakerNotes": "",
+          "commonMistakes": [
+            "只记结论，不理解条件",
+            "会背术语，但不会迁移到情境中"
+          ],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "FwhOvXGv3aZpa0QZnAzsZ",
+          "title": "总结与反思",
+          "type": "summary",
+          "bullets": [
+            "回顾本课核心概念与关键结论",
+            "梳理应用场景与易错提醒",
+            "布置迁移练习或课后任务"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "引导学生形成结构化回顾。",
+          "teachingGoal": "理解光合作用的基本原理",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": []
+        }
+      ],
+      "lessonPlan": {
+        "goals": "理解光合作用的基本原理",
+        "process": [
+          "导入：唤醒已有知识与学习任务",
+          "建构：呈现核心概念与关键条件",
+          "探究：结合现象、案例或实验推进理解",
+          "练习：通过提问或任务检验理解",
+          "总结：回顾要点并迁移应用"
+        ],
+        "methods": "探究式",
+        "activities": "分组讨论",
+        "homework": "围绕本课核心知识点完成巩固练习或迁移应用任务"
+      },
+      "interactionIdea": {
+        "title": "课堂互动设计",
+        "description": "分组讨论"
+      },
+      "theme": {
+        "primary": "#1F3B73",
+        "accent": "#4C8BF5",
+        "background": "#F8FAFC",
+        "text": "#0F172A",
+        "font": "Microsoft YaHei"
+      },
+      "layoutHints": [
+        "cover_right_panel",
+        "content_two_column",
+        "summary_cards"
+      ],
+      "updatedAt": "2026-04-10T13:01:08.155Z"
+    },
+    "scene": {
+      "designPreset": "corporate",
+      "theme": {
+        "primary": "#1F3B73",
+        "accent": "#4C8BF5",
+        "background": "#F8FAFC",
+        "text": "#0F172A",
+        "font": "Microsoft YaHei"
+      },
+      "layoutHints": [
+        "cover_right_panel",
+        "content_two_column",
+        "summary_cards"
+      ],
+      "slides": [
+        {
+          "id": "k_QhNfTbVw6y-TvbyePAV",
+          "title": "光合作用",
+          "role": "cover",
+          "variant": "cover",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "W5SC-U0elrMcmb05wrU6o",
+              "type": "title",
+              "title": "",
+              "text": "光合作用",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 8.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "8J9sUlsx3XKUVFGIdCLWE",
+              "type": "subtitle",
+              "title": "",
+              "text": "初二 · 45分钟",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 1.45,
+                "w": 8.2,
+                "h": 0.6
+              }
+            },
+            {
+              "id": "-fnxyF-lW27uEJX3oD-bl",
+              "type": "callout",
+              "title": "教学目标",
+              "text": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用的基本原理\n核心知识点：光反应；暗反应\n教学风格：探究式\n互动设计：分组讨论；理解光合作用的基本原理；理解光合作用的基本原理",
+              "items": [],
+              "box": {
+                "x": 8.2,
+                "y": 1.8,
+                "w": 4.1,
+                "h": 1.8
+              }
+            }
+          ],
+          "notes": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用的基本原理\n核心知识点：光反应；暗反应\n教学风格：探究式\n互动设计：分组讨论；理解光合作用的基本原理；理解光合作用的基本原理"
+        },
+        {
+          "id": "st4NQahCz_8JZ_YRhmyst",
+          "title": "目录",
+          "role": "toc",
+          "variant": "toc",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "UQzEvnRyg8PNRFqt9wSTG",
+              "type": "title",
+              "title": "",
+              "text": "目录",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "--RUYPXycUTKzLHaLPmtI",
+              "type": "bullets",
+              "title": "",
+              "text": "",
+              "items": [
+                "光反应",
+                "暗反应"
+              ],
+              "box": {
+                "x": 0.9,
+                "y": 1.8,
+                "w": 11,
+                "h": 4.8
+              }
+            }
+          ],
+          "notes": "说明本课学习路径。；理解光合作用的基本原理；理解光合作用的基本原理"
+        },
+        {
+          "id": "vEdr3e_VZmI5S-aOl_OkR",
+          "title": "光反应",
+          "role": "content",
+          "variant": "concept",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "mN-mg-mobRj1EvpxswuS8",
+              "type": "title",
+              "title": "",
+              "text": "光反应",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "JeV9E0HBPeAFd97B5M39e",
+              "type": "factCards",
+              "title": "核心认识",
+              "text": "",
+              "items": [
+                "光反应的核心概念与关键条件",
+                "光反应与前后知识点之间的关系",
+                "光反应在课堂中的理解抓手与观察点"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 2.35
+              }
+            },
+            {
+              "id": "A1cRoqiYxC07BIxQnLaCm",
+              "type": "callout",
+              "title": "课堂提示",
+              "text": "理解光合作用的基本原理；光反应与前后知识点之间的关系；光反应的核心概念与关键条件；理解光合作用的基本原理；补充教学案例或误区提醒。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 4.6,
+                "w": 7.05,
+                "h": 1.05
+              }
+            },
+            {
+              "id": "7dKaPIu-AfSU0MRO57Eep",
+              "type": "question",
+              "title": "互动提问",
+              "text": "互动建议：课堂互动设计",
+              "items": [],
+              "box": {
+                "x": 8.35,
+                "y": 4.6,
+                "w": 3.75,
+                "h": 1.05
+              }
+            }
+          ],
+          "notes": "理解光合作用的基本原理；理解光合作用的基本原理；理解光合作用的基本原理"
+        },
+        {
+          "id": "4esMNDtA96TqfLSA6tGd3",
+          "title": "光反应：应用与易错",
+          "role": "content",
+          "variant": "activity",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "GIN4srQ5mBgnIrMQweWyp",
+              "type": "title",
+              "title": "",
+              "text": "光反应：应用与易错",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "ty8ICj9kdhc5S0Xbs71C5",
+              "type": "taskCards",
+              "title": "课堂任务板",
+              "text": "",
+              "items": [
+                "任务一：围绕“光反应”设计一个贴近课堂的应用场景",
+                "任务二：梳理学生学习“光反应”时最容易混淆的地方",
+                "任务三：通过提问或练习检验学生是否真正理解“光反应”",
+                "加分挑战：课堂互动设计"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 3.55
+              }
+            },
+            {
+              "id": "n3K3PbqakcfrzqC0bfizG",
+              "type": "question",
+              "title": "互动挑战",
+              "text": "如果课堂上要快速检查“光反应”是否掌握，你会怎么追问？；分组讨论；课堂互动设计；设计一个和同伴合作完成的小任务。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 5.75,
+                "w": 11.15,
+                "h": 0.82
+              }
+            }
+          ],
+          "notes": "理解光合作用的基本原理；理解光合作用的基本原理"
+        },
+        {
+          "id": "GdY2giv_oXwmiu90iTFJS",
+          "title": "暗反应",
+          "role": "content",
+          "variant": "concept",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "pQbD6L6EuPOCeESbNtApt",
+              "type": "title",
+              "title": "",
+              "text": "暗反应",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "zl8G61S_MQ5j1ZdbY2FFJ",
+              "type": "factCards",
+              "title": "核心认识",
+              "text": "",
+              "items": [
+                "暗反应的核心概念与关键条件",
+                "暗反应与前后知识点之间的关系",
+                "暗反应在课堂中的理解抓手与观察点"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 2.35
+              }
+            },
+            {
+              "id": "gtcRvHhoUvQ__KrjsNm8-",
+              "type": "callout",
+              "title": "课堂提示",
+              "text": "理解光合作用的基本原理；暗反应与前后知识点之间的关系；暗反应的核心概念与关键条件；理解光合作用的基本原理；补充教学案例或误区提醒。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 4.6,
+                "w": 7.05,
+                "h": 1.05
+              }
+            },
+            {
+              "id": "nfrSmELdkr0wVJTjipFfS",
+              "type": "question",
+              "title": "互动提问",
+              "text": "互动建议：课堂互动设计",
+              "items": [],
+              "box": {
+                "x": 8.35,
+                "y": 4.6,
+                "w": 3.75,
+                "h": 1.05
+              }
+            }
+          ],
+          "notes": "理解光合作用的基本原理；理解光合作用的基本原理；理解光合作用的基本原理"
+        },
+        {
+          "id": "5LsebmyDn9BiLxwL0GX5l",
+          "title": "暗反应：应用与易错",
+          "role": "content",
+          "variant": "activity",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "lhAys5l5tqvmFPy2qX4mP",
+              "type": "title",
+              "title": "",
+              "text": "暗反应：应用与易错",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "W2UGuz4JkDZjh2oZkU-v2",
+              "type": "taskCards",
+              "title": "课堂任务板",
+              "text": "",
+              "items": [
+                "任务一：围绕“暗反应”设计一个贴近课堂的应用场景",
+                "任务二：梳理学生学习“暗反应”时最容易混淆的地方",
+                "任务三：通过提问或练习检验学生是否真正理解“暗反应”",
+                "加分挑战：课堂互动设计"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 3.55
+              }
+            },
+            {
+              "id": "_mP-idiuj67xKFqbRuEgQ",
+              "type": "question",
+              "title": "互动挑战",
+              "text": "如果课堂上要快速检查“暗反应”是否掌握，你会怎么追问？；分组讨论；课堂互动设计；设计一个和同伴合作完成的小任务。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 5.75,
+                "w": 11.15,
+                "h": 0.82
+              }
+            }
+          ],
+          "notes": "分组讨论；理解光合作用的基本原理；理解光合作用的基本原理"
+        },
+        {
+          "id": "FwhOvXGv3aZpa0QZnAzsZ",
+          "title": "总结与反思",
+          "role": "summary",
+          "variant": "summary",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "sgZ7tCDrRAWir1EKeZ-e_",
+              "type": "title",
+              "title": "",
+              "text": "总结与反思",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "l_RM1xydO3uIpl3sxzYfT",
+              "type": "summaryCards",
+              "title": "",
+              "text": "",
+              "items": [
+                "回顾本课核心概念与关键结论",
+                "梳理应用场景与易错提醒",
+                "布置迁移练习或课后任务"
+              ],
+              "box": {
+                "x": 0.9,
+                "y": 1.8,
+                "w": 11.4,
+                "h": 3.9
+              }
+            },
+            {
+              "id": "CfzYhrQcXVWCxzUtZRIH0",
+              "type": "callout",
+              "title": "课后延伸",
+              "text": "围绕本课核心知识点完成巩固练习或迁移应用任务",
+              "items": [],
+              "box": {
+                "x": 0.9,
+                "y": 5.1,
+                "w": 11,
+                "h": 1.2
+              }
+            }
+          ],
+          "notes": "引导学生形成结构化回顾。；理解光合作用的基本原理；理解光合作用的基本原理"
+        }
+      ],
+      "updatedAt": "2026-04-10T13:01:08.155Z"
+    },
+    "sceneStatus": "ready",
+    "sceneSource": "draft",
+    "sceneUpdatedAt": "2026-04-10T13:01:08.155Z",
+    "sceneVersion": 1,
+    "lastEdit": "",
+    "rag": [
+      {
+        "id": "kb:photosynthesis.md:1",
+        "sourceId": "kb:photosynthesis.md",
+        "sourceType": "knowledge_base",
+        "source": "photosynthesis.md",
+        "score": 16,
+        "content": "光合作用是绿色植物在光能作用下，将二氧化碳和水合成有机物并释放氧气的过程。\n\n# 光合作用",
+        "summary": "光合作用是绿色植物在光能作用下，将二氧化碳和水合成有机物并释放氧气的过程。 # 光合作用"
+      }
+    ]
+  },
+  "messages": [
+    {
+      "role": "assistant",
+      "text": "PPT 已开始生成并已同步预览。\n主题/章节：光合作用\n年级/学段：初二\n课堂时长：45分钟\n教学目标：理解光合作用的基本原理\n核心知识点：光反应、暗反应\n教学风格：探究式\n互动设计：分组讨论\n\n可继续修改内容，或直接导出 PPT。",
+      "ts": 1775826068155
+    }
+  ],
+  "updatedAt": "2026-04-10T13:01:08.155Z"
+}

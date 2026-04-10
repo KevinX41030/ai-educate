@@ -1,9 +1,11 @@
 import { computed, ref } from 'vue';
 import {
   enhancePptSlide,
+  exportDocx as exportDocxFile,
   exportPptx,
   getSessionSnapshot,
   getStatus,
+  streamEditPpt,
   streamGeneratePpt,
   streamMessage,
   streamRegeneratePptScene,
@@ -23,6 +25,20 @@ const FIELD_LABELS = {
   style: '教学风格',
   interactions: '互动设计'
 };
+
+const createGenerationState = () => ({
+  status: 'idle',
+  currentStage: '',
+  statusMessage: '',
+  totalSlides: 0,
+  completedOutlines: 0,
+  completedSlides: 0,
+  currentSlideIndex: -1,
+  outlines: [],
+  slideStates: [],
+  lastError: '',
+  canResume: false
+});
 
 const emptyFields = () => ({
   subject: '',
@@ -100,10 +116,13 @@ const files = ref([]);
 const summary = ref('暂无');
 const draft = ref(null);
 const scene = ref(null);
+const classroom = ref(null);
 const sceneStatus = ref('idle');
 const streamingDraft = ref(null);
 const streamingScene = ref(null);
+const streamingClassroom = ref(null);
 const streamingSceneStatus = ref('idle');
+const generationState = ref(createGenerationState());
 const intent = ref(buildIntentPayload({ fields: emptyFields() }));
 const rag = ref([]);
 const fields = ref(emptyFields());
@@ -114,21 +133,148 @@ const isEnhancingScene = ref(false);
 const slideMutation = ref({ index: -1, action: '' });
 const sceneRefreshKey = ref('');
 
+const downloadResponse = async (response, fallbackName) => {
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+  const fileName = match ? match[1] : fallbackName;
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};
+
 const clearStreamingPreview = () => {
   streamingDraft.value = null;
   streamingScene.value = null;
+  streamingClassroom.value = null;
   streamingSceneStatus.value = 'idle';
 };
 
+const applyGenerationState = (nextState = null) => {
+  generationState.value = {
+    ...createGenerationState(),
+    ...(nextState && typeof nextState === 'object' ? nextState : {}),
+    outlines: Array.isArray(nextState?.outlines) ? nextState.outlines : [],
+    slideStates: Array.isArray(nextState?.slideStates) ? nextState.slideStates : []
+  };
+};
+
 const applyStreamingPreview = (data = {}) => {
-  if (!data?.draft) return;
-  streamingDraft.value = data.draft;
-  streamingScene.value = data.scene || createSceneFromDraft(data.draft);
+  if (!data?.draft && !data?.classroom) return;
+  streamingDraft.value = data.draft || null;
+  streamingScene.value = data.scene || (data.draft ? createSceneFromDraft(data.draft) : null);
+  streamingClassroom.value = data.classroom || null;
   streamingSceneStatus.value = data.sceneStatus || 'drafting';
+};
+
+const applyGenerationStageEvent = (data = {}) => {
+  const next = {
+    ...generationState.value,
+    currentStage: data?.stage || generationState.value.currentStage,
+    statusMessage: data?.text || generationState.value.statusMessage,
+    totalSlides: Number.isFinite(data?.total) ? data.total : generationState.value.totalSlides,
+    canResume: false
+  };
+  if (data?.stage === 'outline') next.status = data?.resume ? 'resuming' : 'outlining';
+  if (data?.stage === 'slides') next.status = 'generating_slides';
+  if (data?.stage === 'scene') next.status = 'building_scene';
+  generationState.value = next;
+};
+
+const applyGenerationProgressEvent = (data = {}) => {
+  const next = { ...generationState.value };
+  next.currentStage = data?.stage || next.currentStage;
+  next.statusMessage = data?.text || next.statusMessage;
+  if (Number.isFinite(data?.total)) next.totalSlides = data.total;
+  if (data?.stage === 'outline' && Number.isFinite(data?.completed)) {
+    next.completedOutlines = data.completed;
+  }
+  if (data?.stage === 'slides' && Number.isFinite(data?.completed)) {
+    next.completedSlides = data.completed;
+    next.currentSlideIndex = data.completed > 0 ? data.completed - 1 : next.currentSlideIndex;
+  }
+  generationState.value = next;
+};
+
+const applyOutlineEvent = (data = {}) => {
+  const outlines = Array.isArray(generationState.value.outlines)
+    ? [...generationState.value.outlines]
+    : [];
+  if (Number.isFinite(data?.index) && data?.outline) {
+    outlines[data.index] = data.outline;
+  }
+  const slideStates = Array.isArray(generationState.value.slideStates)
+    ? [...generationState.value.slideStates]
+    : [];
+  if (Number.isFinite(data?.index) && data?.outline) {
+    slideStates[data.index] = {
+      id: data.outline.id,
+      title: data.outline.title,
+      type: data.outline.type,
+      status: slideStates[data.index]?.status === 'completed' ? 'completed' : 'pending',
+      error: '',
+      updatedAt: new Date().toISOString()
+    };
+  }
+  generationState.value = {
+    ...generationState.value,
+    status: data?.resume ? 'resuming' : 'outlining',
+    currentStage: 'outline',
+    outlines,
+    slideStates,
+    completedOutlines: outlines.filter(Boolean).length,
+    totalSlides: Number.isFinite(data?.total) ? data.total : Math.max(generationState.value.totalSlides, outlines.length),
+    canResume: false
+  };
+};
+
+const applySlideEvent = (data = {}) => {
+  const slideStates = Array.isArray(generationState.value.slideStates)
+    ? [...generationState.value.slideStates]
+    : [];
+  if (Number.isFinite(data?.index)) {
+    const current = slideStates[data.index] || {};
+    slideStates[data.index] = {
+      ...current,
+      id: data?.slide?.id || current.id || '',
+      title: data?.slide?.title || current.title || '',
+      type: data?.slide?.type || current.type || 'content',
+      status: 'completed',
+      error: '',
+      updatedAt: new Date().toISOString()
+    };
+  }
+  generationState.value = {
+    ...generationState.value,
+    status: 'generating_slides',
+    currentStage: 'slides',
+    statusMessage: data?.text || generationState.value.statusMessage,
+    totalSlides: Number.isFinite(data?.total) ? data.total : generationState.value.totalSlides,
+    completedSlides: slideStates.filter((item) => item?.status === 'completed').length,
+    currentSlideIndex: Number.isFinite(data?.index) ? data.index : generationState.value.currentSlideIndex,
+    slideStates,
+    canResume: false
+  };
+};
+
+const markGenerationError = (message = '') => {
+  generationState.value = {
+    ...generationState.value,
+    status: 'error',
+    statusMessage: '生成失败，可稍后继续',
+    lastError: message,
+    canResume: Array.isArray(generationState.value.outlines) && generationState.value.outlines.length > 0
+  };
 };
 
 const displayDraft = computed(() => streamingDraft.value || draft.value);
 const displayScene = computed(() => streamingScene.value || scene.value);
+const displayClassroom = computed(() => streamingClassroom.value || classroom.value);
 const displaySceneStatus = computed(() => (streamingDraft.value ? streamingSceneStatus.value : sceneStatus.value));
 
 const ensureLocalScene = () => {
@@ -176,8 +322,10 @@ const resetWorkspaceState = () => {
   summary.value = '暂无';
   draft.value = null;
   scene.value = null;
+  classroom.value = null;
   sceneStatus.value = 'idle';
   clearStreamingPreview();
+  applyGenerationState();
   files.value = [];
   intent.value = buildIntentPayload({ fields: emptyFields() });
   rag.value = [];
@@ -194,10 +342,12 @@ const applyStatePayload = (state = {}, explicitIntent = null) => {
   summary.value = buildSummary(fields.value);
   draft.value = state.draft || null;
   scene.value = state.scene || null;
+  classroom.value = state.classroom || null;
   if (!scene.value && draft.value) {
     scene.value = createSceneFromDraft(draft.value);
   }
   sceneStatus.value = state.sceneStatus || 'idle';
+  applyGenerationState(state.generation || null);
   files.value = Array.isArray(state.uploadedFiles) ? state.uploadedFiles : files.value;
   rag.value = Array.isArray(state.rag) ? state.rag : [];
   intent.value = explicitIntent || buildIntentPayload(state);
@@ -231,6 +381,7 @@ const maybeEnhanceScene = async () => {
     syncSession(data.sessionId);
     if (data.draft) draft.value = data.draft;
     if (data.scene) scene.value = data.scene;
+    if (data.classroom) classroom.value = data.classroom;
     sceneStatus.value = 'ready';
   } catch (error) {
     sceneStatus.value = scene.value ? 'stale' : 'idle';
@@ -253,6 +404,7 @@ const applyChatPayload = (data, options = {}) => {
 
   if (data.draft) draft.value = data.draft;
   if (data.scene) scene.value = data.scene;
+  if (data.classroom) classroom.value = data.classroom;
   if (!scene.value && draft.value) {
     scene.value = createSceneFromDraft(draft.value);
   }
@@ -352,10 +504,17 @@ const generateCtaReason = computed(() => intent.value?.ctaReason || '课程信�
 const lessonTitle = computed(() => fields.value.subject || '未命名课件');
 const keyPointPreview = computed(() => normalizedKeyPoints.value.slice(0, 3).join('、') || '待填写');
 const outlineSlides = computed(() => {
+  if (displayClassroom.value?.scenes?.length) return displayClassroom.value.scenes;
   if (displayScene.value?.slides?.length) return displayScene.value.slides;
   return displayDraft.value?.ppt ?? [];
 });
 const workspacePhase = computed(() => {
+  if (generationState.value.status === 'interrupted') {
+    return generationState.value.statusMessage || '生成已中断，可继续';
+  }
+  if (generationState.value.status === 'error') {
+    return generationState.value.statusMessage || '生成失败，可继续';
+  }
   if (slideMutation.value.index >= 0) {
     return slideMutation.value.action === 'enhance'
       ? `AI 正在优化第 ${slideMutation.value.index + 1} 页`
@@ -364,8 +523,12 @@ const workspacePhase = computed(() => {
   if (isAutoGenerating.value && displayDraft.value?.ppt?.length) return 'AI 正在逐页生成';
   if (isAutoGenerating.value) return 'AI 正在生成 PPT';
   if (isBusy.value) return 'AI 正在整理需求';
+  if (['queued', 'resuming', 'outlining', 'generating_slides', 'building_scene'].includes(generationState.value.status)) {
+    return generationState.value.statusMessage || 'AI 正在生成 PPT';
+  }
+  if (displayClassroom.value?.scenes?.length) return 'PPT 已生成，可继续查看与导出';
   if (displaySceneStatus.value === 'drafting') return 'AI 正在逐页生成';
-  if (sceneStatus.value === 'generating') return 'AI 正在优化版式';
+  if (sceneStatus.value === 'generating') return 'AI 正在刷新预览';
   if (draft.value) return 'PPT 已生成，可继续修改';
   return '等待输入课程需求';
 });
@@ -450,7 +613,12 @@ const handleUpload = async (selectedFiles) => {
   try {
     const data = await uploadFiles({ sessionId: sessionId.value, files: selectedFiles });
     syncSession(data.sessionId);
-    if (data.files?.length) files.value = [...files.value, ...data.files];
+    if (data.state) {
+      applyStatePayload(data.state, data.intent || null);
+    } else if (data.files?.length) {
+      files.value = [...files.value, ...data.files];
+    }
+    if (Array.isArray(data.rag)) rag.value = data.rag;
     appendMessage('assistant', data.message || '文件上传完成。');
   } catch (error) {
     appendMessage('assistant', '上传失败，请稍后重试。');
@@ -470,11 +638,17 @@ const handleConfirm = async () => {
 
   isAutoGenerating.value = true;
   clearStreamingPreview();
+  applyGenerationState({
+    ...generationState.value,
+    status: generationState.value.canResume ? 'resuming' : 'queued',
+    statusMessage: generationState.value.canResume ? '正在继续生成 PPT…' : '正在生成 PPT…',
+    canResume: false
+  });
   let assistantMessage = null;
   let previewStarted = false;
 
   try {
-    assistantMessage = appendMessage('assistant', '正在生成 PPT…');
+    assistantMessage = appendMessage('assistant', generationState.value.statusMessage || '正在生成 PPT…');
     let finalData = null;
 
     await streamGeneratePpt({
@@ -483,20 +657,49 @@ const handleConfirm = async () => {
       draft: draft.value,
       scene: draft.value ? ensureLocalScene() : null,
       onEvent: ({ event, data }) => {
+        if (event === 'generation_stage') {
+          applyGenerationStageEvent(data);
+          if (data?.text) {
+            updateMessageText(assistantMessage.id, data.text);
+          }
+          return;
+        }
+        if (event === 'generation_progress') {
+          applyGenerationProgressEvent(data);
+          if (data?.text) {
+            updateMessageText(assistantMessage.id, data.text);
+          }
+          return;
+        }
+        if (event === 'outline') {
+          applyOutlineEvent(data);
+          return;
+        }
         if (event === 'status') {
           if (!previewStarted) {
             updateMessageText(assistantMessage.id, data?.text || '正在生成 PPT…');
           }
           return;
         }
+        if (event === 'slide') {
+          previewStarted = true;
+          applySlideEvent(data);
+          applyStreamingPreview(data);
+          updateMessageText(
+            assistantMessage.id,
+            data?.text || `正在生成第 ${(data?.index ?? 0) + 1}/${data?.total || 0} 页…`
+          );
+          return;
+        }
         if (event === 'draft_preview') {
           previewStarted = true;
           applyStreamingPreview(data);
-          updateMessageText(assistantMessage.id, data?.text || `正在逐页生成预览，已完成 ${data?.slideCount || 0} 页…`);
+          updateMessageText(assistantMessage.id, data?.text || `正在逐页生成课件预览，已完成 ${data?.slideCount || 0} 页…`);
           return;
         }
         if (event === 'error') {
           clearStreamingPreview();
+          markGenerationError(data?.message || 'generation_failed');
           updateMessageText(assistantMessage.id, data?.message || '生成失败，请稍后重试。');
           return;
         }
@@ -511,6 +714,7 @@ const handleConfirm = async () => {
     return finalData;
   } catch (error) {
     clearStreamingPreview();
+    markGenerationError(String(error?.message || error || 'generation_failed'));
     if (assistantMessage) {
       updateMessageText(assistantMessage.id, '生成失败，请稍后重试。');
     } else {
@@ -522,9 +726,12 @@ const handleConfirm = async () => {
   }
 };
 
+const canResumeGeneration = computed(() => Boolean(generationState.value?.canResume));
+const handleResumeGeneration = async () => handleConfirm();
+
 const handleRegenerateScene = async () => {
   if (!draft.value || isEnhancingScene.value) {
-    if (!draft.value) appendMessage('assistant', '请先生成 PPT，再重新排版。');
+    if (!draft.value) appendMessage('assistant', '请先生成 PPT，再刷新预览。');
     return;
   }
 
@@ -532,7 +739,7 @@ const handleRegenerateScene = async () => {
   sceneStatus.value = 'stale';
   await maybeEnhanceScene();
   if (sceneStatus.value === 'ready') {
-    appendMessage('assistant', '已刷新右侧预览版式。');
+    appendMessage('assistant', '已刷新右侧预览。');
   }
 };
 
@@ -565,8 +772,56 @@ const handleEnhanceSlide = async (slideIndex, instruction = '') => {
   }
 };
 
+const handleScopedEdit = async ({ scope = 'all', instruction = '', slideRange = null } = {}) => {
+  if (!draft.value || !instruction.trim()) return null;
+  if (isBusy.value || isAutoGenerating.value) return null;
+
+  isBusy.value = true;
+  const scopeLabels = {
+    all: '整套课件',
+    toc: '目录页',
+    slides: '指定页面',
+    lesson_plan: '教案',
+    interaction: '互动设计'
+  };
+  const assistantMessage = appendMessage('assistant', `正在修改${scopeLabels[scope] || '内容'}…`);
+
+  try {
+    let finalData = null;
+    await streamEditPpt({
+      sessionId: sessionId.value,
+      draft: draft.value,
+      scene: scene.value,
+      scope,
+      instruction,
+      slideRange,
+      onEvent: ({ event, data }) => {
+        if (event === 'status') {
+          updateMessageText(assistantMessage.id, data?.text || `正在修改${scopeLabels[scope] || '内容'}…`);
+          return;
+        }
+        if (event === 'error') {
+          updateMessageText(assistantMessage.id, data?.message || '局部修改失败，请稍后重试。');
+          return;
+        }
+        if (event === 'result') {
+          finalData = data;
+          applyChatPayload(data, { assistantMessageId: assistantMessage.id });
+          updateMessageText(assistantMessage.id, `已完成${scopeLabels[scope] || '内容'}修改。`);
+        }
+      }
+    });
+    return finalData;
+  } catch (error) {
+    updateMessageText(assistantMessage.id, String(error?.message || '局部修改失败，请稍后重试。'));
+    return null;
+  } finally {
+    isBusy.value = false;
+  }
+};
+
 const handleExport = async () => {
-  if (!draft.value) {
+  if (!draft.value && !classroom.value) {
     appendMessage('assistant', '请先生成 PPT，再导出。');
     return;
   }
@@ -575,25 +830,35 @@ const handleExport = async () => {
     const response = await exportPptx({
       sessionId: sessionId.value,
       draft: draft.value,
-      scene: ensureLocalScene(),
+      scene: draft.value ? ensureLocalScene() : null,
+      classroom: classroom.value,
       useAi: true,
       regenerateScene: false
     });
-    const blob = await response.blob();
-    const disposition = response.headers.get('Content-Disposition') || '';
-    const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
-    const fileName = match ? match[1] : `lesson-${Date.now()}.pptx`;
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    await downloadResponse(response, `lesson-${Date.now()}.pptx`);
     appendMessage('assistant', 'PPTX 已生成并下载。');
   } catch (error) {
     appendMessage('assistant', '导出失败，请稍后重试。');
+  }
+};
+
+const handleExportDocx = async () => {
+  if (!draft.value) {
+    appendMessage('assistant', '请先生成内容，再导出教案。');
+    return;
+  }
+
+  try {
+    const response = await exportDocxFile({
+      sessionId: sessionId.value,
+      draft: draft.value,
+      rag: rag.value,
+      fields: fields.value
+    });
+    await downloadResponse(response, `lesson-plan-${Date.now()}.docx`);
+    appendMessage('assistant', '教案 DOCX 已生成并下载。');
+  } catch (error) {
+    appendMessage('assistant', '教案导出失败，请稍后重试。');
   }
 };
 
@@ -606,11 +871,14 @@ export function useWorkspace() {
     summary,
     draft,
     scene,
+    classroom,
     sceneStatus,
     displayDraft,
     displayScene,
+    displayClassroom,
     displaySceneStatus,
     intent,
+    generationState,
     rag,
     fields,
     outlineSlides,
@@ -623,6 +891,7 @@ export function useWorkspace() {
     lessonTitle,
     keyPointPreview,
     workspacePhase,
+    canResumeGeneration,
     slideMutation,
     isBusy,
     isAutoGenerating,
@@ -636,9 +905,12 @@ export function useWorkspace() {
     handleClear,
     handleFormSubmit,
     handleConfirm,
+    handleResumeGeneration,
     handleEnhanceSlide,
+    handleScopedEdit,
     handleRegenerateScene,
     handleExport,
+    handleExportDocx,
     ensureLocalScene,
     mergeDraftWithScene
   };

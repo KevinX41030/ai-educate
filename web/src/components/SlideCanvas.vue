@@ -7,8 +7,8 @@
         <h2>{{ fields.subject || 'PPT 预览' }}</h2>
       </div>
       <div class="sc-header-right">
-        <span class="sc-page-count">{{ displaySlides.length }} 页</span>
-        <button class="sc-btn-export" type="button" :disabled="!displaySlides.length || !canExport" @click="$emit('export')">
+        <span class="sc-page-count">{{ totalSlides }} 页</span>
+        <button class="sc-btn-export" type="button" :disabled="!totalSlides || !canExport" @click="$emit('export')">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M4.5 7L8 10.5 11.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12.5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           导出 PPT
         </button>
@@ -16,7 +16,7 @@
     </div>
 
     <!-- Empty state -->
-    <div v-if="!displaySlides.length" class="sc-empty">
+    <div v-if="!totalSlides" class="sc-empty">
       <div class="sc-empty-skeleton"></div>
       <div class="sc-empty-skeleton sc-empty-skeleton-sm"></div>
       <div class="sc-empty-skeleton sc-empty-skeleton-xs"></div>
@@ -24,6 +24,16 @@
     </div>
 
     <!-- Slide list -->
+    <div v-else-if="classroomScenes.length" class="sc-slide-list">
+      <ClassroomSlideCard
+        v-for="(sceneItem, index) in classroomScenes"
+        :key="sceneItem.id || index"
+        :scene="sceneItem"
+        :index="index"
+        :citation-labels="sceneItem.citationLabels || []"
+      />
+    </div>
+
     <div v-else class="sc-slide-list">
       <template v-for="(slide, index) in displaySlides" :key="slide.id || index">
         <SlideCard
@@ -33,16 +43,13 @@
           :design-preset="designPreset"
           :theme="theme"
           @update-block="onUpdateBlock"
-          @menu="onSlideMenu(index)"
-          @regenerate="$emit('regenerate-slide', index)"
+          @menu="onSlideMenu"
           @ai-enhance="$emit('ai-enhance-slide', index)"
         />
 
         <SlideDivider
           v-if="index < displaySlides.length - 1"
-          @add-blank="$emit('add-slide', { after: index, type: 'blank' })"
-          @add-ai="$emit('add-slide', { after: index, type: 'ai' })"
-          @change-layout="$emit('change-layout', index)"
+          @add-slide="$emit('add-slide', { after: index, type: 'blank' })"
         />
       </template>
 
@@ -50,13 +57,14 @@
       <div class="sc-add-tail">
         <button class="sc-add-tail-btn" type="button" @click="$emit('add-slide', { after: displaySlides.length - 1, type: 'blank' })">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          添加新页面
+          新增页面
         </button>
       </div>
     </div>
 
     <!-- Context menu -->
     <div v-if="contextMenu.visible" class="sc-context-menu" :style="contextMenu.style" @click.stop>
+      <button @click="resetSlide(contextMenu.index)">重置此页</button>
       <button @click="duplicateSlide(contextMenu.index)">复制此页</button>
       <button @click="deleteSlide(contextMenu.index)" class="sc-danger">删除此页</button>
       <button @click="contextMenu.visible = false">取消</button>
@@ -67,27 +75,59 @@
 
 <script setup>
 import { computed, reactive } from 'vue';
+import ClassroomSlideCard from './classroom/ClassroomSlideCard.vue';
 import SlideCard from './SlideCard.vue';
 import SlideDivider from './SlideDivider.vue';
 
 const props = defineProps({
+  classroom: { type: Object, default: null },
   draft: { type: Object, default: null },
   scene: { type: Object, default: null },
-  sceneStatus: { type: String, default: 'idle' },
+  previewStatus: { type: String, default: 'idle' },
   canExport: { type: Boolean, default: true },
-  fields: { type: Object, default: () => ({}) }
+  fields: { type: Object, default: () => ({}) },
+  rag: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits([
   'update-block', 'add-slide', 'delete-slide', 'duplicate-slide',
-  'regenerate-slide', 'ai-enhance-slide', 'change-layout', 'export'
+  'regenerate-slide', 'ai-enhance-slide', 'export'
 ]);
 
 const contextMenu = reactive({ visible: false, index: -1, style: {} });
 
+const classroomScenes = computed(() => {
+  const scenes = Array.isArray(props.classroom?.scenes) ? props.classroom.scenes : [];
+  return scenes.map((sceneItem) => {
+    const citations = Array.isArray(sceneItem?.citations) ? sceneItem.citations : [];
+    return {
+      ...sceneItem,
+      citationLabels: citations.map((sourceId) => citationSourceMap.value.get(sourceId) || sourceId)
+    };
+  });
+});
 const sceneSlides = computed(() => props.scene?.slides ?? []);
-const fallbackSlides = computed(() => sceneSlides.value.length ? [] : (props.draft?.ppt ?? []));
-const displaySlides = computed(() => sceneSlides.value.length ? sceneSlides.value : fallbackSlides.value);
+const draftSlides = computed(() => props.draft?.ppt ?? []);
+const fallbackSlides = computed(() => sceneSlides.value.length ? [] : draftSlides.value);
+const citationSourceMap = computed(() => new Map(
+  (props.rag || []).map((item) => [item.sourceId, item.source || item.sourceId])
+));
+const displaySlides = computed(() => {
+  const slides = sceneSlides.value.length ? sceneSlides.value : fallbackSlides.value;
+  return slides.map((slide, index) => {
+    const draftSlide = draftSlides.value[index] || {};
+    const citations = Array.isArray(slide?.citations) && slide.citations.length
+      ? slide.citations
+      : (Array.isArray(draftSlide?.citations) ? draftSlide.citations : []);
+
+    return {
+      ...slide,
+      citations,
+      citationLabels: citations.map((sourceId) => citationSourceMap.value.get(sourceId) || sourceId)
+    };
+  });
+});
+const totalSlides = computed(() => classroomScenes.value.length || displaySlides.value.length);
 
 const designPreset = computed(() => props.scene?.designPreset || props.draft?.designPreset || 'corporate');
 const theme = computed(() => {
@@ -102,17 +142,18 @@ const theme = computed(() => {
 });
 
 const statusLabel = computed(() => {
-  if (props.sceneStatus === 'drafting') return '逐页生成中';
-  if (props.sceneStatus === 'generating') return '生成中';
-  if (props.sceneStatus === 'ready') return '已完成';
-  if (displaySlides.value.length) return '已生成';
+  if (props.previewStatus === 'drafting') return '逐页生成中';
+  if (props.previewStatus === 'generating') return '生成中';
+  if (props.previewStatus === 'ready') return '已完成';
+  if (classroomScenes.value.length || displaySlides.value.length) return '已生成';
   return '等待开始';
 });
 
 const statusTone = computed(() => {
-  if (props.sceneStatus === 'drafting') return 'active';
-  if (props.sceneStatus === 'generating') return 'active';
-  if (props.sceneStatus === 'ready') return 'success';
+  if (props.previewStatus === 'drafting') return 'active';
+  if (props.previewStatus === 'generating') return 'active';
+  if (props.previewStatus === 'ready') return 'success';
+  if (classroomScenes.value.length) return 'success';
   return 'idle';
 });
 
@@ -120,15 +161,47 @@ const onUpdateBlock = (data) => {
   emit('update-block', data);
 };
 
-const onSlideMenu = (index) => {
+const onSlideMenu = ({ slideIndex, anchorRect } = {}) => {
+  const index = Number(slideIndex);
+  if (Number.isNaN(index) || index < 0) return;
+
+  const menuWidth = 180;
+  const menuHeight = 178;
+  const viewportWidth = window.innerWidth || 0;
+  const viewportHeight = window.innerHeight || 0;
+  const fallbackLeft = Math.max(16, (viewportWidth - menuWidth) / 2);
+  const fallbackTop = Math.max(16, (viewportHeight - menuHeight) / 2);
+
+  let left = fallbackLeft;
+  let top = fallbackTop;
+
+  if (anchorRect && typeof anchorRect === 'object') {
+    left = Math.min(
+      Math.max(12, (anchorRect.left || 0)),
+      Math.max(12, viewportWidth - menuWidth - 12)
+    );
+    top = Math.min(
+      Math.max(12, (anchorRect.bottom || 0) + 8),
+      Math.max(12, viewportHeight - menuHeight - 12)
+    );
+  }
+
   contextMenu.visible = true;
   contextMenu.index = index;
-  contextMenu.style = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+  contextMenu.style = {
+    top: `${top}px`,
+    left: `${left}px`
+  };
 };
 
 const duplicateSlide = (index) => {
   contextMenu.visible = false;
   emit('duplicate-slide', index);
+};
+
+const resetSlide = (index) => {
+  contextMenu.visible = false;
+  emit('regenerate-slide', index);
 };
 
 const deleteSlide = (index) => {

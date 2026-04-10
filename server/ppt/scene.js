@@ -170,6 +170,11 @@ function createBlock(type, data = {}, fallbackBox) {
 }
 
 function inferVariant(slide) {
+  const explicit = `${slide?.layout || ''}`.trim().toLowerCase();
+  if (explicit === 'process') return 'process';
+  if (explicit === 'case' || explicit === 'compare') return 'case';
+  if (explicit === 'practice') return 'activity';
+  if (explicit === 'misconception' || explicit === 'concept') return 'concept';
   const title = String(slide?.title || '');
   const bullets = Array.isArray(slide?.bullets) ? slide.bullets : [];
   const text = [title, ...bullets].join(' ');
@@ -588,6 +593,7 @@ function mergeSceneIntoDraft(draft, scene) {
           id: normalizedScene.slides[index]?.id || fallbackSlide.id || nanoid(),
           title: slide.title || fallbackSlide.title || '内容',
           type: VALID_ROLES.has(slide.type) ? slide.type : (fallbackSlide.type || 'content'),
+          layout: slide.layout || fallbackSlide.layout || '',
           bullets: Array.isArray(slide.bullets)
             ? slide.bullets
             : (Array.isArray(fallbackSlide.bullets) ? fallbackSlide.bullets : []),
@@ -599,7 +605,8 @@ function mergeSceneIntoDraft(draft, scene) {
           speakerNotes: slide.speakerNotes || fallbackSlide.speakerNotes || '',
           commonMistakes: Array.isArray(slide.commonMistakes) && slide.commonMistakes.length
             ? slide.commonMistakes
-            : (Array.isArray(fallbackSlide.commonMistakes) ? fallbackSlide.commonMistakes : [])
+            : (Array.isArray(fallbackSlide.commonMistakes) ? fallbackSlide.commonMistakes : []),
+          citations: Array.isArray(fallbackSlide.citations) ? fallbackSlide.citations : []
         };
       })
     : fallbackSlides;

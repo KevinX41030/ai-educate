@@ -1,0 +1,61 @@
+{
+  "id": "fVI-gm9i0EvLblC_S9RWg",
+  "state": {
+    "id": "fVI-gm9i0EvLblC_S9RWg",
+    "fields": {
+      "subject": "光合作用",
+      "grade": "初二",
+      "duration": "45分钟",
+      "goals": "",
+      "keyPoints": [
+        "光合作用的条件",
+        "光合作用的过程"
+      ],
+      "style": "",
+      "interactions": "课堂讲解并穿插小组讨论"
+    },
+    "uploadedFiles": [],
+    "brief": {
+      "rawInputs": [
+        {
+          "id": "5omAf1CkJEowO4yvpPhEu",
+          "source": "user",
+          "text": "给初二做一节45分钟的光合作用课件，重点讲条件和过程，采用课堂讲解并穿插小组讨论。",
+          "ts": 1775656377952
+        }
+      ],
+      "mergedPrompt": "给初二做一节45分钟的光合作用课件，重点讲条件和过程，采用课堂讲解并穿插小组讨论。\n\n主题：光合作用\n年级：初二\n时长：45分钟\n核心知识点：光合作用的条件；光合作用的过程\n互动设计：课堂讲解并穿插小组讨论",
+      "updatedAt": "2026-04-08T13:53:03.588Z"
+    },
+    "aiDecision": {
+      "nextAction": "ready_to_generate",
+      "showGenerateCTA": true,
+      "ctaLabel": "立即生成PPT",
+      "ctaReason": "已有主题、年级、时长、重点和互动方式，足够生成首版课件。",
+      "updatedAt": "2026-04-08T13:53:03.589Z"
+    },
+    "ready": true,
+    "confirmed": false,
+    "draft": null,
+    "scene": null,
+    "sceneStatus": "idle",
+    "sceneSource": "",
+    "sceneUpdatedAt": "",
+    "sceneVersion": 0,
+    "lastEdit": "",
+    "rag": []
+  },
+  "messages": [
+    {
+      "role": "user",
+      "text": "给初二做一节45分钟的光合作用课件，重点讲条件和过程，采用课堂讲解并穿插小组讨论。",
+      "ts": 1775656377952
+    },
+    {
+      "role": "assistant",
+      "text": "明白了，我先按这个方向理解：这是给初二学生上的一节 45 分钟《光合作用》课，重点放在“条件”和“过程”，课堂形式以教师讲解为主，穿插小组讨论。这个信息已经足够先生成一版 PPT 了；如果你愿意，之后我们还可以再补充教学目标或课堂风格来细调展示方式。",
+      "ts": 1775656383589
+    }
+  ],
+  "updatedAt": "2026-04-08T13:53:03.589Z"
+}

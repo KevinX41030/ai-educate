@@ -11,6 +11,7 @@
     "dev": "concurrently -n server,web -c green,blue \"npm run dev -w server\" \"npm run dev -w web\"",
     "dev:server": "npm run dev -w server",
     "dev:web": "npm run dev -w web",
+    "test": "npm run test -w server",
     "build": "npm run build -w web",
     "start": "npm run start -w server"
   },

@@ -1,0 +1,61 @@
+{
+  "id": "DnRIz53QgBYNuBCdnlrQi",
+  "state": {
+    "id": "DnRIz53QgBYNuBCdnlrQi",
+    "fields": {
+      "subject": "",
+      "grade": "",
+      "duration": "",
+      "goals": "",
+      "keyPoints": [],
+      "style": "",
+      "interactions": ""
+    },
+    "uploadedFiles": [],
+    "brief": {
+      "rawInputs": [],
+      "mergedPrompt": "",
+      "updatedAt": "2026-04-10T12:09:43.995Z"
+    },
+    "aiDecision": {
+      "nextAction": "ask_more",
+      "showGenerateCTA": false,
+      "ctaLabel": "立即生成 PPT",
+      "ctaReason": "",
+      "updatedAt": "2026-04-10T12:09:43.995Z"
+    },
+    "ready": false,
+    "confirmed": false,
+    "draft": null,
+    "scene": null,
+    "sceneStatus": "idle",
+    "sceneSource": "",
+    "sceneUpdatedAt": "",
+    "sceneVersion": 0,
+    "lastEdit": "",
+    "rag": []
+  },
+  "messages": [
+    {
+      "role": "user",
+      "text": "你好",
+      "ts": 1775822962945
+    },
+    {
+      "role": "assistant",
+      "text": "你好呀，很高兴一起备课。你可以直接告诉我这节课想讲什么，比如“初二物理《浮力》”或“高一英语阅读”，我来帮你一步步整理成可生成的 PPT 方案。",
+      "ts": 1775822966891
+    },
+    {
+      "role": "user",
+      "text": "你好",
+      "ts": 1775822980127
+    },
+    {
+      "role": "assistant",
+      "text": "你好呀～我们可以直接开始备课。你先告诉我这节课想讲的主题和年级就行，比如“初二物理浮力”或“高一英语阅读”，我先帮你把方向定下来。",
+      "ts": 1775822983995
+    }
+  ],
+  "updatedAt": "2026-04-10T12:09:43.995Z"
+}

@@ -43,7 +43,6 @@
       <strong>{{ uploading ? '资料上传中…' : '拖拽资料到这里，或点击上传文档' }}</strong>
       <p>支持 PDF / Word / PPT / 图片，上传后会自动加入本次备课上下文。</p>
     </div>
-
     <div class="workspace-composer-card">
       <textarea
         v-model="input"

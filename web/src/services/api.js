@@ -188,12 +188,32 @@ export async function enhancePptSlide({ sessionId, draft, scene = null, slideInd
   return data;
 }
 
-export async function exportPptx({ sessionId, draft, scene = null, useAi = true, regenerateScene = false }) {
+export async function streamEditPpt({ sessionId, draft, scene = null, scope = 'all', instruction = '', slideRange = null, onEvent }) {
+  const response = await fetch('/api/ppt/edit/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, draft, scene, scope, instruction, slideRange })
+  });
+
+  await readSseResponse(response, onEvent);
+}
+
+export async function exportPptx({ sessionId, draft, scene = null, classroom = null, useAi = true, regenerateScene = false }) {
   const response = await fetch('/api/export/pptx', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, draft, scene, useAi, regenerateScene })
+    body: JSON.stringify({ sessionId, draft, scene, classroom, useAi, regenerateScene })
   });
   if (!response.ok) throw new Error('export_failed');
+  return response;
+}
+
+export async function exportDocx({ sessionId, draft, rag = null, fields = null }) {
+  const response = await fetch('/api/export/docx', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, draft, rag, fields })
+  });
+  if (!response.ok) throw new Error('export_docx_failed');
   return response;
 }

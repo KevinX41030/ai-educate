@@ -1,0 +1,95 @@
+{
+  "id": "YI1aRhesqpP0VoubCXhL7",
+  "state": {
+    "id": "YI1aRhesqpP0VoubCXhL7",
+    "fields": {
+      "subject": "化学反应速率",
+      "grade": "高一",
+      "duration": "45分钟",
+      "goals": "理解温度对反应速率的影响",
+      "keyPoints": [
+        "反应速率概念",
+        "温度影响",
+        "碰撞理论"
+      ],
+      "style": "",
+      "interactions": ""
+    },
+    "uploadedFiles": [],
+    "brief": {
+      "rawInputs": [],
+      "mergedPrompt": "主题：化学反应速率\n年级：高一\n时长：45分钟\n教学目标：理解温度对反应速率的影响\n核心知识点：反应速率概念；温度影响；碰撞理论",
+      "updatedAt": "2026-04-10T18:36:56.961Z"
+    },
+    "aiDecision": {
+      "nextAction": "ask_more",
+      "showGenerateCTA": false,
+      "ctaLabel": "",
+      "ctaReason": "",
+      "updatedAt": ""
+    },
+    "ready": true,
+    "confirmed": false,
+    "draft": null,
+    "scene": null,
+    "sceneStatus": "idle",
+    "sceneSource": "",
+    "sceneUpdatedAt": "",
+    "sceneVersion": 0,
+    "openmaic": {
+      "enabled": true,
+      "baseUrl": "http://127.0.0.1:3001",
+      "status": "running",
+      "step": "generating_scenes",
+      "progress": 36,
+      "message": "正在生成第 3/18 页：什么是化学反应速率",
+      "jobId": "uicIX-9Ae1",
+      "pollUrl": "http://127.0.0.1:3001/api/generate-classroom/uicIX-9Ae1",
+      "classroomId": "",
+      "classroomUrl": "",
+      "scenesGenerated": 1,
+      "scenesCount": 18,
+      "classroom": null,
+      "updatedAt": "2026-04-10T18:39:12.160Z",
+      "startedAt": "2026-04-10T18:36:56.961Z",
+      "completedAt": "",
+      "lastError": ""
+    },
+    "lastEdit": "",
+    "rag": [
+      {
+        "id": "kb:photosynthesis.md:2",
+        "sourceId": "kb:photosynthesis.md",
+        "sourceType": "knowledge_base",
+        "source": "photosynthesis.md",
+        "score": 5,
+        "content": "核心要点：\n- 光反应：在叶绿体类囊体膜上进行，产生 ATP、NADPH 和 O2。\n- 暗反应（碳反应）：在基质中进行，利用 ATP 和 NADPH 固定 CO2，形成有机物。\n\n教学建议：\n- 可用“叶绿体=工厂”的比喻帮助理解反应场所。\n- 用流程图展示光能 → ATP/NADPH → 碳固定的链条。",
+        "summary": "核心要点：\n- 光反应：在叶绿体类囊体膜上进行，产生 ATP、NADPH 和 O2。\n- 暗反应（碳反应）：在基质中进行，利用 ATP 和 NADPH 固定 CO2，形成有机物。 教学建议：\n- 可用“叶绿体=工厂”的比喻帮助理解反应场所。\n- 用流程图展示光能 → ATP/NA..."
+      }
+    ],
+    "generation": {
+      "status": "generating_slides",
+      "currentStage": "slides",
+      "statusMessage": "正在生成第 3/18 页：什么是化学反应速率",
+      "totalSlides": 18,
+      "completedOutlines": 1,
+      "completedSlides": 1,
+      "currentSlideIndex": 0,
+      "outlines": [],
+      "slideStates": [],
+      "designPreset": "",
+      "theme": null,
+      "layoutHints": [],
+      "lessonPlan": null,
+      "interactionIdea": null,
+      "startedAt": "2026-04-10T18:36:56.961Z",
+      "updatedAt": "2026-04-10T18:39:12.160Z",
+      "completedAt": "",
+      "lastError": "",
+      "canResume": false,
+      "sessionEpoch": 1
+    }
+  },
+  "messages": [],
+  "updatedAt": "2026-04-10T18:39:12.160Z"
+}

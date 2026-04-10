@@ -1,0 +1,1048 @@
+{
+  "id": "resume-e2e-fixed",
+  "state": {
+    "id": "resume-e2e-fixed",
+    "fields": {
+      "subject": "光合作用",
+      "grade": "初二",
+      "duration": "45分钟",
+      "goals": "理解光合作用条件和过程，并能解释其意义",
+      "keyPoints": [
+        "条件",
+        "过程",
+        "意义"
+      ],
+      "style": "课堂讲解",
+      "interactions": "小组讨论"
+    },
+    "uploadedFiles": [],
+    "brief": {
+      "rawInputs": [],
+      "mergedPrompt": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用条件和过程，并能解释其意义\n核心知识点：条件；过程；意义\n教学风格：课堂讲解\n互动设计：小组讨论",
+      "updatedAt": "2026-04-10T13:25:23.929Z"
+    },
+    "aiDecision": {
+      "nextAction": "edit_existing",
+      "showGenerateCTA": false,
+      "ctaLabel": "查看 PPT",
+      "ctaReason": "当前草稿已生成，可以继续调整或查看页面。",
+      "updatedAt": "2026-04-10T13:25:23.937Z"
+    },
+    "ready": true,
+    "confirmed": true,
+    "draft": {
+      "designPreset": "corporate",
+      "brief": {
+        "rawInputs": [],
+        "mergedPrompt": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用条件和过程，并能解释其意义\n核心知识点：条件；过程；意义\n教学风格：课堂讲解\n互动设计：小组讨论",
+        "updatedAt": "2026-04-10T13:24:24.442Z"
+      },
+      "ppt": [
+        {
+          "id": "rhAVUYtqcjOVA51rxRmGb",
+          "title": "光合作用",
+          "type": "cover",
+          "bullets": [
+            "初二",
+            "45分钟"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用条件和过程，并能解释其意义\n核心知识点：条件；过程；意义\n教学风格：课堂讲解\n互动设计：小组讨论",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": []
+        },
+        {
+          "id": "-ldJcX4bdEj0CiIaPxqbN",
+          "title": "目录",
+          "type": "toc",
+          "bullets": [
+            "条件",
+            "过程",
+            "意义"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "说明本课学习路径。",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": []
+        },
+        {
+          "id": "V1J-ThuYnMDJ_VNRaXJoz",
+          "title": "条件",
+          "type": "content",
+          "bullets": [
+            "条件的核心概念与关键条件",
+            "条件与前后知识点之间的关系",
+            "条件在课堂中的理解抓手与观察点"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "理解光合作用条件和过程，并能解释其意义",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "WfbtlQy_BmN0IUyRTwboU",
+          "title": "条件：应用与易错",
+          "type": "content",
+          "bullets": [
+            "围绕“条件”设计一个贴近课堂的应用场景",
+            "梳理学生学习“条件”时最容易混淆的地方",
+            "通过提问或练习检验学生是否真正理解“条件”"
+          ],
+          "example": "",
+          "question": "如果课堂上要快速检查“条件”是否掌握，你会怎么追问？",
+          "visual": "",
+          "notes": "",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义",
+          "speakerNotes": "",
+          "commonMistakes": [
+            "只记结论，不理解条件",
+            "会背术语，但不会迁移到情境中"
+          ],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "vesvdmF3ZzcgqoVLhDhq0",
+          "title": "过程",
+          "type": "content",
+          "bullets": [
+            "过程的核心概念与关键条件",
+            "过程与前后知识点之间的关系",
+            "过程在课堂中的理解抓手与观察点"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "理解光合作用条件和过程，并能解释其意义",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "EDZLpGPWdsDbkpMVTvxUK",
+          "title": "过程：应用与易错",
+          "type": "content",
+          "bullets": [
+            "围绕“过程”设计一个贴近课堂的应用场景",
+            "梳理学生学习“过程”时最容易混淆的地方",
+            "通过提问或练习检验学生是否真正理解“过程”"
+          ],
+          "example": "",
+          "question": "如果课堂上要快速检查“过程”是否掌握，你会怎么追问？",
+          "visual": "",
+          "notes": "",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义",
+          "speakerNotes": "",
+          "commonMistakes": [
+            "只记结论，不理解条件",
+            "会背术语，但不会迁移到情境中"
+          ],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "eWQWEeUQj9SdUhqZQ-Y1V",
+          "title": "意义",
+          "type": "content",
+          "bullets": [
+            "意义的核心概念与关键条件",
+            "意义与前后知识点之间的关系",
+            "意义在课堂中的理解抓手与观察点"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "理解光合作用条件和过程，并能解释其意义",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "BowPw57WamSyRAznAJdHI",
+          "title": "意义：应用与易错",
+          "type": "content",
+          "bullets": [
+            "围绕“意义”设计一个贴近课堂的应用场景",
+            "梳理学生学习“意义”时最容易混淆的地方",
+            "通过提问或练习检验学生是否真正理解“意义”"
+          ],
+          "example": "",
+          "question": "如果课堂上要快速检查“意义”是否掌握，你会怎么追问？",
+          "visual": "",
+          "notes": "小组讨论",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义",
+          "speakerNotes": "",
+          "commonMistakes": [
+            "只记结论，不理解条件",
+            "会背术语，但不会迁移到情境中"
+          ],
+          "citations": [
+            "kb:photosynthesis.md"
+          ]
+        },
+        {
+          "id": "lLc4NCghwTALVgtymvshb",
+          "title": "总结与反思",
+          "type": "summary",
+          "bullets": [
+            "回顾本课核心概念与关键结论",
+            "梳理应用场景与易错提醒",
+            "布置迁移练习或课后任务"
+          ],
+          "example": "",
+          "question": "",
+          "visual": "",
+          "notes": "引导学生形成结构化回顾。",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义",
+          "speakerNotes": "",
+          "commonMistakes": [],
+          "citations": []
+        }
+      ],
+      "lessonPlan": {
+        "goals": "理解光合作用条件和过程，并能解释其意义",
+        "process": [
+          "导入：唤醒已有知识与学习任务",
+          "建构：呈现核心概念与关键条件",
+          "探究：结合现象、案例或实验推进理解",
+          "练习：通过提问或任务检验理解",
+          "总结：回顾要点并迁移应用"
+        ],
+        "methods": "课堂讲解",
+        "activities": "小组讨论",
+        "homework": "围绕本课核心知识点完成巩固练习或迁移应用任务"
+      },
+      "interactionIdea": {
+        "title": "课堂互动设计",
+        "description": "小组讨论"
+      },
+      "theme": {
+        "primary": "#1F3B73",
+        "accent": "#4C8BF5",
+        "background": "#F8FAFC",
+        "text": "#0F172A",
+        "font": "Microsoft YaHei"
+      },
+      "layoutHints": [
+        "cover_right_panel",
+        "content_two_column",
+        "summary_cards"
+      ],
+      "updatedAt": "2026-04-10T13:25:23.937Z"
+    },
+    "scene": {
+      "designPreset": "corporate",
+      "theme": {
+        "primary": "#1F3B73",
+        "accent": "#4C8BF5",
+        "background": "#F8FAFC",
+        "text": "#0F172A",
+        "font": "Microsoft YaHei"
+      },
+      "layoutHints": [
+        "cover_right_panel",
+        "content_two_column",
+        "summary_cards"
+      ],
+      "slides": [
+        {
+          "id": "rhAVUYtqcjOVA51rxRmGb",
+          "title": "光合作用",
+          "role": "cover",
+          "variant": "cover",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "MzWNT61AUNITL7wI6dFhp",
+              "type": "title",
+              "title": "",
+              "text": "光合作用",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 8.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "3iGazOxToqJILS2Wh6McD",
+              "type": "subtitle",
+              "title": "",
+              "text": "初二 · 45分钟",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 1.45,
+                "w": 8.2,
+                "h": 0.6
+              }
+            },
+            {
+              "id": "rtnhP_wrBiJ7Q-cfDDENC",
+              "type": "callout",
+              "title": "教学目标",
+              "text": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用条件和过程，并能解释其意义\n核心知识点：条件；过程；意义\n教学风格：课堂讲解\n互动设计：小组讨论；理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义",
+              "items": [],
+              "box": {
+                "x": 8.2,
+                "y": 1.8,
+                "w": 4.1,
+                "h": 1.8
+              }
+            }
+          ],
+          "notes": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用条件和过程，并能解释其意义\n核心知识点：条件；过程；意义\n教学风格：课堂讲解\n互动设计：小组讨论；理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "-ldJcX4bdEj0CiIaPxqbN",
+          "title": "目录",
+          "role": "toc",
+          "variant": "toc",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "PdrLku_jZUarrKqycJZQe",
+              "type": "title",
+              "title": "",
+              "text": "目录",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "VtTDZEKRBCuw8dnzJnNv9",
+              "type": "bullets",
+              "title": "",
+              "text": "",
+              "items": [
+                "条件",
+                "过程",
+                "意义"
+              ],
+              "box": {
+                "x": 0.9,
+                "y": 1.8,
+                "w": 11,
+                "h": 4.8
+              }
+            }
+          ],
+          "notes": "说明本课学习路径。；理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "V1J-ThuYnMDJ_VNRaXJoz",
+          "title": "条件",
+          "role": "content",
+          "variant": "concept",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "LSrE5Mb-VV_yMYk4REg8G",
+              "type": "title",
+              "title": "",
+              "text": "条件",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "I70xK3FAZtTpvzIFqTzhx",
+              "type": "factCards",
+              "title": "核心认识",
+              "text": "",
+              "items": [
+                "条件的核心概念与关键条件",
+                "条件与前后知识点之间的关系",
+                "条件在课堂中的理解抓手与观察点"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 2.35
+              }
+            },
+            {
+              "id": "cEjBPNn5NmSuFyGhMuEJH",
+              "type": "callout",
+              "title": "课堂提示",
+              "text": "理解光合作用条件和过程，并能解释其意义；条件与前后知识点之间的关系；条件的核心概念与关键条件；理解光合作用条件和过程，并能解释其意义；补充教学案例或误区提醒。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 4.6,
+                "w": 7.05,
+                "h": 1.05
+              }
+            },
+            {
+              "id": "6uat5kc6Ybjr1ms7Y42u9",
+              "type": "question",
+              "title": "互动提问",
+              "text": "互动建议：课堂互动设计",
+              "items": [],
+              "box": {
+                "x": 8.35,
+                "y": 4.6,
+                "w": 3.75,
+                "h": 1.05
+              }
+            }
+          ],
+          "notes": "理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "WfbtlQy_BmN0IUyRTwboU",
+          "title": "条件：应用与易错",
+          "role": "content",
+          "variant": "activity",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "BnjrhPN8e7bha9bzDwxPY",
+              "type": "title",
+              "title": "",
+              "text": "条件：应用与易错",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "V0kUbhJvpQ-GVvV-ReWQR",
+              "type": "taskCards",
+              "title": "课堂任务板",
+              "text": "",
+              "items": [
+                "任务一：围绕“条件”设计一个贴近课堂的应用场景",
+                "任务二：梳理学生学习“条件”时最容易混淆的地方",
+                "任务三：通过提问或练习检验学生是否真正理解“条件”",
+                "加分挑战：课堂互动设计"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 3.55
+              }
+            },
+            {
+              "id": "-LiFFxjf0YV6q4VIoJV01",
+              "type": "question",
+              "title": "互动挑战",
+              "text": "如果课堂上要快速检查“条件”是否掌握，你会怎么追问？；小组讨论；课堂互动设计；设计一个和同伴合作完成的小任务。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 5.75,
+                "w": 11.15,
+                "h": 0.82
+              }
+            }
+          ],
+          "notes": "理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "vesvdmF3ZzcgqoVLhDhq0",
+          "title": "过程",
+          "role": "content",
+          "variant": "process",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "GK0I-k4OZT7wHumMwUW-r",
+              "type": "title",
+              "title": "",
+              "text": "过程",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "gaBH_tnsZiyvgx6T5O08E",
+              "type": "steps",
+              "title": "学习步骤",
+              "text": "",
+              "items": [
+                "导入：唤醒已有知识与学习任务",
+                "建构：呈现核心概念与关键条件",
+                "探究：结合现象、案例或实验推进理解",
+                "练习：通过提问或任务检验理解"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 3.95
+              }
+            },
+            {
+              "id": "-17GXgOceDgQjgUNMq6HK",
+              "type": "callout",
+              "title": "关键提醒",
+              "text": "理解光合作用条件和过程，并能解释其意义；过程的核心概念与关键条件；过程与前后知识点之间的关系；过程在课堂中的理解抓手与观察点；抓住每一步的输入、变化与结果。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 5.95,
+                "w": 11.15,
+                "h": 0.75
+              }
+            }
+          ],
+          "notes": "理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "EDZLpGPWdsDbkpMVTvxUK",
+          "title": "过程：应用与易错",
+          "role": "content",
+          "variant": "process",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "Uu3bQoBuoH7geMIgFJ2VG",
+              "type": "title",
+              "title": "",
+              "text": "过程：应用与易错",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "rxVTh56xm-BiGJxHrTb0w",
+              "type": "steps",
+              "title": "学习步骤",
+              "text": "",
+              "items": [
+                "导入：唤醒已有知识与学习任务",
+                "建构：呈现核心概念与关键条件",
+                "探究：结合现象、案例或实验推进理解",
+                "练习：通过提问或任务检验理解"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 3.95
+              }
+            },
+            {
+              "id": "Lghr8QvIrlhMsSSAkGyZS",
+              "type": "callout",
+              "title": "易错提醒",
+              "text": "易错：只记结论，不理解条件；易错：会背术语，但不会迁移到情境中；围绕“过程”设计一个贴近课堂的应用场景；梳理学生学习“过程”时最容易混淆的地方；通过提问或练习检验学生是否真正理解“过程”；抓住每一步的输入、变化与结果。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 5.95,
+                "w": 11.15,
+                "h": 0.75
+              }
+            }
+          ],
+          "notes": "理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "eWQWEeUQj9SdUhqZQ-Y1V",
+          "title": "意义",
+          "role": "content",
+          "variant": "concept",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "zZ82d6YBPQJyGHaCVn_9e",
+              "type": "title",
+              "title": "",
+              "text": "意义",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "r2zxBI5AmwXEK3JDOFhZ8",
+              "type": "factCards",
+              "title": "核心认识",
+              "text": "",
+              "items": [
+                "意义的核心概念与关键条件",
+                "意义与前后知识点之间的关系",
+                "意义在课堂中的理解抓手与观察点"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 2.35
+              }
+            },
+            {
+              "id": "lAG6sOTdNIaq1aa51Gnkz",
+              "type": "callout",
+              "title": "课堂提示",
+              "text": "理解光合作用条件和过程，并能解释其意义；意义与前后知识点之间的关系；意义的核心概念与关键条件；理解光合作用条件和过程，并能解释其意义；补充教学案例或误区提醒。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 4.6,
+                "w": 7.05,
+                "h": 1.05
+              }
+            },
+            {
+              "id": "nE3ll3Eh8K029kcZ4_3zO",
+              "type": "question",
+              "title": "互动提问",
+              "text": "互动建议：课堂互动设计",
+              "items": [],
+              "box": {
+                "x": 8.35,
+                "y": 4.6,
+                "w": 3.75,
+                "h": 1.05
+              }
+            }
+          ],
+          "notes": "理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "BowPw57WamSyRAznAJdHI",
+          "title": "意义：应用与易错",
+          "role": "content",
+          "variant": "activity",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "oEdBKn0Ef6x52b6zvcvOZ",
+              "type": "title",
+              "title": "",
+              "text": "意义：应用与易错",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "gtWhLvkChptu25wS8g4g8",
+              "type": "taskCards",
+              "title": "课堂任务板",
+              "text": "",
+              "items": [
+                "任务一：围绕“意义”设计一个贴近课堂的应用场景",
+                "任务二：梳理学生学习“意义”时最容易混淆的地方",
+                "任务三：通过提问或练习检验学生是否真正理解“意义”",
+                "加分挑战：课堂互动设计"
+              ],
+              "box": {
+                "x": 0.95,
+                "y": 1.8,
+                "w": 11.15,
+                "h": 3.55
+              }
+            },
+            {
+              "id": "PEAU7h_yFaLrzh5WFDRZR",
+              "type": "question",
+              "title": "互动挑战",
+              "text": "如果课堂上要快速检查“意义”是否掌握，你会怎么追问？；小组讨论；课堂互动设计；设计一个和同伴合作完成的小任务。",
+              "items": [],
+              "box": {
+                "x": 0.95,
+                "y": 5.75,
+                "w": 11.15,
+                "h": 0.82
+              }
+            }
+          ],
+          "notes": "小组讨论；理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "lLc4NCghwTALVgtymvshb",
+          "title": "总结与反思",
+          "role": "summary",
+          "variant": "summary",
+          "background": {
+            "type": "solid",
+            "color": "#F8FAFC"
+          },
+          "blocks": [
+            {
+              "id": "zf4hGokqTT5pU9x48Pkvp",
+              "type": "title",
+              "title": "",
+              "text": "总结与反思",
+              "items": [],
+              "box": {
+                "x": 0.8,
+                "y": 0.5,
+                "w": 11.8,
+                "h": 0.9
+              }
+            },
+            {
+              "id": "ckhXV7lR5Ise0JG9R6C-Z",
+              "type": "summaryCards",
+              "title": "",
+              "text": "",
+              "items": [
+                "回顾本课核心概念与关键结论",
+                "梳理应用场景与易错提醒",
+                "布置迁移练习或课后任务"
+              ],
+              "box": {
+                "x": 0.9,
+                "y": 1.8,
+                "w": 11.4,
+                "h": 3.9
+              }
+            },
+            {
+              "id": "8BGr4NnkSVwOit9KiQlIY",
+              "type": "callout",
+              "title": "课后延伸",
+              "text": "围绕本课核心知识点完成巩固练习或迁移应用任务",
+              "items": [],
+              "box": {
+                "x": 0.9,
+                "y": 5.1,
+                "w": 11,
+                "h": 1.2
+              }
+            }
+          ],
+          "notes": "引导学生形成结构化回顾。；理解光合作用条件和过程，并能解释其意义；理解光合作用条件和过程，并能解释其意义"
+        }
+      ],
+      "updatedAt": "2026-04-10T13:25:23.936Z"
+    },
+    "sceneStatus": "ready",
+    "sceneSource": "draft",
+    "sceneUpdatedAt": "2026-04-10T13:25:23.936Z",
+    "sceneVersion": 2,
+    "lastEdit": "",
+    "rag": [
+      {
+        "id": "kb:photosynthesis.md:1",
+        "sourceId": "kb:photosynthesis.md",
+        "sourceType": "knowledge_base",
+        "source": "photosynthesis.md",
+        "score": 15,
+        "content": "光合作用是绿色植物在光能作用下，将二氧化碳和水合成有机物并释放氧气的过程。\n\n# 光合作用",
+        "summary": "光合作用是绿色植物在光能作用下，将二氧化碳和水合成有机物并释放氧气的过程。 # 光合作用"
+      }
+    ],
+    "generation": {
+      "status": "completed",
+      "currentStage": "completed",
+      "statusMessage": "生成完成，共 9 页",
+      "totalSlides": 9,
+      "completedOutlines": 9,
+      "completedSlides": 9,
+      "currentSlideIndex": 8,
+      "outlines": [
+        {
+          "id": "rhAVUYtqcjOVA51rxRmGb",
+          "title": "光合作用",
+          "type": "cover",
+          "bullets": [
+            "初二",
+            "45分钟"
+          ],
+          "notes": "主题：光合作用\n年级：初二\n时长：45分钟\n教学目标：理解光合作用条件和过程，并能解释其意义\n核心知识点：条件；过程；意义\n教学风格：课堂讲解\n互动设计：小组讨论",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "-ldJcX4bdEj0CiIaPxqbN",
+          "title": "目录",
+          "type": "toc",
+          "bullets": [
+            "条件",
+            "过程",
+            "意义"
+          ],
+          "notes": "说明本课学习路径。",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "V1J-ThuYnMDJ_VNRaXJoz",
+          "title": "条件",
+          "type": "content",
+          "bullets": [
+            "条件的核心概念与关键条件",
+            "条件与前后知识点之间的关系",
+            "条件在课堂中的理解抓手与观察点"
+          ],
+          "notes": "理解光合作用条件和过程，并能解释其意义",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "WfbtlQy_BmN0IUyRTwboU",
+          "title": "条件：应用与易错",
+          "type": "content",
+          "bullets": [
+            "围绕“条件”设计一个贴近课堂的应用场景",
+            "梳理学生学习“条件”时最容易混淆的地方",
+            "通过提问或练习检验学生是否真正理解“条件”"
+          ],
+          "notes": "",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "vesvdmF3ZzcgqoVLhDhq0",
+          "title": "过程",
+          "type": "content",
+          "bullets": [
+            "过程的核心概念与关键条件",
+            "过程与前后知识点之间的关系",
+            "过程在课堂中的理解抓手与观察点"
+          ],
+          "notes": "理解光合作用条件和过程，并能解释其意义",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "EDZLpGPWdsDbkpMVTvxUK",
+          "title": "过程：应用与易错",
+          "type": "content",
+          "bullets": [
+            "围绕“过程”设计一个贴近课堂的应用场景",
+            "梳理学生学习“过程”时最容易混淆的地方",
+            "通过提问或练习检验学生是否真正理解“过程”"
+          ],
+          "notes": "",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "eWQWEeUQj9SdUhqZQ-Y1V",
+          "title": "意义",
+          "type": "content",
+          "bullets": [
+            "意义的核心概念与关键条件",
+            "意义与前后知识点之间的关系",
+            "意义在课堂中的理解抓手与观察点"
+          ],
+          "notes": "理解光合作用条件和过程，并能解释其意义",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "BowPw57WamSyRAznAJdHI",
+          "title": "意义：应用与易错",
+          "type": "content",
+          "bullets": [
+            "围绕“意义”设计一个贴近课堂的应用场景",
+            "梳理学生学习“意义”时最容易混淆的地方",
+            "通过提问或练习检验学生是否真正理解“意义”"
+          ],
+          "notes": "小组讨论",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义"
+        },
+        {
+          "id": "lLc4NCghwTALVgtymvshb",
+          "title": "总结与反思",
+          "type": "summary",
+          "bullets": [
+            "回顾本课核心概念与关键结论",
+            "梳理应用场景与易错提醒",
+            "布置迁移练习或课后任务"
+          ],
+          "notes": "引导学生形成结构化回顾。",
+          "teachingGoal": "理解光合作用条件和过程，并能解释其意义"
+        }
+      ],
+      "slideStates": [
+        {
+          "id": "rhAVUYtqcjOVA51rxRmGb",
+          "title": "光合作用",
+          "type": "cover",
+          "status": "completed",
+          "error": "",
+          "updatedAt": "2026-04-10T13:25:23.929Z"
+        },
+        {
+          "id": "-ldJcX4bdEj0CiIaPxqbN",
+          "title": "目录",
+          "type": "toc",
+          "status": "completed",
+          "error": "",
+          "updatedAt": "2026-04-10T13:25:23.929Z"
+        },
+        {
+          "id": "V1J-ThuYnMDJ_VNRaXJoz",
+          "title": "条件",
+          "type": "content",
+          "status": "completed",
+          "error": "",
+          "updatedAt": "2026-04-10T13:25:23.929Z"
+        },
+        {
+          "id": "WfbtlQy_BmN0IUyRTwboU",
+          "title": "条件：应用与易错",
+          "type": "content",
+          "status": "completed",
+          "error": "",
+          "updatedAt": "2026-04-10T13:25:23.932Z"
+        },
+        {
+          "id": "vesvdmF3ZzcgqoVLhDhq0",
+          "title": "过程",
+          "type": "content",
+          "status": "completed",
+          "error": "",
+          "updatedAt": "2026-04-10T13:25:23.933Z"
+        },
+        {
+          "id": "EDZLpGPWdsDbkpMVTvxUK",
+          "title": "过程：应用与易错",
+          "type": "content",
+          "status": "completed",
+          "error": "",
+          "updatedAt": "2026-04-10T13:25:23.934Z"
+        },
+        {
+          "id": "eWQWEeUQj9SdUhqZQ-Y1V",
+          "title": "意义",
+          "type": "content",
+          "status": "completed",
+          "error": "",
+          "updatedAt": "2026-04-10T13:25:23.934Z"
+        },
+        {
+          "id": "BowPw57WamSyRAznAJdHI",
+          "title": "意义：应用与易错",
+          "type": "content",
+          "status": "completed",
+          "error": "",
+          "updatedAt": "2026-04-10T13:25:23.935Z"
+        },
+        {
+          "id": "lLc4NCghwTALVgtymvshb",
+          "title": "总结与反思",
+          "type": "summary",
+          "status": "completed",
+          "error": "",
+          "updatedAt": "2026-04-10T13:25:23.936Z"
+        }
+      ],
+      "designPreset": "corporate",
+      "theme": {
+        "primary": "#1F3B73",
+        "accent": "#4C8BF5",
+        "background": "#F8FAFC",
+        "text": "#0F172A",
+        "font": "Microsoft YaHei"
+      },
+      "layoutHints": [
+        "cover_right_panel",
+        "content_two_column",
+        "summary_cards"
+      ],
+      "lessonPlan": {
+        "goals": "理解光合作用条件和过程，并能解释其意义",
+        "process": [
+          "导入：唤醒已有知识与学习任务",
+          "建构：呈现核心概念与关键条件",
+          "探究：结合现象、案例或实验推进理解",
+          "练习：通过提问或任务检验理解",
+          "总结：回顾要点并迁移应用"
+        ],
+        "methods": "课堂讲解",
+        "activities": "小组讨论",
+        "homework": "围绕本课核心知识点完成巩固练习或迁移应用任务"
+      },
+      "interactionIdea": {
+        "title": "课堂互动设计",
+        "description": "小组讨论"
+      },
+      "startedAt": "2026-04-10T13:24:24.442Z",
+      "updatedAt": "2026-04-10T13:25:23.937Z",
+      "completedAt": "2026-04-10T13:25:23.937Z",
+      "lastError": "",
+      "canResume": false,
+      "sessionEpoch": 2
+    }
+  },
+  "messages": [
+    {
+      "role": "assistant",
+      "text": "PPT 已开始生成并已同步预览。\n主题/章节：光合作用\n年级/学段：初二\n课堂时长：45分钟\n教学目标：理解光合作用条件和过程，并能解释其意义\n核心知识点：条件、过程、意义\n教学风格：课堂讲解\n互动设计：小组讨论\n\n可继续修改内容，或直接导出 PPT。",
+      "ts": 1775827464455
+    },
+    {
+      "role": "assistant",
+      "text": "已继续完成 PPT 生成。\n主题/章节：光合作用\n年级/学段：初二\n课堂时长：45分钟\n教学目标：理解光合作用条件和过程，并能解释其意义\n核心知识点：条件、过程、意义\n教学风格：课堂讲解\n互动设计：小组讨论\n\n可继续修改内容，或直接导出 PPT。",
+      "ts": 1775827523937
+    }
+  ],
+  "updatedAt": "2026-04-10T13:25:23.937Z"
+}

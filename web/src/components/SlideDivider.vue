@@ -2,14 +2,9 @@
   <div class="slide-divider">
     <div class="sd-line"></div>
     <div class="sd-actions">
-      <button class="sd-btn" title="添加空白页" @click="$emit('add-blank')">
+      <button class="sd-btn" title="在这里新增一页" @click="$emit('add-slide')">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </button>
-      <button class="sd-btn" title="AI 生成新页" @click="$emit('add-ai')">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3.5L13 6l-3.5 1.5L8 11 6.5 7.5 3 6l3.5-1.5L8 1z" fill="currentColor"/><path d="M12 10l.75 1.75L14.5 12.5l-1.75.75L12 15l-.75-1.75-1.75-.75 1.75-.75L12 10z" fill="currentColor" opacity=".6"/></svg>
-      </button>
-      <button class="sd-btn" title="更换布局" @click="$emit('change-layout')">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="9" width="12" height="5" rx="1" stroke="currentColor" stroke-width="1.4"/></svg>
+        <span>新增页面</span>
       </button>
     </div>
     <div class="sd-line"></div>
@@ -17,7 +12,7 @@
 </template>
 
 <script setup>
-defineEmits(['add-blank', 'add-ai', 'change-layout']);
+defineEmits(['add-slide']);
 </script>
 
 <style scoped>
@@ -42,9 +37,8 @@ defineEmits(['add-blank', 'add-ai', 'change-layout']);
 
 .sd-actions {
   display: flex;
-  gap: 2px;
   padding: 3px;
-  border-radius: 10px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
@@ -53,14 +47,17 @@ defineEmits(['add-blank', 'add-ai', 'change-layout']);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  gap: 8px;
+  min-width: 110px;
+  height: 34px;
+  padding: 0 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   background: transparent;
   color: #64748b;
   cursor: pointer;
-  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
   transition: background 0.15s, color 0.15s;
 }
 

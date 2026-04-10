@@ -1,0 +1,58 @@
+{
+  "id": "alZ8pYTZH3-Pqz1FXpOm0",
+  "state": {
+    "id": "alZ8pYTZH3-Pqz1FXpOm0",
+    "fields": {
+      "subject": "",
+      "grade": "",
+      "duration": "",
+      "goals": "",
+      "keyPoints": [],
+      "style": "",
+      "interactions": ""
+    },
+    "uploadedFiles": [],
+    "brief": {
+      "rawInputs": [
+        {
+          "id": "pivnHErSl-i5PxNOxfIk4",
+          "source": "user",
+          "text": "你好，我先看看你能做什么",
+          "ts": 1775663048621
+        }
+      ],
+      "mergedPrompt": "你好，我先看看你能做什么",
+      "updatedAt": "2026-04-08T15:44:14.890Z"
+    },
+    "aiDecision": {
+      "nextAction": "ask_more",
+      "showGenerateCTA": false,
+      "ctaLabel": "立即生成 PPT",
+      "ctaReason": "",
+      "updatedAt": "2026-04-08T15:44:14.890Z"
+    },
+    "ready": false,
+    "confirmed": false,
+    "draft": null,
+    "scene": null,
+    "sceneStatus": "idle",
+    "sceneSource": "",
+    "sceneUpdatedAt": "",
+    "sceneVersion": 0,
+    "lastEdit": "",
+    "rag": []
+  },
+  "messages": [
+    {
+      "role": "user",
+      "text": "你好，我先看看你能做什么",
+      "ts": 1775663048620
+    },
+    {
+      "role": "assistant",
+      "text": "你好呀，可以的～我能帮你把一个教学想法一步步整理成可生成的 PPT，比如明确主题、年级、课时、教学目标、重点难点、课堂活动这些；如果你现在只有一句很模糊的想法，我也能陪你一起补全。你可以先随便告诉我一个方向，比如“给七年级上一节光合作用”或者“做一节小学英语颜色认知课”，我就能接着帮你往下推进。",
+      "ts": 1775663054890
+    }
+  ],
+  "updatedAt": "2026-04-08T15:44:14.890Z"
+}

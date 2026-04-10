@@ -34,8 +34,9 @@
       <div class="course-section-title">资料</div>
       <div v-if="files.length" class="course-file-list">
         <div v-for="file in files" :key="file.id" class="course-file-item">
-          <span>{{ file.name }}</span>
-          <small>{{ formatSize(file.size) }}</small>
+          <strong>{{ file.name }}</strong>
+          <small>{{ formatStatus(file.status) }} · {{ formatSize(file.size) }}<template v-if="file.chunkCount"> · {{ file.chunkCount }} 段</template></small>
+          <small>{{ file.parseSummary || '已上传，等待后续处理。' }}</small>
         </div>
       </div>
       <p v-else class="course-empty-text">还没有上传资料，可以在中间对话区拖入文档。</p>
@@ -43,6 +44,22 @@
 
     <div class="course-actions">
       <button class="ghost" type="button" @click="handleReset">重新开始</button>
+      <button
+        v-if="(draft || classroom) && onExport"
+        class="secondary"
+        type="button"
+        @click="handleExportClick"
+      >
+        {{ exportLabel }}
+      </button>
+      <button
+        v-if="draft && onExportDocx"
+        class="secondary"
+        type="button"
+        @click="handleExportDocxClick"
+      >
+        导出教案
+      </button>
       <button class="primary" type="button" :disabled="!canGenerate" @click="handleGenerateClick">{{ generateLabel }}</button>
     </div>
   </section>
@@ -68,6 +85,10 @@ const props = defineProps({
     type: Object,
     default: null
   },
+  classroom: {
+    type: Object,
+    default: null
+  },
   exportLabel: {
     type: String,
     default: '导出PPT'
@@ -89,6 +110,10 @@ const props = defineProps({
     default: null
   },
   onExport: {
+    type: Function,
+    default: null
+  },
+  onExportDocx: {
     type: Function,
     default: null
   },
@@ -119,12 +144,16 @@ const handleReset = () => {
   if (props.onReset) props.onReset();
 };
 
+const handleGenerateClick = () => {
+  if (props.onGenerate) props.onGenerate();
+};
+
 const handleExportClick = () => {
   if (props.onExport) props.onExport();
 };
 
-const handleGenerateClick = () => {
-  if (props.onGenerate) props.onGenerate();
+const handleExportDocxClick = () => {
+  if (props.onExportDocx) props.onExportDocx();
 };
 
 const getFieldValue = (key) => {
@@ -142,6 +171,12 @@ const updateField = (key, value) => {
 const formatSize = (size = 0) => {
   if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
+};
+
+const formatStatus = (status = '') => {
+  if (status === 'parsed') return '已解析';
+  if (status === 'failed') return '解析失败';
+  return '已上传';
 };
 </script>
 
@@ -228,17 +263,20 @@ const formatSize = (size = 0) => {
 }
 
 .course-file-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  gap: 4px;
   padding: 11px 12px;
   border-radius: 8px;
   background: rgba(241, 245, 249, 0.9);
 }
 
-.course-file-item span,
+.course-file-item strong,
 .course-file-item small {
   line-height: 1.45;
+}
+
+.course-file-item strong {
+  font-size: 14px;
 }
 
 .course-file-item small {
